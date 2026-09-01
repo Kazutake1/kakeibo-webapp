@@ -150,13 +150,192 @@
       .quick-actions{grid-template-columns:1fr}.quick-secondary{padding:10px}.mobile-nav button{font-size:14px;padding-top:12px;padding-bottom:11px}
     }
 
+    /* v2.1.2 final theme overrides */
+    /* Light mode: keep the blue v2 UI consistent across transaction/day tables */
+    .table-wrap{background:#fff;border-color:#e3edf8}
+    .data-table th{
+      background:#edf5ff;
+      color:#31547f;
+      border-bottom-color:#dbe8f6;
+    }
+    .data-table td{border-bottom-color:#e8f0f8;background:#fff}
+    .data-table tbody tr:hover td{background:#f5f9ff}
+    .calendar{background:#fff}
+    .cal-table th{
+      background:#edf5ff;
+      color:#31547f;
+      border-color:#d8e6f5;
+    }
+    .cal-table td{border-color:#e2ebf5}
+    .cal-cat{background:#f4f8fd!important;color:#486685}
+    .cal-cell{background:#fff}
+    .cal-cell:hover{background:#f3f8ff}
+
+    /* Make the theme control obvious on desktop/tablet, compact on phone */
+    .theme-toggle{display:inline-flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap}
+    .theme-toggle .theme-label{font-size:12px;font-weight:750}
+
+    /* Dark mode — intentionally after every light-mode rule */
+    body.dark-mode{
+      --bg:#0d1520;
+      --paper:#101a26;
+      --card:#162231;
+      --line:#33465b;
+      --line-soft:#26384c;
+      --header:#101a26;
+      --header2:#1b2a3a;
+      --text:#edf4fc;
+      --muted:#9eb0c6;
+      --accent:#55a8ff;
+      --accent-soft:#183753;
+      --good:#67c79d;
+      --danger:#ff8d92;
+      --warn:#e2b56b;
+      --shadow:0 12px 34px rgba(0,0,0,.25);
+      --ink:#edf4fc;
+      background:#0d1520!important;
+      color:var(--text);
+    }
+    body.dark-mode .app{background:linear-gradient(180deg,#0c1621 0,#101a26 260px,#0d1520 100%)}
+    body.dark-mode .topbar{
+      background:rgba(13,21,32,.94)!important;
+      border-bottom-color:#203247!important;
+      box-shadow:0 6px 22px rgba(0,0,0,.28)!important
+    }
+    body.dark-mode .brand,
+    body.dark-mode .monthlabel{color:#f2f7fd!important}
+    body.dark-mode .topbar .monthnav button{
+      background:#172638!important;
+      border-color:#30465d!important;
+      color:#eaf3fc!important
+    }
+    body.dark-mode .metric,
+    body.dark-mode .card,
+    body.dark-mode .budget-section,
+    body.dark-mode .status-stat,
+    body.dark-mode .mobile-quick-entry,
+    body.dark-mode .mobile-recent,
+    body.dark-mode .table-wrap,
+    body.dark-mode dialog{
+      background:#162231!important;
+      color:#edf4fc!important;
+      border-color:#26384c!important;
+      box-shadow:0 12px 30px rgba(0,0,0,.20)!important;
+    }
+    body.dark-mode .metric .label,
+    body.dark-mode .metric .sub,
+    body.dark-mode .hint,
+    body.dark-mode .field label,
+    body.dark-mode .status-caption,
+    body.dark-mode .budget-watch-title,
+    body.dark-mode .mobile-quick-date,
+    body.dark-mode .recent-main span{color:#9eb0c6!important}
+    body.dark-mode .metric .value,
+    body.dark-mode .card h2,
+    body.dark-mode .budget-section h3,
+    body.dark-mode .row,
+    body.dark-mode .recent-main strong,
+    body.dark-mode .recent-amt{color:#edf4fc!important}
+    body.dark-mode .metric:nth-child(3){
+      background:linear-gradient(145deg,#176fc9,#2f8cf5)!important;
+    }
+    body.dark-mode .card h2{
+      background:#162231!important;
+      border-bottom-color:#26384c!important
+    }
+    body.dark-mode .budget-section h3{
+      background:#1b2a3a!important;
+      border-color:#2b3d52!important
+    }
+    body.dark-mode .budget-section.fixed-only h3{background:#1c3044!important}
+    body.dark-mode .variable-status{
+      background:linear-gradient(180deg,#152434,#12202e)!important;
+      border-color:#26384c!important
+    }
+    body.dark-mode .status-stat{background:#1a2939!important}
+    body.dark-mode .progress,
+    body.dark-mode .variable-status .big-progress{background:#26384c!important}
+    body.dark-mode .field input,
+    body.dark-mode .field select{
+      background:#101c29!important;
+      color:#edf4fc!important;
+      border-color:#33485f!important
+    }
+    body.dark-mode .field input::placeholder{color:#70859d}
+    body.dark-mode .quick-amount input{background:#101c29!important;color:#edf4fc!important}
+    body.dark-mode .secondary{
+      background:#172638!important;
+      color:#eaf3fc!important;
+      border-color:#30465d!important
+    }
+    body.dark-mode .tab{color:#9eb0c6}
+    body.dark-mode .tab.active{
+      background:#1a2939!important;
+      color:#6eb7ff!important;
+      border-color:#31506e!important
+    }
+    body.dark-mode .mobile-nav{
+      background:rgba(13,21,32,.96)!important;
+      border-top-color:#26384c!important;
+      box-shadow:0 -8px 24px rgba(0,0,0,.28)!important
+    }
+    body.dark-mode .mobile-nav button{color:#8fa3bb!important}
+    body.dark-mode .mobile-nav button.active{color:#69b4ff!important}
+    body.dark-mode .mobile-quick-head{
+      background:linear-gradient(135deg,#176fc9,#2f8cf5)!important
+    }
+    body.dark-mode .recent-row{border-bottom-color:#26384c!important}
+    body.dark-mode .recent-icon{background:#173653!important;color:#69b4ff!important}
+
+    /* Transaction detail table */
+    body.dark-mode .data-table th{
+      background:#1b2d40!important;
+      color:#a9c9ec!important;
+      border-bottom-color:#30475f!important
+    }
+    body.dark-mode .data-table td{
+      background:#162231!important;
+      color:#e8f1fb!important;
+      border-bottom-color:#26384c!important
+    }
+    body.dark-mode .data-table tbody tr:hover td{background:#1b2a3a!important}
+
+    /* Daily table */
+    body.dark-mode .calendar{background:#162231!important}
+    body.dark-mode .cal-table th{
+      background:#1b2d40!important;
+      color:#a9c9ec!important;
+      border-color:#30475f!important
+    }
+    body.dark-mode .cal-table td{border-color:#2a3d52!important}
+    body.dark-mode .cal-cat{
+      background:#1a2939!important;
+      color:#a9bdd4!important
+    }
+    body.dark-mode .cal-cell{
+      background:#162231!important;
+      color:#e8f1fb!important
+    }
+    body.dark-mode .cal-cell:hover{background:#1e3042!important}
+    body.dark-mode .sat{color:#76b9ff!important}
+    body.dark-mode .sun{color:#ff9aa0!important}
+
+    body.dark-mode .donut-legend-name{color:#dbe9f8!important}
+    body.dark-mode .donut-legend-pct{color:#9eb0c6!important}
+    body.dark-mode .donut-legend-amt{color:#78bcff!important}
+
+    @media(max-width:700px){
+      .theme-toggle .theme-label{display:none}
+      .theme-toggle{min-width:42px;padding-left:10px!important;padding-right:10px!important}
+    }
+
   </style>
 </head>
 <body>
 <div class="app">
   <header class="topbar"><div class="topbar-inner">
     <div class="brand">家計簿</div>
-    <div class="monthnav"><button id="prevMonth">‹</button><div class="monthlabel" id="monthLabel"></div><button id="nextMonth">›</button><button class="theme-toggle" id="themeToggle" aria-label="表示モード切替">☾</button><button class="ghost" id="todayBtn">今月</button></div>
+    <div class="monthnav"><button id="prevMonth">‹</button><div class="monthlabel" id="monthLabel"></div><button id="nextMonth">›</button><button class="theme-toggle" id="themeToggle" aria-label="ダークモードに切替"><span class="theme-icon">☾</span><span class="theme-label">ダーク</span></button><button class="ghost" id="todayBtn">今月</button></div>
   </div></header>
 
   <main class="container">
@@ -345,7 +524,10 @@ function applyTheme(theme){
   document.body.classList.toggle('dark-mode',dark);
   const btn=document.getElementById('themeToggle');
   if(btn){
-    btn.textContent=dark?'☀︎':'☾';
+    const icon=btn.querySelector('.theme-icon');
+    const label=btn.querySelector('.theme-label');
+    if(icon) icon.textContent=dark?'☀︎':'☾';
+    if(label) label.textContent=dark?'ライト':'ダーク';
     btn.title=dark?'ライトモードに切替':'ダークモードに切替';
     btn.setAttribute('aria-label',btn.title);
   }
