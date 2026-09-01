@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#2f3a36" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="家計簿" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <title>家計簿アプリ</title>
+  <style>
+    :root{
+      --bg:#f3f1ec; --paper:#fbfaf6; --card:#ffffff; --line:#d8d3c8; --line-soft:#ebe7df;
+      --header:#2f3a36; --header2:#ece9e1; --text:#202724; --muted:#69716d; --accent:#536d64;
+      --accent-soft:#e6ece9; --good:#4f7566; --danger:#a45d56; --warn:#9a7b4f;
+      --shadow:0 4px 16px rgba(31,39,35,.055); --radius:12px; --ink:#202724;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;-webkit-font-smoothing:antialiased}
+    button,input,select{font:inherit} button{cursor:pointer}
+    .app{min-height:100dvh;padding-bottom:90px}
+    .topbar{position:sticky;top:0;z-index:20;background:rgba(47,58,54,.96);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.08)}
+    .topbar-inner{max-width:1500px;margin:auto;padding:calc(11px + env(safe-area-inset-top)) 18px 11px;display:flex;gap:12px;align-items:center;justify-content:space-between}
+    .brand{font-size:22px;font-weight:760;letter-spacing:.08em;color:#f7f5ef}.brand::before{content:"▦";font-size:14px;margin-right:9px;color:#cbd6d1}
+    .monthnav{display:flex;align-items:center;gap:8px}.monthnav button,.ghost{border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 12px;color:var(--ink)}
+    .topbar .monthnav button{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.18);color:#f7f5ef}.topbar .monthnav button:hover{background:rgba(255,255,255,.14)}
+    .monthlabel{font-weight:720;min-width:110px;text-align:center;color:#f7f5ef;font-variant-numeric:tabular-nums}.container{max-width:1500px;margin:18px auto;padding:0 16px}
+    .summary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:14px}.metric{background:var(--card);border:1px solid var(--line-soft);border-radius:var(--radius);padding:15px 16px;box-shadow:var(--shadow);position:relative}
+    .metric .label{font-size:12px;color:var(--muted);font-weight:650;letter-spacing:.03em}.metric .value{font-size:24px;font-weight:780;margin-top:5px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}.metric .sub{font-size:11px;color:var(--muted);margin-top:5px}.metric:nth-child(3){border-color:#cbd8d2;background:#fbfdfc}
+    .grid{display:grid;grid-template-columns:1.25fr 1fr;gap:14px}.card{background:var(--card);border:1px solid var(--line-soft);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}.card h2{margin:0;padding:12px 15px;background:#f7f5f0;border-bottom:1px solid var(--line-soft);color:var(--ink);font-size:15px;letter-spacing:.02em;font-weight:750}
+    .card-body{padding:13px}.budget-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.budget-section{border:1px solid var(--line-soft);border-radius:10px;overflow:hidden;background:#fff}.budget-section h3{margin:0;background:var(--header2);padding:9px 10px;font-size:13px;color:#35403b;border-bottom:1px solid #ded9cf;font-weight:750}
+    .budget-section.fixed-only{border-color:#cfd8d4;background:#fbfcfb}.budget-section.fixed-only h3{background:#e7edea}.rows{padding:4px 9px}.row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;padding:8px 2px;border-bottom:1px solid var(--line-soft);font-size:13px}.row:last-child{border-bottom:0}.row strong{font-variant-numeric:tabular-nums;white-space:nowrap}.row.total{font-weight:700;background:#faf9f6;margin:2px -9px -4px;padding:9px 11px}.budget-pair{display:flex;align-items:baseline;gap:5px}.actual{font-weight:760}.budget-ref{font-size:11px;color:var(--muted);font-weight:500}.fixed-budget{color:#355449;font-weight:780}.neg{color:var(--danger)}.pos{color:var(--good)}
+    .progress{height:5px;background:#ece9e2;border-radius:999px;overflow:hidden;margin-top:6px}.progress>span{display:block;height:100%;background:var(--accent);border-radius:999px}.progress>span.over{background:var(--danger)}
+    .variable-status{padding:14px 15px 13px;border-bottom:1px solid var(--line-soft);background:#fcfbf8}.variable-status-top{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.status-stat{padding:9px 10px;border:1px solid var(--line-soft);border-radius:9px;background:#fff}.status-stat .k{font-size:11px;color:var(--muted);font-weight:650}.status-stat .v{margin-top:3px;font-size:17px;font-weight:780;font-variant-numeric:tabular-nums;white-space:nowrap}.status-stat.remaining .v{color:#355d50}.variable-status .big-progress{height:8px;margin-top:11px;background:#ebe8e1;border-radius:999px;overflow:hidden}.variable-status .big-progress span{display:block;height:100%;background:var(--accent);border-radius:999px}.variable-status .big-progress span.over{background:var(--danger)}.status-caption{display:flex;justify-content:space-between;gap:8px;margin-top:6px;font-size:11px;color:var(--muted)}.budget-watch{margin-top:11px;padding-top:10px;border-top:1px dashed #ddd8cf}.budget-watch-title{font-size:11px;color:var(--muted);font-weight:700;margin-bottom:5px}.budget-watch-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:4px 0;font-size:12px}.budget-watch-row strong{font-variant-numeric:tabular-nums}.budget-watch-row.over strong{color:var(--danger)}
+    .canvas-wrap{height:250px;position:relative}.canvas-wrap canvas{width:100%;height:100%}.legend{display:flex;flex-wrap:wrap;gap:8px 12px;margin-top:8px;font-size:12px;color:var(--muted)}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+    .toolbar{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}.primary{border:1px solid #486058;background:var(--accent);color:#fff;border-radius:9px;padding:10px 14px;font-weight:720;box-shadow:0 1px 2px rgba(0,0,0,.05)}.primary:hover{filter:brightness(.96)}.secondary{border:1px solid var(--line);background:#fff;border-radius:9px;padding:10px 14px;color:var(--ink)}.danger{border:1px solid #d8bbb7;background:#fff8f7;color:#8f4d47;border-radius:9px;padding:10px 14px}
+    .tabs{display:flex;gap:6px;overflow:auto;padding:0 0 10px}.tab{white-space:nowrap;border:1px solid transparent;background:transparent;border-radius:9px;padding:8px 13px;color:#626a66}.tab.active{background:#fff;color:#2f3a36;border-color:var(--line-soft);box-shadow:0 1px 4px rgba(0,0,0,.04);font-weight:700}
+    .panel{display:none}.panel.active{display:block}.table-wrap{overflow:auto;border:1px solid var(--line-soft);border-radius:10px;background:#fff}.data-table{border-collapse:collapse;width:100%;min-width:780px}.data-table th,.data-table td{border-bottom:1px solid var(--line-soft);padding:10px;text-align:left;font-size:13px}.data-table th{background:#f4f2ed;color:#4b5550;position:sticky;top:0;z-index:1;font-weight:700}.data-table tbody tr:hover{background:#fafbf9}.data-table td.amount{text-align:right;font-variant-numeric:tabular-nums;font-weight:650}.empty{text-align:center;color:var(--muted);padding:30px}
+    .calendar{overflow:auto;background:#fff}.cal-table{border-collapse:collapse;width:100%;min-width:1000px}.cal-table th,.cal-table td{border:1px solid #ddd9d1;padding:4px;text-align:center}.cal-table th{background:#f1efe9;color:#44504a}.cal-cat{font-size:11px;text-align:left!important;background:#f7f5f0}.cal-cell{min-width:85px;height:34px;font-size:12px;vertical-align:top;background:#fff}.cal-cell:hover{background:#f2f6f4}.cal-cell .amt{font-weight:700}.sat{color:#58718a}.sun{color:#a45d56}
+    .form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.field{display:flex;flex-direction:column;gap:5px}.field label{font-size:12px;color:var(--muted);font-weight:600}.field input,.field select{border:1px solid var(--line);border-radius:9px;padding:10px;background:#fff;color:var(--text);outline:none}.field input:focus,.field select:focus{border-color:#7d948b;box-shadow:0 0 0 3px rgba(83,109,100,.12)}.full{grid-column:1/-1}
+    dialog{border:1px solid #d3cec4;border-radius:13px;padding:0;max-width:720px;width:min(94vw,720px);box-shadow:0 30px 80px rgba(30,36,33,.25);background:#fff}dialog::backdrop{background:rgba(28,34,31,.38)}.dialog-head{background:#2f3a36;color:#fff;padding:14px 16px;font-weight:750}.dialog-body{padding:16px}.dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+    .mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:30;background:rgba(255,255,255,.96);backdrop-filter:blur(14px);border-top:1px solid var(--line-soft);padding:6px 6px calc(6px + env(safe-area-inset-bottom));box-shadow:0 -4px 16px rgba(31,39,35,.06)}.mobile-nav button{flex:1;border:0;background:transparent;padding:8px 4px;font-size:11px;color:var(--muted)}.mobile-nav button.active{color:#3f5f54;font-weight:800}
+    .settings-box{display:grid;grid-template-columns:1fr 1fr;gap:12px}.hint{font-size:12px;color:var(--muted);line-height:1.7}.pill{display:inline-block;padding:3px 7px;border-radius:999px;background:var(--accent-soft);color:#496158;font-size:11px;border:1px solid #d6e0dc}
+    .item-manager{margin-top:16px;border-top:1px solid var(--line-soft);padding-top:14px}.item-manager-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}.item-manager-head h3{margin:0;font-size:14px}.item-add{display:grid;grid-template-columns:180px 1fr auto;gap:8px;align-items:end;margin-bottom:12px}.item-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.item-chip{display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid var(--line-soft);background:#fff;border-radius:9px;padding:8px 9px;font-size:13px}.item-chip-actions{display:flex;align-items:center;gap:4px}.item-chip button{border:0;background:transparent;cursor:pointer;padding:4px 7px;font-size:12px;border-radius:6px}.item-chip .edit-item{color:var(--accent)}.item-chip .edit-item:hover{background:#eef3ef}.item-chip .delete-item{color:var(--danger)}.item-chip .delete-item:hover{background:#f8eeee}.manager-note{font-size:11px;color:var(--muted);margin-top:8px}
+    @media (min-width:1001px){
+      .weekly-card{display:flex;flex-direction:column;height:100%}
+      .weekly-card .variable-status{padding:20px 18px 18px}
+      .weekly-card .variable-status-top{gap:11px}
+      .weekly-card .status-stat{padding:14px 12px;min-height:76px;display:flex;flex-direction:column;justify-content:center}
+      .weekly-card .status-stat .v{font-size:20px;margin-top:6px}
+      .weekly-card .big-progress{height:10px;margin-top:16px}
+      .weekly-card .status-caption{margin-top:8px;font-size:12px}
+      .weekly-card .budget-watch{margin-top:16px;padding-top:14px}
+      .weekly-card .budget-watch-title{font-size:12px;margin-bottom:7px}
+      .weekly-card .budget-watch-row{padding:7px 1px;font-size:13px}
+      .weekly-chart-body{display:flex;flex:1;min-height:0;padding:16px 15px 15px}
+      .weekly-canvas{height:auto;min-height:300px;flex:1}
+    }
+    @media (max-width:1000px){.summary{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}.budget-grid{grid-template-columns:repeat(2,1fr)}}
+    @media (max-width:700px){.variable-status-top{grid-template-columns:1fr 1fr}.status-stat:last-child{grid-column:1/-1}.item-add{grid-template-columns:1fr}.item-list{grid-template-columns:1fr}.topbar-inner{padding-left:12px;padding-right:12px}.brand{font-size:19px}.summary{grid-template-columns:1fr 1fr;gap:8px}.metric{padding:12px}.metric .value{font-size:19px}.budget-grid{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.desktop-tabs{display:none}.mobile-nav{display:flex}.container{padding:0 10px;margin-top:12px}.settings-box{grid-template-columns:1fr}.monthnav .ghost{display:none}.row{font-size:12px}.card h2{font-size:14px}}
+  </style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar"><div class="topbar-inner">
+    <div class="brand">家計簿</div>
+    <div class="monthnav"><button id="prevMonth">‹</button><div class="monthlabel" id="monthLabel"></div><button id="nextMonth">›</button><button class="ghost" id="todayBtn">今月</button></div>
+  </div></header>
+
+  <main class="container">
+    <div class="tabs desktop-tabs" id="tabs"></div>
+
+    <section class="panel active" data-panel="dashboard">
+      <div class="summary" id="summaryCards"></div>
+      <div class="toolbar"><button class="primary" id="addTxBtn">＋ 収支を追加</button><button class="secondary" id="addBudgetBtn">予算を編集</button></div>
+      <div class="grid">
+        <div class="card"><h2>月間予算と利用状況</h2><div class="card-body"><div class="budget-grid" id="budgetOverview"></div></div></div>
+        <div class="card weekly-card"><h2>変動費 週間推移</h2><div id="variableStatus" class="variable-status"></div><div class="card-body weekly-chart-body"><div class="canvas-wrap weekly-canvas"><canvas id="weeklyChart"></canvas></div></div></div>
+        <div class="card"><h2>支出構成</h2><div class="card-body"><div class="canvas-wrap"><canvas id="donutChart"></canvas><div class="legend" id="donutLegend"></div></div></div></div>
+        <div class="card"><h2>変動費カテゴリ</h2><div class="card-body"><div class="canvas-wrap"><canvas id="variableDonut"></canvas><div class="legend" id="variableLegend"></div></div></div></div>
+      </div>
+    </section>
+
+    <section class="panel" data-panel="transactions">
+      <div class="toolbar"><button class="primary" id="addTxBtn2">＋ 収支を追加</button></div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>日付</th><th>種別</th><th>カテゴリ</th><th>項目</th><th>メモ</th><th style="text-align:right">金額</th><th></th></tr></thead><tbody id="txBody"></tbody></table></div>
+    </section>
+
+    <section class="panel" data-panel="calendar">
+      <div class="card"><h2>変動費 日別入力表</h2><div class="card-body calendar" id="calendarWrap"></div></div>
+    </section>
+
+    <section class="panel" data-panel="budget">
+      <div class="card"><h2>予算設定</h2><div class="card-body" id="budgetEditor"></div></div>
+      <div class="card"><h2>項目管理</h2><div class="card-body">
+        <p class="hint">収入・固定費・変動費などの項目を自由に追加・編集・削除できます。項目名を編集すると、過去の収支データにも新しい名前が反映されます。</p>
+        <div class="item-add">
+          <div class="field"><label>種別</label><select id="itemType"></select></div>
+          <div class="field"><label>新しい項目名</label><input id="newItemName" placeholder="例：電気代"></div>
+          <button class="primary" id="addItemBtn">＋ 項目を追加</button>
+        </div>
+        <div class="item-list" id="itemList"></div>
+        <div class="manager-note">※ 「編集」は過去の収支・各月の予算も新しい項目名へまとめて変更します。「削除」は今後の入力候補と予算設定から外れますが、過去の収支は残ります。</div>
+      </div></div>
+    </section>
+
+    <section class="panel" data-panel="settings">
+      <div class="settings-box">
+        <div class="card"><h2>データ管理</h2><div class="card-body"><p class="hint">この版は端末内に保存します。Safari/Chromeで同じURLを開けば使えますが、端末間の自動同期はまだ行いません。</p><div class="toolbar"><button class="secondary" id="exportBtn">JSONを書き出す</button><label class="secondary" style="cursor:pointer">JSONを読み込む<input id="importInput" type="file" accept="application/json" hidden></label><button class="danger" id="resetBtn">データ初期化</button></div></div></div>
+        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span></div></div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="mobile-nav" id="mobileNav"></nav>
+</div>
+
+<dialog id="txDialog"><div class="dialog-head" id="txDialogTitle">収支を追加</div><div class="dialog-body">
+  <form id="txForm"><input type="hidden" id="txId"><div class="form-grid">
+    <div class="field"><label>日付</label><input type="date" id="txDate" required></div>
+    <div class="field"><label>種別</label><select id="txType"></select></div>
+    <div class="field"><label>カテゴリ</label><select id="txCategory"></select></div>
+    <div class="field"><label>項目</label><input id="txItem" placeholder="例：セブンイレブン" required></div>
+    <div class="field"><label>金額</label><input type="text" id="txAmount" inputmode="decimal" autocomplete="off" placeholder="例：680+1250+320" required><div class="hint" id="amountCalcHint">複数回の会計は + - × ÷ ( ) を使って入力できます</div></div>
+    <div class="field full"><label>メモ</label><input id="txMemo" placeholder="任意"></div>
+  </div><div class="dialog-actions"><button type="button" class="secondary" id="txCancel">キャンセル</button><button class="primary">保存</button></div></form>
+</div></dialog>
+
+<dialog id="budgetDialog"><div class="dialog-head">予算を編集</div><div class="dialog-body"><div id="budgetDialogBody"></div><div class="dialog-actions"><button class="secondary" id="budgetCancel">キャンセル</button><button class="primary" id="budgetSave">保存</button></div></div></dialog>
+
+<script>
+const TYPES = [
+  {key:'income',label:'収入'}, {key:'tax',label:'社会保険・税金'}, {key:'saving',label:'貯蓄'}, {key:'self',label:'自己投資'},
+  {key:'fixed',label:'固定費'}, {key:'special',label:'特別費'}, {key:'variable',label:'変動費'}
+];
+const DEFAULT_CATS = {
+  income:['給与','ボーナス','配当収入'],
+  tax:['健康保険','厚生年金','所得税','地方税'],
+  saving:['NISA','預金','その他'],
+  self:['書籍','学習','資格','その他'],
+  fixed:['生命保険','住宅ローン','通信費','Youtube','iCloud+','MoneyForward'],
+  special:['特別支出'],
+  variable:['セブンイレブン','ローソン','ファミリーマート','スギ薬局','ゲンキー','その他','外食','インターネット','ネット通販','その他2']
+};
+const DEFAULT_BUDGET = {income:{},tax:{},saving:{NISA:30000},self:{},fixed:{生命保険:25646,住宅ローン:60000,通信費:2181,Youtube:1280,'iCloud+':150,MoneyForward:550},special:{},variable:{セブンイレブン:20000,ローソン:0,ファミリーマート:0,スギ薬局:15000,ゲンキー:15000,その他:0,外食:0,インターネット:0,ネット通販:0,その他2:0}};
+const tabs=[['dashboard','概要'],['transactions','収支'],['calendar','日別'],['budget','予算'],['settings','設定']];
+let current = new Date(); current.setDate(1);
+let state = loadState();
+function loadState(){try{const d=JSON.parse(localStorage.getItem('kakeibo-v1'))||{};return normalizeState(d)}catch{return normalizeState({})}}
+function normalizeState(d){d.transactions=Array.isArray(d.transactions)?d.transactions:[];d.budgets=d.budgets&&typeof d.budgets==='object'?d.budgets:{};if(!d.categories||typeof d.categories!=='object')d.categories=deepCopy(DEFAULT_CATS);for(const t of TYPES){if(!Array.isArray(d.categories[t.key]))d.categories[t.key]=deepCopy(DEFAULT_CATS[t.key]||[])}return d}
+function catsFor(type){return state.categories?.[type]||[]}
+function saveState(){localStorage.setItem('kakeibo-v1',JSON.stringify(state))}
+function ym(d=current){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
+function money(n){return '¥'+Math.round(n||0).toLocaleString('ja-JP')}
+function deepCopy(o){return JSON.parse(JSON.stringify(o))}
+function getBudget(){let k=ym();if(!state.budgets[k])state.budgets[k]={};for(const t of TYPES){if(!state.budgets[k][t.key])state.budgets[k][t.key]={};for(const c of catsFor(t.key)){if(!(c in state.budgets[k][t.key]))state.budgets[k][t.key][c]=DEFAULT_BUDGET[t.key]?.[c]||0}for(const c of Object.keys(state.budgets[k][t.key])){if(!catsFor(t.key).includes(c))delete state.budgets[k][t.key][c]}}return state.budgets[k]}
+function monthTx(){let k=ym(); return state.transactions.filter(t=>t.date.startsWith(k))}
+function sum(arr){return arr.reduce((a,b)=>a+(+b||0),0)}
+function typeSum(type){return sum(monthTx().filter(t=>t.type===type).map(t=>t.amount))}
+function budgetTypeSum(type){return sum(Object.values(getBudget()[type]||{}))}
+function initNav(){for(const [k,l] of tabs){const b=document.createElement('button');b.className='tab'+(k==='dashboard'?' active':'');b.textContent=l;b.dataset.tab=k;document.querySelector('#tabs').appendChild(b);const m=b.cloneNode(true);m.className=k==='dashboard'?'active':'';m.dataset.tab=k;document.querySelector('#mobileNav').appendChild(m)} document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>showPanel(b.dataset.tab))}
+function showPanel(k){document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.dataset.panel===k));document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===k)); if(k==='calendar') renderCalendar(); if(k==='budget'){renderBudgetEditor();renderItemManager();}}
+function render(){document.querySelector('#monthLabel').textContent=`${current.getFullYear()}年${current.getMonth()+1}月`;renderSummary();renderBudgetOverview();renderVariableStatus();renderTransactions();renderCalendar();renderBudgetEditor();renderItemManager();requestAnimationFrame(()=>requestAnimationFrame(drawCharts))}
+function renderSummary(){const income=typeSum('income'), expense=sum(['tax','saving','self','fixed','special','variable'].map(typeSum)); const fixedBudget=budgetTypeSum('fixed'), variable=typeSum('variable'); const budgetVar=budgetTypeSum('variable'); const data=[['収入',income,'当月の実績'],['支出',expense,'貯蓄・投資を含む'],['収支',income-expense,income-expense>=0?'黒字':'赤字'],['固定費',fixedBudget,'毎月の予算'],['変動費',variable,`予算残り ${money(budgetVar-variable)}`]]; document.querySelector('#summaryCards').innerHTML=data.map(([l,v,s])=>`<div class="metric"><div class="label">${l}</div><div class="value ${l==='収支'?(v>=0?'pos':'neg'):''}">${money(v)}</div><div class="sub">${s}</div></div>`).join('')}
+function renderBudgetOverview(){const root=document.querySelector('#budgetOverview');const b=getBudget();root.innerHTML=TYPES.map(t=>{let actual=typeSum(t.key), bud=budgetTypeSum(t.key);let cats=Object.keys(b[t.key]||{}).slice(0,8);const variable=t.key==='variable';return `<div class="budget-section"><h3>${t.label}${variable?' <span style="font-size:10px;font-weight:600;color:#63736c">・実際の費用 / 予算</span>':' <span style="font-size:10px;font-weight:600;color:#63736c">・実際の費用</span>'}</h3><div class="rows">${cats.map(c=>{let a=sum(monthTx().filter(x=>x.type===t.key&&x.category===c).map(x=>x.amount));if(!variable)return `<div class="row"><span>${escapeHtml(c)}</span><strong class="actual">${money(a)}</strong></div>`;let pct=b[t.key][c]>0?Math.min(100,Math.round(a/b[t.key][c]*100)):0;let over=b[t.key][c]>0&&a>b[t.key][c];return `<div class="row"><span>${escapeHtml(c)}${b[t.key][c]>0?`<div class="progress"><span class="${over?'over':''}" style="width:${pct}%"></span></div>`:''}</span><strong class="budget-pair"><span class="actual ${over?'neg':''}">${money(a)}</span><span class="budget-ref">/ ${money(b[t.key][c])}</span></strong></div>`}).join('')}<div class="row total"><b>合計</b><strong>${variable?`<span class="budget-pair"><span class="actual">${money(actual)}</span><span class="budget-ref">/ ${money(bud)}</span></span>`:`<span class="actual">${money(actual)}</span>`}</strong></div></div></div>`}).join('')}
+function renderVariableStatus(){
+  const root=document.getElementById('variableStatus'); if(!root)return;
+  const budget=getBudget().variable||{}, usedByCat=Object.fromEntries(catsFor('variable').map(c=>[c,sum(monthTx().filter(t=>t.type==='variable'&&t.category===c).map(t=>t.amount))]));
+  const budgetTotal=budgetTypeSum('variable'), used=typeSum('variable'), remaining=budgetTotal-used;
+  const pct=budgetTotal>0?Math.round(used/budgetTotal*100):0, width=Math.min(100,Math.max(0,pct));
+  const now=new Date(), y=current.getFullYear(), m=current.getMonth(), daysInMonth=new Date(y,m+1,0).getDate();
+  const isCurrent=y===now.getFullYear()&&m===now.getMonth(), isPast=new Date(y,m+1,0)<new Date(now.getFullYear(),now.getMonth(),now.getDate()), isFuture=new Date(y,m,1)>new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const daysLeft=isCurrent?Math.max(1,daysInMonth-now.getDate()+1):(isFuture?daysInMonth:0);
+  const daily=daysLeft>0?Math.max(0,remaining)/daysLeft:0;
+  const watched=catsFor('variable').map(c=>({name:c,budget:+budget[c]||0,used:+usedByCat[c]||0,remaining:(+budget[c]||0)-(+usedByCat[c]||0)})).filter(x=>x.budget>0).sort((a,b)=>a.remaining-b.remaining).slice(0,3);
+  const daysText=isCurrent?`月末まで ${daysLeft}日`:(isFuture?`対象月 ${daysInMonth}日間`:'対象月は終了');
+  root.innerHTML=`<div class="variable-status-top"><div class="status-stat"><div class="k">予算</div><div class="v">${money(budgetTotal)}</div></div><div class="status-stat"><div class="k">使用済</div><div class="v">${money(used)}</div></div><div class="status-stat remaining"><div class="k">残り</div><div class="v ${remaining<0?'neg':''}">${money(remaining)}</div></div></div><div class="big-progress"><span class="${pct>100?'over':''}" style="width:${width}%"></span></div><div class="status-caption"><span>${budgetTotal>0?`予算消化 ${pct}%`:'予算未設定'}</span><span>${daysText}${daysLeft>0?` ・ 1日目安 ${money(daily)}`:''}</span></div>${watched.length?`<div class="budget-watch"><div class="budget-watch-title">予算残額が少ない項目</div>${watched.map(x=>`<div class="budget-watch-row ${x.remaining<0?'over':''}"><span>${escapeHtml(x.name)}</span><strong>${x.remaining<0?'超過 ':'残り '}${money(Math.abs(x.remaining))}</strong></div>`).join('')}</div>`:''}`;
+}
+function renderTransactions(){const rows=monthTx().sort((a,b)=>b.date.localeCompare(a.date));document.querySelector('#txBody').innerHTML=rows.length?rows.map(t=>`<tr><td>${t.date}</td><td>${TYPES.find(x=>x.key===t.type)?.label||t.type}</td><td>${t.category}</td><td>${escapeHtml(t.item)}</td><td>${escapeHtml(t.memo||'')}</td><td class="amount">${money(t.amount)}</td><td><button class="ghost" onclick="editTx('${t.id}')">編集</button></td></tr>`).join(''):`<tr><td colspan="7" class="empty">この月のデータはありません</td></tr>`}
+
+function normalizeExpression(s){return String(s||'').trim().replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0)).replace(/[，,￥¥円\s]/g,'').replace(/[＋]/g,'+').replace(/[－−ー]/g,'-').replace(/[×＊]/g,'*').replace(/[÷／]/g,'/').replace(/[（]/g,'(').replace(/[）]/g,')').replace(/[＝=]$/,'')}
+function evaluateAmountExpression(raw){const expr=normalizeExpression(raw);if(!expr)return {ok:false,value:0};if(!/^[0-9+\-*/().]+$/.test(expr))return {ok:false,value:0};try{const value=Function('"use strict";return ('+expr+')')();if(typeof value!=='number'||!Number.isFinite(value)||value<0)return {ok:false,value:0};return {ok:true,value:Math.round(value)}}catch{return {ok:false,value:0}}}
+function updateAmountPreview(){const raw=txAmount.value;const r=evaluateAmountExpression(raw);if(!raw.trim()){amountCalcHint.textContent='複数回の会計は + - × ÷ ( ) を使って入力できます';amountCalcHint.className='hint';return}if(r.ok){amountCalcHint.textContent='合計 '+money(r.value);amountCalcHint.className='hint pos'}else{amountCalcHint.textContent='計算式を確認してください';amountCalcHint.className='hint neg'}}
+
+function escapeHtml(s){return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+function encodeArg(s){return encodeURIComponent(String(s)).replace(/'/g,'%27')}
+function populateType(){txType.innerHTML=TYPES.map(t=>`<option value="${t.key}">${t.label}</option>`).join(''); updateCats()}
+function updateCats(extra=''){let arr=catsFor(txType.value);let bud=getBudget()[txType.value]||{};let cats=[...new Set([...arr,...Object.keys(bud)])];if(extra&&!cats.includes(extra))cats.push(extra);txCategory.innerHTML=cats.map(c=>`<option>${escapeHtml(c)}</option>`).join('')}
+function openTx(id=null){txId.value=id||'';txDialogTitle.textContent=id?'収支を編集':'収支を追加'; if(id){let t=state.transactions.find(x=>x.id===id);txDate.value=t.date;txType.value=t.type;updateCats(t.category);txCategory.value=t.category;txItem.value=t.item;txAmount.value=t.amountExpression||t.amount;txMemo.value=t.memo||'';updateAmountPreview()}else{txDate.value=ym()+'-'+String(Math.min(new Date().getDate(),new Date(current.getFullYear(),current.getMonth()+1,0).getDate())).padStart(2,'0');txType.value='variable';updateCats();txItem.value='';txAmount.value='';txMemo.value='';updateAmountPreview()} txDialog.showModal()}
+window.editTx=openTx;
+txForm.onsubmit=e=>{e.preventDefault();const calc=evaluateAmountExpression(txAmount.value);if(!calc.ok){updateAmountPreview();txAmount.focus();return}let obj={id:txId.value||crypto.randomUUID(),date:txDate.value,type:txType.value,category:txCategory.value,item:txItem.value.trim(),amount:calc.value,amountExpression:txAmount.value.trim(),memo:txMemo.value.trim()};let i=state.transactions.findIndex(x=>x.id===obj.id);if(i>=0)state.transactions[i]=obj;else state.transactions.push(obj);saveState();txDialog.close();render()};
+function renderBudgetEditor(){const b=getBudget();budgetEditor.innerHTML=TYPES.map(t=>`<div class="budget-section" style="margin-bottom:10px"><h3>${t.label}</h3><div class="rows">${catsFor(t.key).map(c=>`<div class="row"><span>${escapeHtml(c)}</span><strong>${money(b[t.key]?.[c]||0)}</strong></div>`).join('')||'<div class="empty">項目がありません</div>'}</div></div>`).join('')+`<button class="primary" onclick="openBudget()">予算を編集</button>`}
+window.openBudget=()=>{const b=getBudget();budgetDialogBody.innerHTML=TYPES.map(t=>`<h3>${t.label}</h3><div class="form-grid">${catsFor(t.key).map(c=>`<div class="field"><label>${escapeHtml(c)}</label><input type="number" min="0" data-budget-type="${t.key}" data-budget-cat="${escapeHtml(c)}" value="${b[t.key]?.[c]||0}"></div>`).join('')||'<div class="hint">項目がありません</div>'}</div>`).join('');budgetDialog.showModal()};
+function saveBudget(){let b=getBudget();document.querySelectorAll('[data-budget-type]').forEach(i=>{b[i.dataset.budgetType][i.dataset.budgetCat]=+i.value||0});saveState();budgetDialog.close();render()}
+function renderCalendar(){const cats=catsFor('variable'); const y=current.getFullYear(),m=current.getMonth();const days=new Date(y,m+1,0).getDate(), offset=(new Date(y,m,1).getDay()+6)%7;let weeks=Math.ceil((offset+days)/7);let html='<table class="cal-table">';for(let w=0;w<weeks;w++){let ds=[];for(let c=0;c<7;c++){let d=w*7+c-offset+1;ds.push(d>=1&&d<=days?d:null)}html+=`<tr><th class="cal-cat">項目</th>${ds.map((d,c)=>`<th class="${c===5?'sat':c===6?'sun':''}">${d||''}</th>`).join('')}<th>合計</th></tr>`;for(const cat of cats){html+=`<tr><td class="cal-cat">${escapeHtml(cat)}</td>${ds.map(d=>{if(!d)return '<td></td>';let date=ym()+'-'+String(d).padStart(2,'0');let a=sum(monthTx().filter(t=>t.type==='variable'&&t.category===cat&&t.date===date).map(t=>t.amount));return `<td class="cal-cell" onclick="quickAdd('${date}','${encodeArg(cat)}')">${a?`<span class="amt">${money(a)}</span>`:''}</td>`}).join('')}<td class="cal-cell"><b>${money(sum(monthTx().filter(t=>t.type==='variable'&&t.category===cat&&ds.includes(+t.date.slice(-2))).map(t=>t.amount)))}</b></td></tr>`}html+=`<tr><td class="cal-cat"><b>合計</b></td>${ds.map(d=>{if(!d)return '<td></td>';let date=ym()+'-'+String(d).padStart(2,'0');let a=sum(monthTx().filter(t=>t.type==='variable'&&t.date===date).map(t=>t.amount));return `<td><b>${a?money(a):''}</b></td>`}).join('')}<td></td></tr>`}html+='</table>';calendarWrap.innerHTML=html}
+window.quickAdd=(date,encoded)=>{const cat=decodeURIComponent(encoded);openTx();txDate.value=date;txType.value='variable';updateCats();txCategory.value=cat;txItem.value=cat;}
+function renderItemManager(){if(!document.getElementById('itemType'))return;const selected=itemType.dataset.ready?itemType.value:'variable';itemType.innerHTML=TYPES.map(t=>`<option value="${t.key}">${t.label}</option>`).join('');itemType.value=selected||'variable';itemType.dataset.ready='1';renderItemList()}
+function renderItemList(){if(!document.getElementById('itemList'))return;const type=itemType.value||'variable';const cats=catsFor(type);itemList.innerHTML=cats.length?cats.map(c=>`<div class="item-chip"><span>${escapeHtml(c)}</span><span class="item-chip-actions"><button class="edit-item" type="button" onclick="editItem('${type}','${encodeArg(c)}')">編集</button><button class="delete-item" type="button" onclick="deleteItem('${type}','${encodeArg(c)}')">削除</button></span></div>`).join(''):'<div class="empty">項目がありません</div>'}
+function addItem(){const type=itemType.value;const name=newItemName.value.trim();if(!name)return;if(catsFor(type).some(c=>c.toLowerCase()===name.toLowerCase())){alert('同じ名前の項目があります');return}state.categories[type].push(name);const b=getBudget();if(!(name in b[type]))b[type][name]=0;saveState();newItemName.value='';render();itemType.value=type;renderItemList();updateCats()}
+window.editItem=(type,encoded)=>{const oldName=decodeURIComponent(encoded);const input=prompt(`「${oldName}」の新しい項目名を入力してください`,oldName);if(input===null)return;const newName=input.trim();if(!newName||newName===oldName)return;if(catsFor(type).some(c=>c!==oldName&&c.toLowerCase()===newName.toLowerCase())){alert('同じ名前の項目があります');return}if(!confirm(`「${oldName}」を「${newName}」に変更しますか？\n過去の収支データと各月の予算にも反映されます。`))return;state.categories[type]=catsFor(type).map(c=>c===oldName?newName:c);for(const tx of state.transactions){if(tx.type===type&&tx.category===oldName)tx.category=newName}for(const month of Object.values(state.budgets)){if(!month?.[type]||!(oldName in month[type]))continue;const oldValue=month[type][oldName];if(!(newName in month[type]))month[type][newName]=oldValue;delete month[type][oldName]}saveState();render();itemType.value=type;renderItemList();updateCats()};
+window.deleteItem=(type,encoded)=>{const name=decodeURIComponent(encoded);if(!confirm(`「${name}」を削除しますか？\n過去の収支データは削除されません。`))return;state.categories[type]=catsFor(type).filter(c=>c!==name);for(const month of Object.values(state.budgets)){if(month?.[type])delete month[type][name]}saveState();render();itemType.value=type;renderItemList();updateCats()};
+function drawCharts(){drawWeekly();drawDonut('donutChart','donutLegend',TYPES.filter(t=>t.key!=='income').map(t=>[t.label,typeSum(t.key)]));drawDonut('variableDonut','variableLegend',catsFor('variable').map(c=>[c,sum(monthTx().filter(t=>t.type==='variable'&&t.category===c).map(t=>t.amount))]))}
+function prepCanvas(id){const c=document.getElementById(id);let r=c.getBoundingClientRect();let w=Math.max(1,r.width||c.parentElement?.clientWidth||300);let h=Math.max(id==='weeklyChart'?300:180,r.height||c.parentElement?.clientHeight||250);const dpr=devicePixelRatio||1;c.width=Math.round(w*dpr);c.height=Math.round(h*dpr);let x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);return [x,w,h]}
+function drawWeekly(){let [ctx,w,h]=prepCanvas('weeklyChart');ctx.clearRect(0,0,w,h);let periods=[[1,6],[7,13],[14,20],[21,27],[28,31]], vals=periods.map(([a,b])=>sum(monthTx().filter(t=>t.type==='variable'&&+t.date.slice(-2)>=a&&+t.date.slice(-2)<=b).map(t=>t.amount))), max=Math.max(...vals,1);ctx.strokeStyle='#ded5c8';ctx.lineWidth=1;for(let i=0;i<5;i++){let y=20+i*(h-50)/4;ctx.beginPath();ctx.moveTo(42,y);ctx.lineTo(w-10,y);ctx.stroke()}ctx.strokeStyle='#6d5d4d';ctx.lineWidth=3;ctx.beginPath();vals.forEach((v,i)=>{let x=55+i*(w-75)/4,y=20+(1-v/max)*(h-60);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke();vals.forEach((v,i)=>{let x=55+i*(w-75)/4,y=20+(1-v/max)*(h-60);ctx.fillStyle='#6d5d4d';ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fill();ctx.fillStyle='#746b62';ctx.font='12px sans-serif';ctx.textAlign='center';ctx.fillText(`${periods[i][0]}-${Math.min(periods[i][1],new Date(current.getFullYear(),current.getMonth()+1,0).getDate())}日`,x,h-10);if(v){ctx.fillText(money(v),x,y-10)}})}
+const colors=['#9f8668','#6f7c68','#b39a79','#8c7770','#7b8790','#b1a17c','#708a84','#a77c73','#857464','#a69b8c'];
+function drawDonut(canvasId,legendId,data){let [ctx,w,h]=prepCanvas(canvasId);ctx.clearRect(0,0,w,h);data=data.filter(x=>x[1]>0);let total=sum(data.map(x=>x[1]));let cx=w/2,cy=h/2-4,r=Math.min(w,h)*.32,inner=r*.58,start=-Math.PI/2;if(!total){ctx.fillStyle='#e5ddd1';ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.arc(cx,cy,inner,0,Math.PI*2,true);ctx.fill('evenodd');ctx.fillStyle='#746b62';ctx.textAlign='center';ctx.font='14px sans-serif';ctx.fillText('データなし',cx,cy+4);document.getElementById(legendId).innerHTML='';return}data.forEach(([l,v],i)=>{let a=v/total*Math.PI*2;ctx.fillStyle=colors[i%colors.length];ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,start,start+a);ctx.closePath();ctx.fill();start+=a});ctx.globalCompositeOperation='destination-out';ctx.beginPath();ctx.arc(cx,cy,inner,0,Math.PI*2);ctx.fill();ctx.globalCompositeOperation='source-over';ctx.fillStyle='#3d352f';ctx.textAlign='center';ctx.font='700 20px sans-serif';ctx.fillText(money(total),cx,cy+6);document.getElementById(legendId).innerHTML=data.map(([l,v],i)=>`<span><i class="dot" style="background:${colors[i%colors.length]}"></i>${escapeHtml(l)} ${Math.round(v/total*100)}%</span>`).join('')}
+prevMonth.onclick=()=>{current.setMonth(current.getMonth()-1);render()};nextMonth.onclick=()=>{current.setMonth(current.getMonth()+1);render()};todayBtn.onclick=()=>{current=new Date();current.setDate(1);render()};
+addTxBtn.onclick=addTxBtn2.onclick=()=>openTx();addBudgetBtn.onclick=()=>openBudget();txCancel.onclick=()=>txDialog.close();txType.onchange=updateCats;txAmount.addEventListener('input',updateAmountPreview);budgetCancel.onclick=()=>budgetDialog.close();budgetSave.onclick=saveBudget;itemType.onchange=renderItemList;addItemBtn.onclick=addItem;newItemName.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addItem()}});
+exportBtn.onclick=()=>{let blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='kakeibo-backup-'+ym()+'.json';a.click();URL.revokeObjectURL(a.href)};
+importInput.onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let d=JSON.parse(await f.text());if(!d.transactions||!d.budgets)throw 0;state=normalizeState(d);saveState();render();alert('読み込みました')}catch{alert('読み込めないファイルです')}};
+resetBtn.onclick=()=>{if(confirm('すべての家計簿データを初期化しますか？')){state=normalizeState({});saveState();render()}};
+window.addEventListener('resize',()=>{clearTimeout(window.__rt);window.__rt=setTimeout(drawCharts,150)});
+if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+let chartResizeTimer;window.addEventListener('resize',()=>{clearTimeout(chartResizeTimer);chartResizeTimer=setTimeout(()=>requestAnimationFrame(drawCharts),120)});
+initNav();populateType();render();
+</script>
+</body>
+</html>
