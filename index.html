@@ -348,7 +348,7 @@
           <div class="quick-grid">
             <div class="field"><label>項目</label><select id="quickCategory"></select></div>
             <div class="field"><label>店名・内容（任意）</label><input id="quickItem" placeholder="例：セブンイレブン"></div>
-            <div class="field quick-amount"><label>金額</label><input type="text" id="quickAmount" inputmode="decimal" autocomplete="off" placeholder="例：680+1250+320"><div class="quick-result" id="quickAmountResult"></div></div>
+            <div class="field quick-amount"><label>金額</label><input type="text" id="quickAmount" inputmode="decimal" autocomplete="off" placeholder="例：680+1250+320"><div class="quick-result" id="quickAmountResult" aria-live="polite"></div></div>
           </div>
           <div class="quick-actions"><button class="primary" id="quickSaveBtn">今日の支出を保存</button><button class="quick-secondary" id="quickFullBtn" type="button">詳細入力</button></div>
         </div>
@@ -389,8 +389,8 @@
 
     <section class="panel" data-panel="settings">
       <div class="settings-box">
-        <div class="card"><h2>データ管理</h2><div class="card-body"><p class="hint">この版は端末内に保存します。Safari/Chromeで同じURLを開けば使えますが、端末間の自動同期はまだ行いません。</p><div class="toolbar"><button class="secondary" id="exportBtn">JSONを書き出す</button><label class="secondary" style="cursor:pointer">JSONを読み込む<input id="importInput" type="file" accept="application/json" hidden></label><button class="danger" id="resetBtn">データ初期化</button></div></div></div>
-        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span></div></div>
+        <div class="card"><h2>データ管理</h2><div class="card-body"><p class="hint">この版は端末内に保存します。Safari/Chromeで同じURLを開けば使えますが、端末間の自動同期はまだ行いません。実データはGitHubへ送信されません。ブラウザデータを消す前にJSONバックアップを保存してください。</p><div class="toolbar"><button class="secondary" id="exportBtn">JSONを書き出す</button><label class="secondary" style="cursor:pointer">JSONを読み込む<input id="importInput" type="file" accept="application/json" hidden></label><button class="danger" id="resetBtn">データ初期化</button></div></div></div>
+        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span> <span class="pill">v2.2.0 Stable</span></div></div>
       </div>
     </section>
   </main>
@@ -404,7 +404,7 @@
     <div class="field"><label>種別</label><select id="txType"></select></div>
     <div class="field"><label>カテゴリ</label><select id="txCategory"></select></div>
     <div class="field"><label>項目</label><input id="txItem" placeholder="例：セブンイレブン"></div>
-    <div class="field"><label>金額</label><input type="text" id="txAmount" inputmode="decimal" autocomplete="off" placeholder="例：680+1250+320" required><div class="hint" id="amountCalcHint">複数回の会計は + - × ÷ ( ) を使って入力できます</div></div>
+    <div class="field"><label>金額</label><input type="text" id="txAmount" inputmode="decimal" autocomplete="off" placeholder="例：680+1250+320" required><div class="hint" id="amountCalcHint" aria-live="polite">複数回の会計は + - × ÷ ( ) を使って入力できます</div></div>
     <div class="field full"><label>メモ</label><input id="txMemo" placeholder="任意"></div>
   </div><div class="dialog-actions"><button type="button" class="secondary" id="txCancel">キャンセル</button><button class="primary">保存</button></div></form>
 </div></dialog>
@@ -429,15 +429,39 @@ const DEFAULT_BUDGET = {income:{},tax:{},saving:{NISA:30000},self:{},fixed:{生�
 const tabs=[['dashboard','概要'],['transactions','収支'],['calendar','日別'],['budget','予算'],['settings','設定']];
 let current = new Date(); current.setDate(1);
 let state = loadState();
+function newId(){return crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2)}
+function cleanText(v,max=200){return String(v??'').replace(/[\u0000-\u001F\u007F]/g,' ').trim().slice(0,max)}
+function validDateString(v){const s=String(v||'');if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return false;const [y,m,d]=s.split('-').map(Number),dt=new Date(y,m-1,d);return dt.getFullYear()===y&&dt.getMonth()===m-1&&dt.getDate()===d}
+function finiteMoney(v){const n=Number(v);return Number.isFinite(n)&&n>=0&&n<=1e12?Math.round(n):0}
 function loadState(){try{const d=JSON.parse(localStorage.getItem('kakeibo-v1'))||{};return normalizeState(d)}catch{return normalizeState({})}}
-function normalizeState(d){d.transactions=Array.isArray(d.transactions)?d.transactions:[];d.budgets=d.budgets&&typeof d.budgets==='object'?d.budgets:{};if(!d.categories||typeof d.categories!=='object')d.categories=deepCopy(DEFAULT_CATS);for(const t of TYPES){if(!Array.isArray(d.categories[t.key]))d.categories[t.key]=deepCopy(DEFAULT_CATS[t.key]||[])}return d}
+function normalizeState(input){
+  const d=input&&typeof input==='object'?input:{};
+  const categories={};
+  for(const t of TYPES){
+    const raw=Array.isArray(d.categories?.[t.key])?d.categories[t.key]:deepCopy(DEFAULT_CATS[t.key]||[]);
+    categories[t.key]=[...new Set(raw.map(x=>cleanText(x,80)).filter(Boolean))].slice(0,200);
+  }
+  const allowedTypes=new Set(TYPES.map(t=>t.key));
+  const transactions=(Array.isArray(d.transactions)?d.transactions:[]).map(x=>{
+    const type=allowedTypes.has(x?.type)?x.type:'variable';
+    const date=validDateString(x?.date)?x.date:new Date().toISOString().slice(0,10);
+    return {id:cleanText(x?.id,100)||newId(),date,type,category:cleanText(x?.category,80),item:cleanText(x?.item,200),amount:finiteMoney(x?.amount),amountExpression:cleanText(x?.amountExpression||x?.amount,100),memo:cleanText(x?.memo,500)};
+  }).filter(x=>x.amount>=0).slice(-50000);
+  const budgets={};
+  if(d.budgets&&typeof d.budgets==='object')for(const [month,monthData] of Object.entries(d.budgets)){
+    if(!/^\d{4}-\d{2}$/.test(month)||!monthData||typeof monthData!=='object')continue;
+    budgets[month]={};
+    for(const t of TYPES){budgets[month][t.key]={};const obj=monthData[t.key];if(obj&&typeof obj==='object')for(const [cat,val] of Object.entries(obj)){const c=cleanText(cat,80);if(c)budgets[month][t.key][c]=finiteMoney(val)}}
+  }
+  return {transactions,budgets,categories};
+}
 function catsFor(type){return state.categories?.[type]||[]}
-function saveState(){localStorage.setItem('kakeibo-v1',JSON.stringify(state))}
+function saveState(){try{localStorage.setItem('kakeibo-v1',JSON.stringify(state));return true}catch(e){console.error('保存に失敗しました',e);alert('データを保存できませんでした。ブラウザの保存容量やプライベートブラウズ設定を確認してください。');return false}}
 function ym(d=current){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
 function money(n){return '¥'+Math.round(n||0).toLocaleString('ja-JP')}
 function deepCopy(o){return JSON.parse(JSON.stringify(o))}
 function getBudget(){let k=ym();if(!state.budgets[k])state.budgets[k]={};for(const t of TYPES){if(!state.budgets[k][t.key])state.budgets[k][t.key]={};for(const c of catsFor(t.key)){if(!(c in state.budgets[k][t.key]))state.budgets[k][t.key][c]=DEFAULT_BUDGET[t.key]?.[c]||0}for(const c of Object.keys(state.budgets[k][t.key])){if(!catsFor(t.key).includes(c))delete state.budgets[k][t.key][c]}}return state.budgets[k]}
-function monthTx(){let k=ym(); return state.transactions.filter(t=>t.date.startsWith(k))}
+function monthTx(){let k=ym(); return state.transactions.filter(t=>typeof t.date==='string'&&t.date.startsWith(k))}
 function sum(arr){return arr.reduce((a,b)=>a+(+b||0),0)}
 function typeSum(type){return sum(monthTx().filter(t=>t.type===type).map(t=>t.amount))}
 function budgetTypeSum(type){return sum(Object.values(getBudget()[type]||{}))}
@@ -462,10 +486,20 @@ function renderVariableStatus(){
   const daysText=isCurrent?`月末まで ${daysLeft}日`:(isFuture?`対象月 ${daysInMonth}日間`:'対象月は終了');
   root.innerHTML=`<div class="variable-status-top"><div class="status-stat"><div class="k">予算</div><div class="v">${money(budgetTotal)}</div></div><div class="status-stat"><div class="k">使用済</div><div class="v">${money(used)}</div></div><div class="status-stat remaining"><div class="k">残り</div><div class="v ${remaining<0?'neg':''}">${money(remaining)}</div></div></div><div class="big-progress"><span class="${pct>100?'over':''}" style="width:${width}%"></span></div><div class="status-caption"><span>${budgetTotal>0?`予算消化 ${pct}%`:'予算未設定'}</span><span>${daysText}${daysLeft>0?` ・ 1日目安 ${money(daily)}`:''}</span></div>${watched.length?`<div class="budget-watch"><div class="budget-watch-title">予算残額が少ない項目</div>${watched.map(x=>`<div class="budget-watch-row ${x.remaining<0?'over':''}"><span>${escapeHtml(x.name)}</span><strong>${x.remaining<0?'超過 ':'残り '}${money(Math.abs(x.remaining))}</strong></div>`).join('')}</div>`:''}`;
 }
-function renderTransactions(){const rows=monthTx().sort((a,b)=>b.date.localeCompare(a.date));document.querySelector('#txBody').innerHTML=rows.length?rows.map(t=>`<tr><td>${t.date}</td><td>${TYPES.find(x=>x.key===t.type)?.label||t.type}</td><td>${t.category}</td><td>${escapeHtml(t.item)}</td><td>${escapeHtml(t.memo||'')}</td><td class="amount">${money(t.amount)}</td><td><button class="ghost" onclick="editTx('${t.id}')">編集</button></td></tr>`).join(''):`<tr><td colspan="7" class="empty">この月のデータはありません</td></tr>`}
+function renderTransactions(){const rows=monthTx().sort((a,b)=>(b.date||'').localeCompare(a.date||''));document.querySelector('#txBody').innerHTML=rows.length?rows.map(t=>{const typeLabel=TYPES.find(x=>x.key===t.type)?.label||t.type;return `<tr><td>${escapeHtml(t.date)}</td><td>${escapeHtml(typeLabel)}</td><td>${escapeHtml(t.category||'')}</td><td>${escapeHtml(t.item||'')}</td><td>${escapeHtml(t.memo||'')}</td><td class="amount">${money(t.amount)}</td><td><button class="ghost" onclick="editTxEncoded('${encodeArg(t.id)}')">編集</button></td></tr>`}).join(''):`<tr><td colspan="7" class="empty">この月のデータはありません</td></tr>`}
+window.editTxEncoded=encoded=>openTx(decodeURIComponent(encoded));
 
 function normalizeExpression(s){return String(s||'').trim().replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0)).replace(/[，,￥¥円\s]/g,'').replace(/[＋]/g,'+').replace(/[－−ー]/g,'-').replace(/[×＊]/g,'*').replace(/[÷／]/g,'/').replace(/[（]/g,'(').replace(/[）]/g,')').replace(/[＝=]$/,'')}
-function evaluateAmountExpression(raw){const expr=normalizeExpression(raw);if(!expr)return {ok:false,value:0};if(!/^[0-9+\-*/().]+$/.test(expr))return {ok:false,value:0};try{const value=Function('"use strict";return ('+expr+')')();if(typeof value!=='number'||!Number.isFinite(value)||value<0)return {ok:false,value:0};return {ok:true,value:Math.round(value)}}catch{return {ok:false,value:0}}}
+function evaluateAmountExpression(raw){
+  const expr=normalizeExpression(raw);if(!expr||!/^[0-9+\-*/().]+$/.test(expr))return {ok:false,value:0};
+  let i=0;
+  const skip=()=>{while(expr[i]===' ')i++};
+  const number=()=>{skip();const m=expr.slice(i).match(/^(?:\d+(?:\.\d*)?|\.\d+)/);if(!m)throw 0;i+=m[0].length;return Number(m[0])};
+  const factor=()=>{skip();if(expr[i]==='+'){i++;return factor()}if(expr[i]==='-'){i++;return -factor()}if(expr[i]==='('){i++;const v=expression();skip();if(expr[i]!==')')throw 0;i++;return v}return number()};
+  const term=()=>{let v=factor();while(true){skip();const op=expr[i];if(op!=='*'&&op!=='/')break;i++;const r=factor();if(op==='/'&&r===0)throw 0;v=op==='*'?v*r:v/r}return v};
+  const expression=()=>{let v=term();while(true){skip();const op=expr[i];if(op!=='+'&&op!=='-')break;i++;const r=term();v=op==='+'?v+r:v-r}return v};
+  try{const value=expression();skip();if(i!==expr.length||!Number.isFinite(value)||value<0||value>1e12)return {ok:false,value:0};return {ok:true,value:Math.round(value)}}catch{return {ok:false,value:0}}
+}
 function updateAmountPreview(){const raw=txAmount.value;const r=evaluateAmountExpression(raw);if(!raw.trim()){amountCalcHint.textContent='複数回の会計は + - × ÷ ( ) を使って入力できます';amountCalcHint.className='hint';return}if(r.ok){amountCalcHint.textContent='合計 '+money(r.value);amountCalcHint.className='hint pos'}else{amountCalcHint.textContent='計算式を確認してください';amountCalcHint.className='hint neg'}}
 
 function escapeHtml(s){return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
@@ -474,23 +508,25 @@ function populateType(){txType.innerHTML=TYPES.map(t=>`<option value="${t.key}">
 function updateCats(extra=''){let arr=catsFor(txType.value);let bud=getBudget()[txType.value]||{};let cats=[...new Set([...arr,...Object.keys(bud)])];if(extra&&!cats.includes(extra))cats.push(extra);txCategory.innerHTML=cats.map(c=>`<option>${escapeHtml(c)}</option>`).join('')}
 function initQuickEntry(){if(!document.getElementById('quickCategory'))return;if(document.getElementById('recentAllBtn'))recentAllBtn.onclick=()=>switchPanel('transactions');const now=new Date();quickDateLabel.textContent=`${now.getMonth()+1}月${now.getDate()}日`;quickCategory.innerHTML=catsFor('variable').map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');quickCategory.onchange=()=>{if(!quickItem.value.trim())quickItem.placeholder=`例：${quickCategory.value}`};quickAmount.addEventListener('input',()=>{const r=evaluateAmountExpression(quickAmount.value);quickAmountResult.textContent=r.ok&&quickAmount.value.trim()?`合計 ${money(r.value)}`:''});quickSaveBtn.onclick=saveQuickEntry;quickFullBtn.onclick=()=>openTx()}
 function refreshQuickEntry(){if(!document.getElementById('quickCategory'))return;const prev=quickCategory.value;quickCategory.innerHTML=catsFor('variable').map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');if(catsFor('variable').includes(prev))quickCategory.value=prev;const now=new Date();quickDateLabel.textContent=`${now.getMonth()+1}月${now.getDate()}日`}
-function saveQuickEntry(){const expr=quickAmount.value.trim();const calc=evaluateAmountExpression(expr);if(!expr||!calc.ok){alert('金額を正しく入力してください');quickAmount.focus();return}const amount=calc.value;const now=new Date();const date=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;const cat=quickCategory.value;state.transactions.push({id:crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2),date,type:'variable',category:cat,item:quickItem.value.trim()||cat,amount,amountExpression:expr,memo:''});current=new Date(now.getFullYear(),now.getMonth(),1);saveState();quickAmount.value='';quickAmountResult.textContent='保存しました';quickItem.value='';render();setTimeout(()=>{if(quickAmountResult.textContent==='保存しました')quickAmountResult.textContent=''},1200)}
+function saveQuickEntry(){const expr=quickAmount.value.trim();const calc=evaluateAmountExpression(expr);if(!expr||!calc.ok){alert('金額を正しく入力してください');quickAmount.focus();return}const amount=calc.value;const now=new Date();const date=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;const cat=quickCategory.value;state.transactions.push({id:newId(),date,type:'variable',category:cat,item:quickItem.value.trim(),amount,amountExpression:expr,memo:''});current=new Date(now.getFullYear(),now.getMonth(),1);saveState();quickAmount.value='';quickAmountResult.textContent='保存しました';quickItem.value='';render();setTimeout(()=>{if(quickAmountResult.textContent==='保存しました')quickAmountResult.textContent=''},1200)}
 function openTx(id=null){txId.value=id||'';txDialogTitle.textContent=id?'収支を編集':'収支を追加'; if(id){let t=state.transactions.find(x=>x.id===id);txDate.value=t.date;txType.value=t.type;updateCats(t.category);txCategory.value=t.category;txItem.value=t.item;txAmount.value=t.amountExpression||t.amount;txMemo.value=t.memo||'';updateAmountPreview()}else{txDate.value=ym()+'-'+String(Math.min(new Date().getDate(),new Date(current.getFullYear(),current.getMonth()+1,0).getDate())).padStart(2,'0');txType.value='variable';updateCats();txItem.value='';txAmount.value='';txMemo.value='';updateAmountPreview()} txDialog.showModal()}
 window.editTx=openTx;
-txForm.onsubmit=e=>{e.preventDefault();const calc=evaluateAmountExpression(txAmount.value);if(!calc.ok){updateAmountPreview();txAmount.focus();return}let obj={id:txId.value||crypto.randomUUID(),date:txDate.value,type:txType.value,category:txCategory.value,item:txItem.value.trim(),amount:calc.value,amountExpression:txAmount.value.trim(),memo:txMemo.value.trim()};let i=state.transactions.findIndex(x=>x.id===obj.id);if(i>=0)state.transactions[i]=obj;else state.transactions.push(obj);saveState();txDialog.close();render()};
+txForm.onsubmit=e=>{e.preventDefault();const calc=evaluateAmountExpression(txAmount.value);if(!calc.ok){updateAmountPreview();txAmount.focus();return}let obj={id:txId.value||newId(),date:txDate.value,type:txType.value,category:txCategory.value,item:txItem.value.trim(),amount:calc.value,amountExpression:txAmount.value.trim(),memo:txMemo.value.trim()};let i=state.transactions.findIndex(x=>x.id===obj.id);if(i>=0)state.transactions[i]=obj;else state.transactions.push(obj);saveState();txDialog.close();render()};
 function renderBudgetEditor(){const b=getBudget();budgetEditor.innerHTML=TYPES.map(t=>`<div class="budget-section" style="margin-bottom:10px"><h3>${t.label}</h3><div class="rows">${catsFor(t.key).map(c=>`<div class="row"><span>${escapeHtml(c)}</span><strong>${money(b[t.key]?.[c]||0)}</strong></div>`).join('')||'<div class="empty">項目がありません</div>'}</div></div>`).join('')+`<button class="primary" onclick="openBudget()">予算を編集</button>`}
 window.openBudget=()=>{const b=getBudget();budgetDialogBody.innerHTML=TYPES.map(t=>`<h3>${t.label}</h3><div class="form-grid">${catsFor(t.key).map(c=>`<div class="field"><label>${escapeHtml(c)}</label><input type="number" min="0" data-budget-type="${t.key}" data-budget-cat="${escapeHtml(c)}" value="${b[t.key]?.[c]||0}"></div>`).join('')||'<div class="hint">項目がありません</div>'}</div>`).join('');budgetDialog.showModal()};
 function saveBudget(){let b=getBudget();document.querySelectorAll('[data-budget-type]').forEach(i=>{b[i.dataset.budgetType][i.dataset.budgetCat]=+i.value||0});saveState();budgetDialog.close();render()}
 function renderCalendar(){const cats=catsFor('variable'); const y=current.getFullYear(),m=current.getMonth();const days=new Date(y,m+1,0).getDate(), offset=(new Date(y,m,1).getDay()+6)%7;let weeks=Math.ceil((offset+days)/7);let html='<table class="cal-table">';for(let w=0;w<weeks;w++){let ds=[];for(let c=0;c<7;c++){let d=w*7+c-offset+1;ds.push(d>=1&&d<=days?d:null)}html+=`<tr><th class="cal-cat">項目</th>${ds.map((d,c)=>`<th class="${c===5?'sat':c===6?'sun':''}">${d||''}</th>`).join('')}<th>合計</th></tr>`;for(const cat of cats){html+=`<tr><td class="cal-cat">${escapeHtml(cat)}</td>${ds.map(d=>{if(!d)return '<td></td>';let date=ym()+'-'+String(d).padStart(2,'0');let a=sum(monthTx().filter(t=>t.type==='variable'&&t.category===cat&&t.date===date).map(t=>t.amount));return `<td class="cal-cell" onclick="quickAdd('${date}','${encodeArg(cat)}')">${a?`<span class="amt">${money(a)}</span>`:''}</td>`}).join('')}<td class="cal-cell"><b>${money(sum(monthTx().filter(t=>t.type==='variable'&&t.category===cat&&ds.includes(+t.date.slice(-2))).map(t=>t.amount)))}</b></td></tr>`}html+=`<tr><td class="cal-cat"><b>合計</b></td>${ds.map(d=>{if(!d)return '<td></td>';let date=ym()+'-'+String(d).padStart(2,'0');let a=sum(monthTx().filter(t=>t.type==='variable'&&t.date===date).map(t=>t.amount));return `<td><b>${a?money(a):''}</b></td>`}).join('')}<td></td></tr>`}html+='</table>';calendarWrap.innerHTML=html}
-window.quickAdd=(date,encoded)=>{const cat=decodeURIComponent(encoded);openTx();txDate.value=date;txType.value='variable';updateCats();txCategory.value=cat;txItem.value=cat;}
+window.quickAdd=(date,encoded)=>{const cat=decodeURIComponent(encoded);openTx();txDate.value=date;txType.value='variable';updateCats();txCategory.value=cat;txItem.value='';}
 function renderItemManager(){if(!document.getElementById('itemType'))return;const selected=itemType.dataset.ready?itemType.value:'variable';itemType.innerHTML=TYPES.map(t=>`<option value="${t.key}">${t.label}</option>`).join('');itemType.value=selected||'variable';itemType.dataset.ready='1';renderItemList()}
 function renderItemList(){if(!document.getElementById('itemList'))return;const type=itemType.value||'variable';const cats=catsFor(type);itemList.innerHTML=cats.length?cats.map(c=>`<div class="item-chip"><span>${escapeHtml(c)}</span><span class="item-chip-actions"><button class="edit-item" type="button" onclick="editItem('${type}','${encodeArg(c)}')">編集</button><button class="delete-item" type="button" onclick="deleteItem('${type}','${encodeArg(c)}')">削除</button></span></div>`).join(''):'<div class="empty">項目がありません</div>'}
 function addItem(){const type=itemType.value;const name=newItemName.value.trim();if(!name)return;if(catsFor(type).some(c=>c.toLowerCase()===name.toLowerCase())){alert('同じ名前の項目があります');return}state.categories[type].push(name);const b=getBudget();if(!(name in b[type]))b[type][name]=0;saveState();newItemName.value='';render();itemType.value=type;renderItemList();updateCats()}
 window.editItem=(type,encoded)=>{const oldName=decodeURIComponent(encoded);const input=prompt(`「${oldName}」の新しい項目名を入力してください`,oldName);if(input===null)return;const newName=input.trim();if(!newName||newName===oldName)return;if(catsFor(type).some(c=>c!==oldName&&c.toLowerCase()===newName.toLowerCase())){alert('同じ名前の項目があります');return}if(!confirm(`「${oldName}」を「${newName}」に変更しますか？\n過去の収支データと各月の予算にも反映されます。`))return;state.categories[type]=catsFor(type).map(c=>c===oldName?newName:c);for(const tx of state.transactions){if(tx.type===type&&tx.category===oldName)tx.category=newName}for(const month of Object.values(state.budgets)){if(!month?.[type]||!(oldName in month[type]))continue;const oldValue=month[type][oldName];if(!(newName in month[type]))month[type][newName]=oldValue;delete month[type][oldName]}saveState();render();itemType.value=type;renderItemList();updateCats()};
 window.deleteItem=(type,encoded)=>{const name=decodeURIComponent(encoded);if(!confirm(`「${name}」を削除しますか？\n過去の収支データは削除されません。`))return;state.categories[type]=catsFor(type).filter(c=>c!==name);for(const month of Object.values(state.budgets)){if(month?.[type])delete month[type][name]}saveState();render();itemType.value=type;renderItemList();updateCats()};
 function drawCharts(){drawWeekly();drawDonut('donutChart','donutLegend',TYPES.filter(t=>t.key!=='income').map(t=>[t.label,typeSum(t.key)]));drawDonut('variableDonut','variableLegend',catsFor('variable').map(c=>[c,sum(monthTx().filter(t=>t.type==='variable'&&t.category===c).map(t=>t.amount))]))}
+
+function chartTheme(){const dark=document.body.classList.contains('dark-mode');return dark?{grid:'#2b4056',muted:'#9eb0c6',strong:'#cfe5fb',hole:'#162231',empty:'#264866'}:{grid:'#dbe7f7',muted:'#64748b',strong:'#1e3a5f',hole:'#ffffff',empty:'#dbeafe'}}
 function prepCanvas(id){const c=document.getElementById(id);let r=c.getBoundingClientRect();let w=Math.max(1,r.width||c.parentElement?.clientWidth||300);let h=Math.max(id==='weeklyChart'?300:180,r.height||c.parentElement?.clientHeight||250);const dpr=devicePixelRatio||1;c.width=Math.round(w*dpr);c.height=Math.round(h*dpr);let x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);return [x,w,h]}
-function drawWeekly(){let [ctx,w,h]=prepCanvas('weeklyChart');ctx.clearRect(0,0,w,h);let lastDay=new Date(current.getFullYear(),current.getMonth()+1,0).getDate(),periods=[[1,6],[7,13],[14,20],[21,27],[28,lastDay]],cats=catsFor('variable'),tx=monthTx().filter(t=>t.type==='variable'),matrix=periods.map(([a,b])=>cats.map(c=>sum(tx.filter(t=>t.category===c&&+t.date.slice(-2)>=a&&+t.date.slice(-2)<=b).map(t=>t.amount)))),totals=matrix.map(r=>sum(r)),max=Math.max(...totals,1),left=48,right=12,top=22,bottom=38,plotW=w-left-right,plotH=h-top-bottom;ctx.strokeStyle='#dbe7f7';ctx.lineWidth=1;ctx.fillStyle='#64748b';ctx.font='11px sans-serif';ctx.textAlign='right';for(let i=0;i<5;i++){let y=top+i*plotH/4,val=Math.round(max*(1-i/4));ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(w-right,y);ctx.stroke();ctx.fillText(val?money(val):'¥0',left-6,y+4)}let slot=plotW/periods.length,barW=Math.min(58,slot*.58);periods.forEach((p,i)=>{let x=left+i*slot+(slot-barW)/2,yBottom=top+plotH;matrix[i].forEach((v,j)=>{if(!v)return;let bh=v/max*plotH;yBottom-=bh;ctx.fillStyle=colors[j%colors.length];ctx.fillRect(x,yBottom,barW,bh)});ctx.fillStyle='#64748b';ctx.font='11px sans-serif';ctx.textAlign='center';let end=Math.min(p[1],lastDay);ctx.fillText(`${p[0]}-${end}日`,x+barW/2,h-14);if(totals[i]){ctx.fillStyle='#1e3a5f';ctx.font='700 11px sans-serif';ctx.fillText(money(totals[i]),x+barW/2,Math.max(12,top+plotH-totals[i]/max*plotH-6))}});let used=cats.map((c,j)=>[c,sum(matrix.map(r=>r[j])),j]).filter(x=>x[1]>0);document.getElementById('weeklyLegend').innerHTML=used.length?used.map(([c,v,j])=>`<span><i class="dot" style="background:${colors[j%colors.length]}"></i>${escapeHtml(c)}</span>`).join(''):'<span>データなし</span>'}
+function drawWeekly(){let [ctx,w,h]=prepCanvas('weeklyChart');ctx.clearRect(0,0,w,h);let lastDay=new Date(current.getFullYear(),current.getMonth()+1,0).getDate(),periods=[[1,6],[7,13],[14,20],[21,27],[28,lastDay]],cats=catsFor('variable'),tx=monthTx().filter(t=>t.type==='variable'),matrix=periods.map(([a,b])=>cats.map(c=>sum(tx.filter(t=>t.category===c&&+t.date.slice(-2)>=a&&+t.date.slice(-2)<=b).map(t=>t.amount)))),totals=matrix.map(r=>sum(r)),max=Math.max(...totals,1),left=48,right=12,top=22,bottom=38,plotW=w-left-right,plotH=h-top-bottom;const ct=chartTheme();ctx.strokeStyle=ct.grid;ctx.lineWidth=1;ctx.fillStyle=ct.muted;ctx.font='11px sans-serif';ctx.textAlign='right';for(let i=0;i<5;i++){let y=top+i*plotH/4,val=Math.round(max*(1-i/4));ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(w-right,y);ctx.stroke();ctx.fillText(val?money(val):'¥0',left-6,y+4)}let slot=plotW/periods.length,barW=Math.min(58,slot*.58);periods.forEach((p,i)=>{let x=left+i*slot+(slot-barW)/2,yBottom=top+plotH;matrix[i].forEach((v,j)=>{if(!v)return;let bh=v/max*plotH;yBottom-=bh;ctx.fillStyle=colors[j%colors.length];ctx.fillRect(x,yBottom,barW,bh)});ctx.fillStyle=ct.muted;ctx.font='11px sans-serif';ctx.textAlign='center';let end=Math.min(p[1],lastDay);ctx.fillText(`${p[0]}-${end}日`,x+barW/2,h-14);if(totals[i]){ctx.fillStyle=ct.strong;ctx.font='700 11px sans-serif';ctx.fillText(money(totals[i]),x+barW/2,Math.max(12,top+plotH-totals[i]/max*plotH-6))}});let used=cats.map((c,j)=>[c,sum(matrix.map(r=>r[j])),j]).filter(x=>x[1]>0);document.getElementById('weeklyLegend').innerHTML=used.length?used.map(([c,v,j])=>`<span><i class="dot" style="background:${colors[j%colors.length]}"></i>${escapeHtml(c)}</span>`).join(''):'<span>データなし</span>'}
 const colors=['#2563eb','#3b82f6','#60a5fa','#0ea5e9','#38bdf8','#06b6d4','#14b8a6','#6366f1','#818cf8','#a78bfa'];
 function drawDonut(canvasId,legendId,data){
   let [ctx,w,h]=prepCanvas(canvasId);
@@ -500,12 +536,13 @@ function drawDonut(canvasId,legendId,data){
   let total=sum(data.map(x=>x[1]));
   let cx=w/2,cy=h/2-2,r=Math.min(w,h)*.34,inner=r*.58,start=-Math.PI/2;
   if(!total){
-    ctx.fillStyle='#dbeafe';
+    const ct=chartTheme();ctx.fillStyle=ct.empty;
     ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.arc(cx,cy,inner,0,Math.PI*2,true);ctx.fill('evenodd');
-    ctx.fillStyle='#64748b';ctx.textAlign='center';ctx.font='14px sans-serif';ctx.fillText('データなし',cx,cy+4);
+    ctx.fillStyle=ct.muted;ctx.textAlign='center';ctx.font='14px sans-serif';ctx.fillText('データなし',cx,cy+4);
     document.getElementById(legendId).innerHTML=allData.slice(0,7).map(([l,v],i)=>`<div class="donut-legend-row"><div class="donut-legend-name"><i class="dot" style="background:${colors[i%colors.length]}"></i><span>${escapeHtml(l)}</span></div><span class="donut-legend-pct">0%</span><strong class="donut-legend-amt">${money(0)}</strong></div>`).join('');
     return;
   }
+  const ct=chartTheme();
   data.forEach(([l,v],i)=>{
     let a=v/total*Math.PI*2;
     ctx.fillStyle=colors[i%colors.length];
@@ -513,8 +550,8 @@ function drawDonut(canvasId,legendId,data){
     start+=a
   });
   ctx.globalCompositeOperation='destination-out';ctx.beginPath();ctx.arc(cx,cy,inner,0,Math.PI*2);ctx.fill();ctx.globalCompositeOperation='source-over';
-  ctx.fillStyle='#173b67';ctx.textAlign='center';ctx.font='700 22px sans-serif';ctx.fillText(money(total),cx,cy-1);
-  ctx.fillStyle='#64748b';ctx.font='12px sans-serif';ctx.fillText('合計',cx,cy+20);
+  ctx.fillStyle=ct.strong;ctx.textAlign='center';ctx.font='700 22px sans-serif';ctx.fillText(money(total),cx,cy-1);
+  ctx.fillStyle=ct.muted;ctx.font='12px sans-serif';ctx.fillText('合計',cx,cy+20);
   document.getElementById(legendId).innerHTML=data.map(([l,v],i)=>`<div class="donut-legend-row"><div class="donut-legend-name"><i class="dot" style="background:${colors[i%colors.length]}"></i><span>${escapeHtml(l)}</span></div><span class="donut-legend-pct">${Math.round(v/total*100)}%</span><strong class="donut-legend-amt">${money(v)}</strong></div>`).join('')
 }
 
@@ -531,7 +568,7 @@ function applyTheme(theme){
     btn.title=dark?'ライトモードに切替':'ダークモードに切替';
     btn.setAttribute('aria-label',btn.title);
   }
-  if(typeof renderOverview==='function') requestAnimationFrame(()=>renderOverview());
+  if(typeof drawCharts==='function') requestAnimationFrame(()=>drawCharts());
 }
 function initTheme(){
   const saved=localStorage.getItem(THEME_KEY);
@@ -548,7 +585,7 @@ function initTheme(){
 prevMonth.onclick=()=>{current.setMonth(current.getMonth()-1);render()};nextMonth.onclick=()=>{current.setMonth(current.getMonth()+1);render()};todayBtn.onclick=()=>{current=new Date();current.setDate(1);render()};
 addTxBtn.onclick=addTxBtn2.onclick=()=>openTx();addBudgetBtn.onclick=()=>openBudget();txCancel.onclick=()=>txDialog.close();txType.onchange=updateCats;txAmount.addEventListener('input',updateAmountPreview);budgetCancel.onclick=()=>budgetDialog.close();budgetSave.onclick=saveBudget;itemType.onchange=renderItemList;addItemBtn.onclick=addItem;newItemName.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addItem()}});
 exportBtn.onclick=()=>{let blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='kakeibo-backup-'+ym()+'.json';a.click();URL.revokeObjectURL(a.href)};
-importInput.onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let d=JSON.parse(await f.text());if(!d.transactions||!d.budgets)throw 0;state=normalizeState(d);saveState();render();alert('読み込みました')}catch{alert('読み込めないファイルです')}};
+importInput.onchange=async e=>{let f=e.target.files[0];if(!f)return;try{if(f.size>10*1024*1024)throw 0;let d=JSON.parse(await f.text());if(!d||typeof d!=='object'||!Array.isArray(d.transactions)||!d.budgets||typeof d.budgets!=='object')throw 0;state=normalizeState(d);if(saveState()){render();alert('読み込みました')}}catch{alert('読み込めないファイルです')}finally{e.target.value=''}};
 resetBtn.onclick=()=>{if(confirm('すべての家計簿データを初期化しますか？')){state=normalizeState({});saveState();render()}};
 window.addEventListener('resize',()=>{clearTimeout(window.__rt);window.__rt=setTimeout(drawCharts,150)});
 if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
