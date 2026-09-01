@@ -69,6 +69,39 @@
       .donut-legend-row{grid-template-columns:minmax(0,1fr) 64px 84px;font-size:12px;gap:9px}
       .donut-card .card-body{padding:18px}
     }
+
+    body.dark-mode{
+      --bg:#0f1720;--paper:#111923;--card:#17212c;--line:#314155;--line-soft:#263548;
+      --header:#0d1620;--header2:#1e2a37;--text:#eef4fb;--muted:#9aa9bc;--accent:#4da3ff;
+      --accent-soft:#17314d;--good:#6bc4a1;--danger:#ff8b84;--warn:#d2ab69;
+      --shadow:0 8px 24px rgba(0,0,0,.24);--ink:#eef4fb;
+    }
+    body.dark-mode{background:var(--bg);color:var(--text)}
+    body.dark-mode .topbar{background:rgba(13,22,32,.94);border-bottom-color:rgba(255,255,255,.06)}
+    body.dark-mode .card,body.dark-mode .metric,body.dark-mode .budget-section,body.dark-mode .status-stat,
+    body.dark-mode .table-wrap,body.dark-mode .mobile-quick-entry,body.dark-mode dialog{
+      background:var(--card);border-color:var(--line-soft);color:var(--text)
+    }
+    body.dark-mode .card h2,body.dark-mode .budget-section h3,body.dark-mode .data-table th,
+    body.dark-mode .cal-table th,body.dark-mode .row.total{
+      background:var(--header2);color:var(--text);border-color:var(--line-soft)
+    }
+    body.dark-mode .secondary,body.dark-mode .monthnav button,body.dark-mode .ghost,
+    body.dark-mode .field input,body.dark-mode .field select,body.dark-mode .item-chip{
+      background:#182433;color:var(--text);border-color:var(--line)
+    }
+    body.dark-mode .mobile-nav{background:rgba(16,24,34,.96);border-top-color:var(--line-soft);box-shadow:0 -8px 24px rgba(0,0,0,.22)}
+    body.dark-mode .mobile-nav button{color:#9aa9bc}
+    body.dark-mode .mobile-nav button.active{color:#69b4ff}
+    body.dark-mode .variable-status,body.dark-mode .mobile-quick-head{background:#121c27;border-color:var(--line-soft)}
+    body.dark-mode .progress,body.dark-mode .variable-status .big-progress{background:#263548}
+    body.dark-mode .metric:nth-child(3){background:#15222d;border-color:#2f4a5f}
+    body.dark-mode .calendar,body.dark-mode .cal-cell{background:var(--card)}
+    body.dark-mode .cal-cell:hover,body.dark-mode .data-table tbody tr:hover{background:#1d2b37}
+    body.dark-mode .dialog-head{background:#0d1620}
+    .theme-toggle{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:8px 11px;min-width:44px;font-weight:700}
+    .topbar .theme-toggle{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.18);color:#f7f5ef}
+
     @media (min-width:1001px){
       .donut-card .card-body{padding:22px 24px}
       .donut-layout{min-height:360px}
@@ -123,7 +156,7 @@
 <div class="app">
   <header class="topbar"><div class="topbar-inner">
     <div class="brand">家計簿</div>
-    <div class="monthnav"><button id="prevMonth">‹</button><div class="monthlabel" id="monthLabel"></div><button id="nextMonth">›</button><button class="ghost" id="todayBtn">今月</button></div>
+    <div class="monthnav"><button id="prevMonth">‹</button><div class="monthlabel" id="monthLabel"></div><button id="nextMonth">›</button><button class="theme-toggle" id="themeToggle" aria-label="表示モード切替">☾</button><button class="ghost" id="todayBtn">今月</button></div>
   </div></header>
 
   <main class="container">
@@ -305,6 +338,31 @@ function drawDonut(canvasId,legendId,data){
   ctx.fillStyle='#64748b';ctx.font='12px sans-serif';ctx.fillText('合計',cx,cy+20);
   document.getElementById(legendId).innerHTML=data.map(([l,v],i)=>`<div class="donut-legend-row"><div class="donut-legend-name"><i class="dot" style="background:${colors[i%colors.length]}"></i><span>${escapeHtml(l)}</span></div><span class="donut-legend-pct">${Math.round(v/total*100)}%</span><strong class="donut-legend-amt">${money(v)}</strong></div>`).join('')
 }
+
+const THEME_KEY='kakeibo-theme';
+function applyTheme(theme){
+  const dark=theme==='dark';
+  document.body.classList.toggle('dark-mode',dark);
+  const btn=document.getElementById('themeToggle');
+  if(btn){
+    btn.textContent=dark?'☀︎':'☾';
+    btn.title=dark?'ライトモードに切替':'ダークモードに切替';
+    btn.setAttribute('aria-label',btn.title);
+  }
+  if(typeof renderOverview==='function') requestAnimationFrame(()=>renderOverview());
+}
+function initTheme(){
+  const saved=localStorage.getItem(THEME_KEY);
+  const preferred=saved || 'light';
+  applyTheme(preferred);
+  const btn=document.getElementById('themeToggle');
+  if(btn) btn.onclick=()=>{
+    const next=document.body.classList.contains('dark-mode')?'light':'dark';
+    localStorage.setItem(THEME_KEY,next);
+    applyTheme(next);
+  };
+}
+
 prevMonth.onclick=()=>{current.setMonth(current.getMonth()-1);render()};nextMonth.onclick=()=>{current.setMonth(current.getMonth()+1);render()};todayBtn.onclick=()=>{current=new Date();current.setDate(1);render()};
 addTxBtn.onclick=addTxBtn2.onclick=()=>openTx();addBudgetBtn.onclick=()=>openBudget();txCancel.onclick=()=>txDialog.close();txType.onchange=updateCats;txAmount.addEventListener('input',updateAmountPreview);budgetCancel.onclick=()=>budgetDialog.close();budgetSave.onclick=saveBudget;itemType.onchange=renderItemList;addItemBtn.onclick=addItem;newItemName.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addItem()}});
 exportBtn.onclick=()=>{let blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='kakeibo-backup-'+ym()+'.json';a.click();URL.revokeObjectURL(a.href)};
@@ -313,7 +371,8 @@ resetBtn.onclick=()=>{if(confirm('すべての家計簿データを初期化し�
 window.addEventListener('resize',()=>{clearTimeout(window.__rt);window.__rt=setTimeout(drawCharts,150)});
 if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
 let chartResizeTimer;window.addEventListener('resize',()=>{clearTimeout(chartResizeTimer);chartResizeTimer=setTimeout(()=>requestAnimationFrame(drawCharts),120)});
-initNav();populateType();initQuickEntry();render();
+initNav();populateType();initQuickEntry();initTheme();
+render();
 </script>
 </body>
 </html>
