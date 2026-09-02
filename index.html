@@ -824,7 +824,7 @@
           </div>
         </div></div>
         <div class="card"><h2>データ管理</h2><div class="card-body"><p class="hint">データは端末内にも保存され、ログイン中はSupabaseへ自動同期します。実データはGitHubへ送信されません。万一に備えてJSONバックアップも定期的に保存してください。</p><div class="toolbar"><button class="secondary" id="exportBtn">JSONを書き出す</button><label class="secondary" style="cursor:pointer">JSONを読み込む<input id="importInput" type="file" accept="application/json" hidden></label><button class="danger" id="resetBtn">データ初期化</button></div></div></div>
-        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span> <span class="pill">v2.6.3 Stable</span></div></div>
+        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span> <span class="pill">v2.6.4 Stable</span></div></div>
       </div>
     </section>
   </main>
@@ -1008,7 +1008,7 @@ function renderVariableStatus(){
   const isCurrent=y===now.getFullYear()&&m===now.getMonth(), isPast=new Date(y,m+1,0)<new Date(now.getFullYear(),now.getMonth(),now.getDate()), isFuture=new Date(y,m,1)>new Date(now.getFullYear(),now.getMonth(),now.getDate());
   const daysLeft=isCurrent?Math.max(1,daysInMonth-now.getDate()+1):(isFuture?daysInMonth:0);
   const daily=daysLeft>0?Math.max(0,remaining)/daysLeft:0;
-  const watched=catsFor('variable').map(c=>({name:c,budget:+budget[c]||0,used:+usedByCat[c]||0,remaining:(+budget[c]||0)-(+usedByCat[c]||0)})).filter(x=>x.budget>0).sort((a,b)=>a.remaining-b.remaining).slice(0,3);
+  const watched=catsFor('variable').map(c=>({name:c,budget:+budget[c]||0,used:+usedByCat[c]||0,remaining:(+budget[c]||0)-(+usedByCat[c]||0)})).filter(x=>x.budget>0).sort((a,b)=>a.remaining-b.remaining).slice(0,5);
   const daysText=isCurrent?`月末まで ${daysLeft}日`:(isFuture?`対象月 ${daysInMonth}日間`:'対象月は終了');
   root.innerHTML=`<div class="variable-status-top"><div class="status-stat"><div class="k">予算</div><div class="v">${money(budgetTotal)}</div></div><div class="status-stat"><div class="k">使用済</div><div class="v">${money(used)}</div></div><div class="status-stat remaining"><div class="k">残り</div><div class="v ${remaining<0?'neg':''}">${money(remaining)}</div></div></div><div class="big-progress"><span class="${pct>100?'over':''}" style="width:${width}%"></span></div><div class="status-caption"><span>${budgetTotal>0?`予算消化 ${pct}%`:'予算未設定'}</span><span>${daysText}${daysLeft>0?` ・ 1日目安 ${money(daily)}`:''}</span></div>${watched.length?`<div class="budget-watch"><div class="budget-watch-title">予算残額が少ない項目</div>${watched.map(x=>`<div class="budget-watch-row ${x.remaining<0?'over':''}"><span>${escapeHtml(x.name)}</span><strong>${x.remaining<0?'超過 ':'残り '}${money(Math.abs(x.remaining))}</strong></div>`).join('')}</div>`:''}`;
 }
