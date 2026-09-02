@@ -824,7 +824,7 @@
           </div>
         </div></div>
         <div class="card"><h2>データ管理</h2><div class="card-body"><p class="hint">データは端末内にも保存され、ログイン中はSupabaseへ自動同期します。実データはGitHubへ送信されません。万一に備えてJSONバックアップも定期的に保存してください。</p><div class="toolbar"><button class="secondary" id="exportBtn">JSONを書き出す</button><label class="secondary" style="cursor:pointer">JSONを読み込む<input id="importInput" type="file" accept="application/json" hidden></label><button class="danger" id="resetBtn">データ初期化</button></div></div></div>
-        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span> <span class="pill">v2.6.4 Stable</span></div></div>
+        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span> <span class="pill">v2.6.5 Stable</span></div></div>
       </div>
     </section>
   </main>
@@ -939,7 +939,40 @@ function saveState(){
 function ym(d=current){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
 function money(n){return '¥'+Math.round(n||0).toLocaleString('ja-JP')}
 function deepCopy(o){return JSON.parse(JSON.stringify(o))}
-function getBudget(){let k=ym();if(!state.budgets[k])state.budgets[k]={};for(const t of TYPES){if(!state.budgets[k][t.key])state.budgets[k][t.key]={};for(const c of catsFor(t.key)){if(!(c in state.budgets[k][t.key]))state.budgets[k][t.key][c]=DEFAULT_BUDGET[t.key]?.[c]||0}for(const c of Object.keys(state.budgets[k][t.key])){if(!catsFor(t.key).includes(c))delete state.budgets[k][t.key][c]}}return state.budgets[k]}
+function normalizeBudgetForCategories(source){
+  const out={};
+  for(const t of TYPES){
+    out[t.key]={};
+    for(const c of catsFor(t.key)){
+      const hasValue=source?.[t.key]&&Object.prototype.hasOwnProperty.call(source[t.key],c);
+      out[t.key][c]=hasValue?finiteMoney(source[t.key][c]):finiteMoney(DEFAULT_BUDGET[t.key]?.[c]||0);
+    }
+  }
+  return out
+}
+function previousBudgetSource(monthKey){
+  const keys=Object.keys(state.budgets||{})
+    .filter(k=>/^\d{4}-\d{2}$/.test(k)&&k<monthKey)
+    .sort();
+  return keys.length?state.budgets[keys[keys.length-1]]:DEFAULT_BUDGET;
+}
+function ensureBudgetMonth(monthKey){
+  if(!state.budgets[monthKey]){
+    state.budgets[monthKey]=normalizeBudgetForCategories(previousBudgetSource(monthKey));
+  }else{
+    state.budgets[monthKey]=normalizeBudgetForCategories(state.budgets[monthKey]);
+  }
+  return state.budgets[monthKey];
+}
+function getBudget(){return ensureBudgetMonth(ym())}
+function applyBudgetForwardFrom(monthKey,budget){
+  const snapshot=normalizeBudgetForCategories(budget);
+  for(const key of Object.keys(state.budgets||{})){
+    if(/^\d{4}-\d{2}$/.test(key)&&key>monthKey){
+      state.budgets[key]=deepCopy(snapshot);
+    }
+  }
+}
 function monthTx(){let k=ym(); return state.transactions.filter(t=>typeof t.date==='string'&&t.date.startsWith(k))}
 function sum(arr){return arr.reduce((a,b)=>a+(+b||0),0)}
 function typeSum(type){return sum(monthTx().filter(t=>t.type===type).map(t=>t.amount))}
@@ -1039,8 +1072,29 @@ function openTx(id=null){txId.value=id||'';txDialogTitle.textContent=id?'収支�
 window.editTx=openTx;
 txForm.onsubmit=e=>{e.preventDefault();const calc=evaluateAmountExpression(txAmount.value);if(!calc.ok){updateAmountPreview();txAmount.focus();return}let obj={id:txId.value||newId(),date:txDate.value,type:txType.value,category:txCategory.value,item:txItem.value.trim(),amount:calc.value,amountExpression:txAmount.value.trim(),memo:txMemo.value.trim()};let i=state.transactions.findIndex(x=>x.id===obj.id);if(i>=0)state.transactions[i]=obj;else state.transactions.push(obj);saveState();txDialog.close();render()};
 function renderBudgetEditor(){const b=getBudget();budgetEditor.innerHTML=TYPES.map(t=>`<div class="budget-section" style="margin-bottom:10px"><h3>${t.label}</h3><div class="rows">${catsFor(t.key).map(c=>`<div class="row"><span>${escapeHtml(c)}</span><strong>${money(b[t.key]?.[c]||0)}</strong></div>`).join('')||'<div class="empty">項目がありません</div>'}</div></div>`).join('')+`<button class="primary" onclick="openBudget()">予算を編集</button>`}
-window.openBudget=()=>{const b=getBudget();budgetDialogBody.innerHTML=TYPES.map(t=>`<h3>${t.label}</h3><div class="form-grid">${catsFor(t.key).map(c=>`<div class="field"><label>${escapeHtml(c)}</label><input type="number" min="0" data-budget-type="${t.key}" data-budget-cat="${escapeHtml(c)}" value="${b[t.key]?.[c]||0}"></div>`).join('')||'<div class="hint">項目がありません</div>'}</div>`).join('');budgetDialog.showModal()};
-function saveBudget(){let b=getBudget();document.querySelectorAll('[data-budget-type]').forEach(i=>{b[i.dataset.budgetType][i.dataset.budgetCat]=+i.value||0});saveState();budgetDialog.close();render()}
+window.openBudget=()=>{
+  const b=getBudget();
+  const monthText=`${current.getFullYear()}年${current.getMonth()+1}月`;
+  budgetDialogBody.innerHTML=`<div class="hint" style="margin-bottom:14px"><strong>${monthText}から適用</strong><br>保存した予算はこの月と後の月に反映され、前の月の予算は変更されません。</div>`+
+    TYPES.map(t=>`<h3>${t.label}</h3><div class="form-grid">${catsFor(t.key).map(c=>`<div class="field"><label>${escapeHtml(c)}</label><input type="number" min="0" data-budget-type="${t.key}" data-budget-cat="${escapeHtml(c)}" value="${b[t.key]?.[c]||0}"></div>`).join('')||'<div class="hint">項目がありません</div>'}</div>`).join('');
+  budgetDialog.showModal()
+};
+function saveBudget(){
+  const before=deepCopy(state.budgets);
+  const monthKey=ym();
+  const b=getBudget();
+  document.querySelectorAll('[data-budget-type]').forEach(i=>{
+    b[i.dataset.budgetType][i.dataset.budgetCat]=+i.value||0
+  });
+  state.budgets[monthKey]=normalizeBudgetForCategories(b);
+  applyBudgetForwardFrom(monthKey,state.budgets[monthKey]);
+  if(!saveState()){
+    state.budgets=before;
+    return
+  }
+  budgetDialog.close();
+  render()
+}
 
 
 function nthWeekdayOfMonth(y,m,weekday,n){
