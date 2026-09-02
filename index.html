@@ -497,7 +497,7 @@
     <section class="panel" data-panel="settings">
       <div class="settings-box">
         <div class="card"><h2>データ管理</h2><div class="card-body"><p class="hint">この版は端末内に保存します。Safari/Chromeで同じURLを開けば使えますが、端末間の自動同期はまだ行いません。実データはGitHubへ送信されません。ブラウザデータを消す前にJSONバックアップを保存してください。</p><div class="toolbar"><button class="secondary" id="exportBtn">JSONを書き出す</button><label class="secondary" style="cursor:pointer">JSONを読み込む<input id="importInput" type="file" accept="application/json" hidden></label><button class="danger" id="resetBtn">データ初期化</button></div></div></div>
-        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span> <span class="pill">v2.3.5 Stable</span></div></div>
+        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span> <span class="pill">v2.3.6 Stable</span></div></div>
       </div>
     </section>
   </main>
@@ -586,7 +586,8 @@ function typeSum(type){return sum(monthTx().filter(t=>t.type===type).map(t=>t.am
 function budgetTypeSum(type){return sum(Object.values(getBudget()[type]||{}))}
 function initNav(){for(const [k,l] of tabs){const b=document.createElement('button');b.className='tab'+(k==='dashboard'?' active':'');b.textContent=l;b.dataset.tab=k;document.querySelector('#tabs').appendChild(b);const m=b.cloneNode(true);m.className=k==='dashboard'?'active':'';m.dataset.tab=k;document.querySelector('#mobileNav').appendChild(m)} document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>showPanel(b.dataset.tab))}
 function showPanel(k){document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.dataset.panel===k));document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===k));if(k==='calendar'){renderCalendar();renderMobileDaily()}if(k==='budget'){renderBudgetEditor();renderItemManager();}}
-function render(){refreshQuickEntry();renderMobileRecent();document.querySelector('#monthLabel').textContent=`${current.getFullYear()}年${current.getMonth()+1}月`;renderSummary();renderBudgetOverview();renderVariableStatus();renderCalendar();renderBudgetEditor();renderItemManager();requestAnimationFrame(()=>requestAnimationFrame(drawCharts))}
+function renderCurrentMonthViews(){renderMobileRecent();document.querySelector('#monthLabel').textContent=`${current.getFullYear()}年${current.getMonth()+1}月`;renderSummary();renderBudgetOverview();renderVariableStatus();renderCalendar();renderBudgetEditor();renderItemManager();requestAnimationFrame(()=>requestAnimationFrame(drawCharts))}
+function render(){refreshQuickEntry();renderCurrentMonthViews();renderMobileDaily()}
 function renderMobileRecent(){const wrap=document.getElementById('mobileRecentList');if(!wrap)return;const rows=[...monthTx()].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,5);if(!rows.length){wrap.innerHTML='<div class="recent-empty">まだ入力はありません</div>';return}wrap.innerHTML=rows.map(t=>{const d=(t.date||'').slice(5).replace('-','/');const sign=t.type==='income'?'+':'−';return `<div class="recent-row"><div class="recent-icon">${escapeHtml((t.category||'?').slice(0,1))}</div><div class="recent-main"><strong>${escapeHtml(t.item||t.category||'')}</strong><span>${d} ・ ${escapeHtml(t.category||'')}</span></div><div class="recent-amt ${t.type==='income'?'pos':''}">${sign}${money(t.amount).replace('¥','¥')}</div></div>`}).join('')}
 function renderSummary(){const income=typeSum('income'), expense=sum(['tax','saving','self','fixed','special','variable'].map(typeSum)); const fixedBudget=budgetTypeSum('fixed'), variable=typeSum('variable'); const budgetVar=budgetTypeSum('variable'); const data=[['収入',income,'当月の実績'],['支出',expense,'貯蓄・投資を含む'],['収支',income-expense,income-expense>=0?'黒字':'赤字'],['固定費',fixedBudget,'毎月の予算'],['変動費',variable,`予算残り ${money(budgetVar-variable)}`]]; document.querySelector('#summaryCards').innerHTML=data.map(([l,v,s])=>`<div class="metric"><div class="label">${l}</div><div class="value ${l==='収支'?(v>=0?'pos':'neg'):(l==='変動費'&&budgetVar>0&&v>budgetVar?'neg':'')}">${money(v)}</div><div class="sub">${s}</div></div>`).join('')}
 function renderBudgetOverview(){const root=document.querySelector('#budgetOverview');const b=getBudget();root.innerHTML=TYPES.map(t=>{let actual=typeSum(t.key), bud=budgetTypeSum(t.key);let cats=Object.keys(b[t.key]||{}).slice(0,8);const variable=t.key==='variable';return `<div class="budget-section" data-budget-section="${t.key}"><h3 onclick="toggleBudgetSection('${t.key}')"><span>${t.label}${variable?' <span style="font-size:10px;font-weight:600;color:#63736c">・予算</span>':' <span style="font-size:10px;font-weight:600;color:#63736c"></span>'}</span><span class="budget-toggle">表示 ▼</span></h3><div class="rows">${cats.map(c=>{let a=sum(monthTx().filter(x=>x.type===t.key&&x.category===c).map(x=>x.amount));if(!variable)return `<div class="row"><span>${escapeHtml(c)}</span><strong class="actual">${money(a)}</strong></div>`;let pct=b[t.key][c]>0?Math.min(100,Math.round(a/b[t.key][c]*100)):0;let over=b[t.key][c]>0&&a>b[t.key][c];return `<div class="row"><span>${escapeHtml(c)}${b[t.key][c]>0?`<div class="progress"><span class="${over?'over':''}" style="width:${pct}%"></span></div>`:''}</span><strong class="budget-pair"><span class="actual ${over?'neg':''}">${money(a)}</span><span class="budget-ref">/ ${money(b[t.key][c])}</span></strong></div>`}).join('')}<div class="row total"><b>合計</b><strong>${variable?`<span class="budget-pair"><span class="actual ${bud>0&&actual>bud?'neg':''}">${money(actual)}</span><span class="budget-ref">/ ${money(bud)}</span></span>`:`<span class="actual">${money(actual)}</span>`}</strong></div></div></div>`}).join('');applyMobileBudgetCollapse()}
@@ -719,9 +720,17 @@ function formatJapaneseDay(d){
   return `${d.getMonth()+1}月${d.getDate()}日（${ws[d.getDay()]}）`
 }
 function setMobileDailyDate(d){
-  mobileDailyDate=new Date(d.getFullYear(),d.getMonth(),d.getDate());
-  current=new Date(d.getFullYear(),d.getMonth(),1);
-  render();
+  if(!(d instanceof Date)||Number.isNaN(d.getTime()))return;
+  const next=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+  const dateChanged=localDateKey(next)!==localDateKey(mobileDailyDate);
+  const monthChanged=current.getFullYear()!==next.getFullYear()||current.getMonth()!==next.getMonth();
+  mobileDailyDate=next;
+  if(monthChanged)current=new Date(next.getFullYear(),next.getMonth(),1);
+  // 日別画面はパネル切替や全体 render() に依存せず、選択直後に更新する。
+  renderMobileDaily();
+  // 月をまたいだ場合だけ、月単位の画面も選択日に同期する。
+  if(monthChanged)renderCurrentMonthViews();
+  return dateChanged||monthChanged
 }
 function shiftMobileDailyDate(days){
   const d=new Date(mobileDailyDate);
@@ -794,7 +803,17 @@ function saveDailyEntry(){
   });
   saveState();
   dailyEntryDialog.close();
-  render()
+  renderMobileDaily();
+  renderCurrentMonthViews()
+}
+function dateFromPickerValue(value){
+  if(!validDateString(value))return null;
+  const [y,m,d]=value.split('-').map(Number);
+  return new Date(y,m-1,d)
+}
+function handleDailyDatePicker(){
+  const picked=dateFromPickerValue(dailyDatePicker.value);
+  if(picked)setMobileDailyDate(picked)
 }
 function initMobileDaily(){
   if(!document.getElementById('mobileDaily'))return;
@@ -802,12 +821,10 @@ function initMobileDaily(){
   mobileDailyDate=new Date(now.getFullYear(),now.getMonth(),now.getDate());
   dailyPrevBtn.onclick=()=>shiftMobileDailyDate(-1);
   dailyNextBtn.onclick=()=>shiftMobileDailyDate(1);
-  dailyDatePicker.onchange=()=>{
-    if(!dailyDatePicker.value)return;
-    const [y,m,d]=dailyDatePicker.value.split('-').map(Number);
-    const picked=new Date(y,m-1,d);
-    if(picked.getFullYear()===y&&picked.getMonth()===m-1&&picked.getDate()===d)setMobileDailyDate(picked);
-  };
+  // iPhone Safari は picker の確定方法により input / change の片方だけが
+  // 発火することがあるため、両方を同じ更新関数へ通す。
+  dailyDatePicker.addEventListener('input',handleDailyDatePicker);
+  dailyDatePicker.addEventListener('change',handleDailyDatePicker);
   dailyEntryAmount.addEventListener('input',updateDailyEntryCalc);
   dailyEntryCancel.onclick=()=>dailyEntryDialog.close();
   dailyEntrySave.onclick=saveDailyEntry;
