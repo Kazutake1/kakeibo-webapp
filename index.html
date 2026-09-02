@@ -616,6 +616,19 @@
     body.dark-mode .daily-history-buttons button{background:#172638;border-color:#30465d;color:#edf4fc}
     body.dark-mode .daily-history-buttons .history-delete{color:#ff8d92;border-color:#5a343d;background:#261b23}
 
+
+    /* v2.5.1: income add/edit/delete from daily view */
+    .day-income-block{border-bottom:1px solid var(--line-soft)}
+    .day-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 18px 4px}
+    .day-section-head span{font-size:12px;color:var(--muted);font-weight:800}
+    .day-section-head strong{font-size:18px;color:#347fd6;font-variant-numeric:tabular-nums}
+    .day-income-list .day-cat-amount{color:#347fd6}
+    .cal-group-row td{padding:8px 10px!important;text-align:left!important;font-size:11px;font-weight:800;color:var(--muted);background:var(--bg-soft)}
+    .cal-cell.income-cell .amt{color:#347fd6;font-weight:800}
+    body.dark-mode .day-section-head strong,
+    body.dark-mode .cal-cell.income-cell .amt{color:#76b9ff}
+    body.dark-mode .cal-group-row td{background:#101c29;color:#9eb0c6}
+
     /* v2.5.0: Supabase account + cloud sync */
     .sync-card .card-body{display:flex;flex-direction:column;gap:12px}
     .sync-status-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 12px;border:1px solid var(--line-soft);border-radius:12px;background:#f8fbff}
@@ -665,7 +678,7 @@
     </section>
 
     <section class="panel" data-panel="calendar">
-      <div class="card daily-desktop-card"><h2>変動費 日別入力表</h2><div class="card-body calendar" id="calendarWrap"></div></div>
+      <div class="card daily-desktop-card"><h2>収支 日別入力表</h2><div class="card-body calendar" id="calendarWrap"></div></div>
       <div class="mobile-daily" id="mobileDaily">
         <div class="mobile-month-calendar" id="mobileMonthCalendar" aria-label="月間収支カレンダー"></div>
         <div class="mobile-day-card">
@@ -677,6 +690,10 @@
               <input type="date" id="dailyDatePicker" class="daily-native-date" aria-label="日付を選択">
             </div>
             <button type="button" class="day-nav-btn" id="dailyNextBtn" aria-label="次の日">›</button>
+          </div>
+          <div class="day-income-block">
+            <div class="day-section-head"><span>収入</span><strong id="dailyIncomeTotal">¥0</strong></div>
+            <div class="day-category-list day-income-list" id="dailyIncomeList"></div>
           </div>
           <div class="day-total-block">
             <span>本日の支出</span>
@@ -732,8 +749,8 @@
             </div>
           </div>
         </div></div>
-        <div class="card"><h2>データ管理</h2><div class="card-body"><p class="hint">この版は端末内に保存します。Safari/Chromeで同じURLを開けば使えますが、端末間の自動同期はまだ行いません。実データはGitHubへ送信されません。ブラウザデータを消す前にJSONバックアップを保存してください。</p><div class="toolbar"><button class="secondary" id="exportBtn">JSONを書き出す</button><label class="secondary" style="cursor:pointer">JSONを読み込む<input id="importInput" type="file" accept="application/json" hidden></label><button class="danger" id="resetBtn">データ初期化</button></div></div></div>
-        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span> <span class="pill">v2.5.0 Stable</span></div></div>
+        <div class="card"><h2>データ管理</h2><div class="card-body"><p class="hint">データは端末内にも保存され、ログイン中はSupabaseへ自動同期します。実データはGitHubへ送信されません。万一に備えてJSONバックアップも定期的に保存してください。</p><div class="toolbar"><button class="secondary" id="exportBtn">JSONを書き出す</button><label class="secondary" style="cursor:pointer">JSONを読み込む<input id="importInput" type="file" accept="application/json" hidden></label><button class="danger" id="resetBtn">データ初期化</button></div></div></div>
+        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span> <span class="pill">v2.5.1 Stable</span></div></div>
       </div>
     </section>
   </main>
@@ -1066,6 +1083,19 @@ function renderMobileDaily(){
   dailyDateSub.textContent=hname||(dateKey===todayKey?'今日':'');
   dailyDateSub.className='day-date-sub '+(hname?'holiday':'');
   dailyDatePicker.value=dateKey;
+  const incomeTx=state.transactions.filter(t=>t.type==='income'&&t.date===dateKey);
+  const incomeTotal=sum(incomeTx.map(t=>t.amount));
+  dailyIncomeTotal.textContent=money(incomeTotal);
+  const incomeCats=catsFor('income');
+  dailyIncomeList.innerHTML=incomeCats.length?incomeCats.map((cat,i)=>{
+    const amount=sum(incomeTx.filter(t=>t.category===cat).map(t=>t.amount));
+    const palette=['#347fd6','#438edc','#54a0e6','#69afea','#7dbbea'];
+    return `<button type="button" class="day-cat-row" onclick="${amount?`openDailyIncomeHistory('${encodeArg(cat)}')`:`openDailyIncome('${encodeArg(cat)}')`}">
+      <span class="day-cat-main"><i class="day-cat-dot" style="background:${palette[i%palette.length]}"></i><span class="day-cat-name">${escapeHtml(cat)}</span></span>
+      <span class="day-cat-action">${amount?`<strong class="day-cat-amount">${money(amount)}</strong>`:`<span class="day-cat-add">＋追加</span>`}<span class="day-cat-arrow">›</span></span>
+    </button>`
+  }).join(''):'<div class="empty">収入の項目がありません</div>';
+
   const dayTx=state.transactions.filter(t=>t.type==='variable'&&t.date===dateKey);
   const dayTotal=sum(dayTx.map(t=>t.amount));
   dailyTotal.textContent=money(dayTotal);
@@ -1092,21 +1122,25 @@ function renderMobileDaily(){
     </button>`
   }).join(''):'<div class="empty">変動費の項目がありません</div>';
 }
+let dailyEntryType='variable';
 let dailyEntryCategory='';
 let dailyEntryEditId='';
+let dailyHistoryType='variable';
 let dailyHistoryCategory='';
 let dailyEntryReturnToHistory=false;
 
-function dailyTransactionsFor(dateKey,category){
-  return state.transactions.filter(t=>t.type==='variable'&&t.date===dateKey&&t.category===category)
+function dailyTransactionsFor(dateKey,type,category){
+  return state.transactions.filter(t=>t.type===type&&t.date===dateKey&&t.category===category)
 }
-function openDailyEntryEditor(category,editId='',returnToHistory=false){
+function openDailyEntryEditor(type,category,editId='',returnToHistory=false){
+  dailyEntryType=type;
   dailyEntryCategory=category;
   dailyEntryEditId=editId||'';
   dailyEntryReturnToHistory=!!returnToHistory;
-  const existing=dailyEntryEditId?state.transactions.find(t=>t.id===dailyEntryEditId):null;
-  dailyEntryTitle.textContent=existing?'入力を編集':dailyEntryCategory;
-  dailyEntryMeta.textContent=`${formatJapaneseDay(mobileDailyDate)} ・ ${dailyEntryCategory}`;
+  const existing=dailyEntryEditId?state.transactions.find(t=>t.id===dailyEntryEditId&&t.type===dailyEntryType):null;
+  const typeLabel=TYPES.find(t=>t.key===dailyEntryType)?.label||dailyEntryType;
+  dailyEntryTitle.textContent=existing?'入力を編集':`${typeLabel}を追加`;
+  dailyEntryMeta.textContent=`${formatJapaneseDay(mobileDailyDate)} ・ ${typeLabel} ・ ${dailyEntryCategory}`;
   dailyEntryAmount.value=existing?(existing.amountExpression||existing.amount):'';
   dailyEntryItem.value=existing?(existing.item||''):'';
   dailyEntryMemo.value=existing?(existing.memo||''):'';
@@ -1115,12 +1149,14 @@ function openDailyEntryEditor(category,editId='',returnToHistory=false){
   dailyEntryDialog.showModal();
   setTimeout(()=>dailyEntryAmount.focus(),80)
 }
-window.openDailyEntry=encoded=>openDailyEntryEditor(decodeURIComponent(encoded));
+window.openDailyEntry=encoded=>openDailyEntryEditor('variable',decodeURIComponent(encoded));
+window.openDailyIncome=encoded=>openDailyEntryEditor('income',decodeURIComponent(encoded));
 
 function renderDailyHistory(){
   const dateKey=localDateKey(mobileDailyDate);
-  const rows=dailyTransactionsFor(dateKey,dailyHistoryCategory);
-  dailyHistoryTitle.textContent=dailyHistoryCategory||'入力履歴';
+  const rows=dailyTransactionsFor(dateKey,dailyHistoryType,dailyHistoryCategory);
+  const typeLabel=TYPES.find(t=>t.key===dailyHistoryType)?.label||dailyHistoryType;
+  dailyHistoryTitle.textContent=`${typeLabel}・${dailyHistoryCategory||'入力履歴'}`;
   dailyHistoryMeta.textContent=`${formatJapaneseDay(mobileDailyDate)} の入力履歴`;
   dailyHistoryList.innerHTML=rows.length?rows.map((t,i)=>{
     const details=[t.item,t.memo].map(v=>cleanText(v,500)).filter(Boolean).join(' ・ ')||`入力 ${i+1}`;
@@ -1133,25 +1169,31 @@ function renderDailyHistory(){
     </div>`
   }).join(''):'<div class="daily-history-empty">この項目の入力はありません</div>';
 }
-window.openDailyHistory=encoded=>{
+function openDailyHistoryFor(type,encoded){
+  dailyHistoryType=type;
   dailyHistoryCategory=decodeURIComponent(encoded);
   renderDailyHistory();
   if(!dailyHistoryDialog.open)dailyHistoryDialog.showModal();
-};
+}
+window.openDailyHistory=encoded=>openDailyHistoryFor('variable',encoded);
+window.openDailyIncomeHistory=encoded=>openDailyHistoryFor('income',encoded);
+
 window.editDailyHistoryEntry=encoded=>{
   const id=decodeURIComponent(encoded);
-  const tx=state.transactions.find(t=>t.id===id&&t.type==='variable');
+  const tx=state.transactions.find(t=>t.id===id&&t.type===dailyHistoryType);
   if(!tx)return;
+  dailyHistoryType=tx.type;
   dailyHistoryCategory=tx.category;
   if(dailyHistoryDialog.open)dailyHistoryDialog.close();
-  openDailyEntryEditor(tx.category,id,true);
+  openDailyEntryEditor(tx.type,tx.category,id,true);
 };
 window.deleteDailyHistoryEntry=encoded=>{
   const id=decodeURIComponent(encoded);
-  const index=state.transactions.findIndex(t=>t.id===id&&t.type==='variable');
+  const index=state.transactions.findIndex(t=>t.id===id&&t.type===dailyHistoryType);
   if(index<0)return;
   const tx=state.transactions[index];
-  if(!confirm(`${formatJapaneseDay(new Date(tx.date+'T00:00:00'))} の「${tx.category}」 ${money(tx.amount)} を削除しますか？`))return;
+  const typeLabel=TYPES.find(t=>t.key===tx.type)?.label||tx.type;
+  if(!confirm(`${formatJapaneseDay(new Date(tx.date+'T00:00:00'))} の「${typeLabel}・${tx.category}」 ${money(tx.amount)} を削除しますか？`))return;
   const removed=state.transactions.splice(index,1)[0];
   if(!saveState()){
     state.transactions.splice(index,0,removed);
@@ -1159,7 +1201,7 @@ window.deleteDailyHistoryEntry=encoded=>{
   }
   renderMobileDaily();
   renderCurrentMonthViews();
-  const remaining=dailyTransactionsFor(localDateKey(mobileDailyDate),dailyHistoryCategory);
+  const remaining=dailyTransactionsFor(localDateKey(mobileDailyDate),dailyHistoryType,dailyHistoryCategory);
   if(remaining.length){
     renderDailyHistory();
   }else if(dailyHistoryDialog.open){
@@ -1181,7 +1223,7 @@ function saveDailyEntry(){
   const memo=cleanText(dailyEntryMemo.value,500);
   const wasEdit=!!dailyEntryEditId;
   if(wasEdit){
-    const index=state.transactions.findIndex(t=>t.id===dailyEntryEditId&&t.type==='variable');
+    const index=state.transactions.findIndex(t=>t.id===dailyEntryEditId&&t.type===dailyEntryType);
     if(index<0){alert('編集対象のデータが見つかりません');return}
     const before={...state.transactions[index]};
     state.transactions[index]={...state.transactions[index],amount:calc.value,amountExpression:raw,item,memo};
@@ -1191,7 +1233,7 @@ function saveDailyEntry(){
     }
   }else{
     const tx={
-      id:newId(),date:localDateKey(mobileDailyDate),type:'variable',category:dailyEntryCategory,
+      id:newId(),date:localDateKey(mobileDailyDate),type:dailyEntryType,category:dailyEntryCategory,
       item,amount:calc.value,amountExpression:raw,memo
     };
     state.transactions.push(tx);
@@ -1201,6 +1243,7 @@ function saveDailyEntry(){
     }
   }
   const returnToHistory=dailyEntryReturnToHistory;
+  const type=dailyEntryType;
   const category=dailyEntryCategory;
   dailyEntryDialog.close();
   dailyEntryEditId='';
@@ -1208,6 +1251,7 @@ function saveDailyEntry(){
   renderMobileDaily();
   renderCurrentMonthViews();
   if(returnToHistory){
+    dailyHistoryType=type;
     dailyHistoryCategory=category;
     renderDailyHistory();
     dailyHistoryDialog.showModal();
@@ -1243,9 +1287,10 @@ function initMobileDaily(){
   dailyEntrySave.onclick=saveDailyEntry;
   dailyHistoryClose.onclick=()=>dailyHistoryDialog.close();
   dailyHistoryAdd.onclick=()=>{
+    const type=dailyHistoryType;
     const cat=dailyHistoryCategory;
     dailyHistoryDialog.close();
-    openDailyEntryEditor(cat,'',true);
+    openDailyEntryEditor(type,cat,'',true);
   };
   dailyEntryAmount.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();saveDailyEntry()}});
   let touchX=null;
@@ -1257,20 +1302,60 @@ function initMobileDaily(){
   },{passive:true})
 }
 
-function renderCalendar(){const cats=catsFor('variable'); const y=current.getFullYear(),m=current.getMonth();const days=new Date(y,m+1,0).getDate(), offset=(new Date(y,m,1).getDay()+6)%7;let weeks=Math.ceil((offset+days)/7);let html='<table class="cal-table">';for(let w=0;w<weeks;w++){let ds=[];for(let c=0;c<7;c++){let d=w*7+c-offset+1;ds.push(d>=1&&d<=days?d:null)}html+=`<tr><th class="cal-cat">項目</th>${ds.map(d=>{if(!d)return '<th></th>';const dt=new Date(y,m,d),cls=dayClass(dt),wd=['日','月','火','水','木','金','土'][dt.getDay()],hn=holidayName(dt);return `<th class="${cls}" title="${escapeHtml(hn)}">${d}<span class="weekday-label">${wd}</span></th>`}).join('')}<th>合計</th></tr>`;for(const cat of cats){html+=`<tr><td class="cal-cat">${escapeHtml(cat)}</td>${ds.map(d=>{if(!d)return '<td></td>';let date=ym()+'-'+String(d).padStart(2,'0');let a=sum(monthTx().filter(t=>t.type==='variable'&&t.category===cat&&t.date===date).map(t=>t.amount));return `<td class="cal-cell" onclick="quickAdd('${date}','${encodeArg(cat)}')">${a?`<span class="amt">${money(a)}</span>`:''}</td>`}).join('')}<td class="cal-cell"><b>${money(sum(monthTx().filter(t=>t.type==='variable'&&t.category===cat&&ds.includes(+t.date.slice(-2))).map(t=>t.amount)))}</b></td></tr>`}html+=`<tr><td class="cal-cat"><b>合計</b></td>${ds.map(d=>{if(!d)return '<td></td>';let date=ym()+'-'+String(d).padStart(2,'0');let a=sum(monthTx().filter(t=>t.type==='variable'&&t.date===date).map(t=>t.amount));return `<td><b>${a?money(a):''}</b></td>`}).join('')}<td></td></tr>`}html+='</table>';calendarWrap.innerHTML=html}
-window.quickAdd=(date,encoded)=>{
+function renderCalendar(){
+  const incomeCats=catsFor('income'), variableCats=catsFor('variable');
+  const y=current.getFullYear(),m=current.getMonth();
+  const days=new Date(y,m+1,0).getDate(), offset=(new Date(y,m,1).getDay()+6)%7;
+  const weeks=Math.ceil((offset+days)/7);
+  const tx=monthTx();
+  const groupRows=(type,cats,ds,label)=>{
+    let html=`<tr class="cal-group-row"><td colspan="${ds.length+2}">${label}</td></tr>`;
+    for(const cat of cats){
+      html+=`<tr><td class="cal-cat">${escapeHtml(cat)}</td>${ds.map(d=>{
+        if(!d)return '<td></td>';
+        const date=ym()+'-'+String(d).padStart(2,'0');
+        const a=sum(tx.filter(t=>t.type===type&&t.category===cat&&t.date===date).map(t=>t.amount));
+        return `<td class="cal-cell ${type==='income'?'income-cell':''}" onclick="quickAddType('${date}','${type}','${encodeArg(cat)}')">${a?`<span class="amt">${money(a)}</span>`:''}</td>`
+      }).join('')}<td class="cal-cell ${type==='income'?'income-cell':''}"><b>${money(sum(tx.filter(t=>t.type===type&&t.category===cat&&ds.includes(+t.date.slice(-2))).map(t=>t.amount)))}</b></td></tr>`
+    }
+    html+=`<tr><td class="cal-cat"><b>${label}合計</b></td>${ds.map(d=>{
+      if(!d)return '<td></td>';
+      const date=ym()+'-'+String(d).padStart(2,'0');
+      const a=sum(tx.filter(t=>t.type===type&&t.date===date).map(t=>t.amount));
+      return `<td class="${type==='income'?'income-cell':''}"><b>${a?money(a):''}</b></td>`
+    }).join('')}<td></td></tr>`;
+    return html
+  };
+  let html='<table class="cal-table">';
+  for(let w=0;w<weeks;w++){
+    const ds=[];
+    for(let c=0;c<7;c++){const d=w*7+c-offset+1;ds.push(d>=1&&d<=days?d:null)}
+    html+=`<tr><th class="cal-cat">項目</th>${ds.map(d=>{
+      if(!d)return '<th></th>';
+      const dt=new Date(y,m,d),cls=dayClass(dt),wd=['日','月','火','水','木','金','土'][dt.getDay()],hn=holidayName(dt);
+      return `<th class="${cls}" title="${escapeHtml(hn)}">${d}<span class="weekday-label">${wd}</span></th>`
+    }).join('')}<th>合計</th></tr>`;
+    html+=groupRows('income',incomeCats,ds,'収入');
+    html+=groupRows('variable',variableCats,ds,'変動費');
+  }
+  html+='</table>';
+  calendarWrap.innerHTML=html
+}
+window.quickAddType=(date,type,encoded)=>{
   const cat=decodeURIComponent(encoded);
   const picked=dateFromPickerValue(date);
-  const existing=state.transactions.some(t=>t.type==='variable'&&t.date===date&&t.category===cat);
+  const existing=state.transactions.some(t=>t.type===type&&t.date===date&&t.category===cat);
   if(existing&&picked){
     mobileDailyDate=picked;
+    dailyHistoryType=type;
     dailyHistoryCategory=cat;
     renderDailyHistory();
     dailyHistoryDialog.showModal();
     return;
   }
-  openTx();txDate.value=date;txType.value='variable';updateCats();txCategory.value=cat;txItem.value='';
+  openTx();txDate.value=date;txType.value=type;updateCats();txCategory.value=cat;txItem.value='';
 }
+window.quickAdd=(date,encoded)=>quickAddType(date,'variable',encoded);
 function renderItemManager(){if(!document.getElementById('itemType'))return;const selected=itemType.dataset.ready?itemType.value:'variable';itemType.innerHTML=TYPES.map(t=>`<option value="${t.key}">${t.label}</option>`).join('');itemType.value=selected||'variable';itemType.dataset.ready='1';renderItemList()}
 function renderItemList(){if(!document.getElementById('itemList'))return;const type=itemType.value||'variable';const cats=catsFor(type);itemList.innerHTML=cats.length?cats.map(c=>`<div class="item-chip"><span>${escapeHtml(c)}</span><span class="item-chip-actions"><button class="edit-item" type="button" onclick="editItem('${type}','${encodeArg(c)}')">編集</button><button class="delete-item" type="button" onclick="deleteItem('${type}','${encodeArg(c)}')">削除</button></span></div>`).join(''):'<div class="empty">項目がありません</div>'}
 function addItem(){const type=itemType.value;const name=newItemName.value.trim();if(!name)return;if(catsFor(type).some(c=>c.toLowerCase()===name.toLowerCase())){alert('同じ名前の項目があります');return}state.categories[type].push(name);const b=getBudget();if(!(name in b[type]))b[type][name]=0;saveState();newItemName.value='';render();itemType.value=type;renderItemList();updateCats()}
