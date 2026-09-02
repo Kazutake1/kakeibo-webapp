@@ -389,7 +389,7 @@
     @media(max-width:700px){
       .daily-desktop-card{display:none}
       .mobile-daily{display:block}
-      .panel[data-panel="calendar"]{padding-bottom:8px}
+      .panel[data-panel="expense"],.panel[data-panel="income"]{padding-bottom:8px}
       .daily-entry-dialog{
         width:100vw;max-width:none;margin:0;position:fixed;left:0;right:0;bottom:0;top:auto;
         border-radius:24px 24px 0 0;border:0;padding-bottom:env(safe-area-inset-bottom);
@@ -642,6 +642,25 @@
     body.dark-mode .sync-status-row{background:#101c29;border-color:#26384c}
     @media(max-width:700px){.sync-auth-grid{grid-template-columns:1fr}}
 
+    /* v2.6.0: separate expense / income pages */
+    .expense-panel .page-accent-amount{color:#df4f5c}
+    .income-panel .page-accent-amount{color:#347fd6}
+    .expense-panel .day-cat-amount{color:#c94450}
+    .income-panel .day-cat-amount{color:#347fd6}
+    .page-calendar-title{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .page-calendar-title small{font-size:11px;color:var(--muted);font-weight:650}
+    .mobile-cal-legend.single{gap:0}
+    .mobile-cal-legend .single-dot.expense-dot{background:#df4f5c}
+    .mobile-cal-legend .single-dot.income-dot{background:#347fd6}
+    body.dark-mode .expense-panel .page-accent-amount,
+    body.dark-mode .expense-panel .day-cat-amount{color:#ff8d92}
+    body.dark-mode .income-panel .page-accent-amount,
+    body.dark-mode .income-panel .day-cat-amount{color:#76b9ff}
+    @media(max-width:700px){
+      .panel[data-panel="expense"],.panel[data-panel="income"]{padding-bottom:8px}
+      .mobile-nav button{font-size:13px;padding-left:2px;padding-right:2px}
+    }
+
   </style>
 </head>
 <body>
@@ -677,33 +696,63 @@
       </div>
     </section>
 
-    <section class="panel" data-panel="calendar">
-      <div class="card daily-desktop-card"><h2>収支 日別入力表</h2><div class="card-body calendar" id="calendarWrap"></div></div>
-      <div class="mobile-daily" id="mobileDaily">
-        <div class="mobile-month-calendar" id="mobileMonthCalendar" aria-label="月間収支カレンダー"></div>
+    <section class="panel expense-panel" data-panel="expense">
+      <div class="card daily-desktop-card">
+        <h2 class="page-calendar-title"><span>支出 日別入力表</span><small>変動費</small></h2>
+        <div class="card-body calendar" id="expenseCalendarWrap"></div>
+      </div>
+      <div class="mobile-daily" id="mobileExpense">
+        <div class="mobile-month-calendar" id="expenseMonthCalendar" aria-label="支出カレンダー"></div>
         <div class="mobile-day-card">
           <div class="mobile-day-head">
-            <button type="button" class="day-nav-btn" id="dailyPrevBtn" aria-label="前の日">‹</button>
+            <button type="button" class="day-nav-btn" id="expensePrevBtn" aria-label="前の日">‹</button>
             <div class="day-date-picker-wrap">
-              <span class="day-date-main" id="dailyDateLabel"></span>
-              <span class="day-date-sub" id="dailyDateSub">今日</span>
-              <input type="date" id="dailyDatePicker" class="daily-native-date" aria-label="日付を選択">
+              <span class="day-date-main" id="expenseDateLabel"></span>
+              <span class="day-date-sub" id="expenseDateSub"></span>
+              <input type="date" id="expenseDatePicker" class="daily-native-date" aria-label="支出の日付を選択">
             </div>
-            <button type="button" class="day-nav-btn" id="dailyNextBtn" aria-label="次の日">›</button>
-          </div>
-          <div class="day-income-block">
-            <div class="day-section-head"><span>収入</span><strong id="dailyIncomeTotal">¥0</strong></div>
-            <div class="day-category-list day-income-list" id="dailyIncomeList"></div>
+            <button type="button" class="day-nav-btn" id="expenseNextBtn" aria-label="次の日">›</button>
           </div>
           <div class="day-total-block">
-            <span>本日の支出</span>
-            <strong id="dailyTotal">¥0</strong>
+            <span>選択日の支出</span>
+            <strong class="page-accent-amount" id="expenseDayTotal">¥0</strong>
           </div>
-          <div class="day-category-list" id="dailyCategoryList"></div>
+          <div class="day-category-list" id="expenseCategoryList"></div>
           <div class="day-summary-strip">
-            <div><span>今日</span><strong id="dailySummaryToday">¥0</strong></div>
-            <div><span>今週</span><strong id="dailySummaryWeek">¥0</strong></div>
-            <div><span>今月</span><strong id="dailySummaryMonth">¥0</strong></div>
+            <div><span>選択日</span><strong id="expenseSummaryDay">¥0</strong></div>
+            <div><span>今週</span><strong id="expenseSummaryWeek">¥0</strong></div>
+            <div><span>今月</span><strong id="expenseSummaryMonth">¥0</strong></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel income-panel" data-panel="income">
+      <div class="card daily-desktop-card">
+        <h2 class="page-calendar-title"><span>収入 日別入力表</span><small>給与・ボーナス・配当など</small></h2>
+        <div class="card-body calendar" id="incomeCalendarWrap"></div>
+      </div>
+      <div class="mobile-daily" id="mobileIncome">
+        <div class="mobile-month-calendar" id="incomeMonthCalendar" aria-label="収入カレンダー"></div>
+        <div class="mobile-day-card">
+          <div class="mobile-day-head">
+            <button type="button" class="day-nav-btn" id="incomePrevBtn" aria-label="前の日">‹</button>
+            <div class="day-date-picker-wrap">
+              <span class="day-date-main" id="incomeDateLabel"></span>
+              <span class="day-date-sub" id="incomeDateSub"></span>
+              <input type="date" id="incomeDatePicker" class="daily-native-date" aria-label="収入の日付を選択">
+            </div>
+            <button type="button" class="day-nav-btn" id="incomeNextBtn" aria-label="次の日">›</button>
+          </div>
+          <div class="day-total-block">
+            <span>選択日の収入</span>
+            <strong class="page-accent-amount" id="incomeDayTotal">¥0</strong>
+          </div>
+          <div class="day-category-list" id="incomeCategoryList"></div>
+          <div class="day-summary-strip">
+            <div><span>選択日</span><strong id="incomeSummaryDay">¥0</strong></div>
+            <div><span>今週</span><strong id="incomeSummaryWeek">¥0</strong></div>
+            <div><span>今月</span><strong id="incomeSummaryMonth">¥0</strong></div>
           </div>
         </div>
       </div>
@@ -750,7 +799,7 @@
           </div>
         </div></div>
         <div class="card"><h2>データ管理</h2><div class="card-body"><p class="hint">データは端末内にも保存され、ログイン中はSupabaseへ自動同期します。実データはGitHubへ送信されません。万一に備えてJSONバックアップも定期的に保存してください。</p><div class="toolbar"><button class="secondary" id="exportBtn">JSONを書き出す</button><label class="secondary" style="cursor:pointer">JSONを読み込む<input id="importInput" type="file" accept="application/json" hidden></label><button class="danger" id="resetBtn">データ初期化</button></div></div></div>
-        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span> <span class="pill">v2.5.1 Stable</span></div></div>
+        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span> <span class="pill">v2.6.0 Stable</span></div></div>
       </div>
     </section>
   </main>
@@ -811,7 +860,7 @@ const DEFAULT_CATS = {
   variable:['セブンイレブン','ローソン','ファミリーマート','スギ薬局','ゲンキー','その他','外食','インターネット','ネット通販','その他2']
 };
 const DEFAULT_BUDGET = {income:{},tax:{},saving:{NISA:30000},self:{},fixed:{生命保険:25646,住宅ローン:60000,通信費:2181,Youtube:1280,'iCloud+':150,MoneyForward:550},special:{},variable:{セブンイレブン:20000,ローソン:0,ファミリーマート:0,スギ薬局:15000,ゲンキー:15000,その他:0,外食:0,インターネット:0,ネット通販:0,その他2:0}};
-const tabs=[['dashboard','概要'],['calendar','日別'],['budget','予算'],['settings','設定']];
+const tabs=[['dashboard','概要'],['expense','支出'],['income','収入'],['budget','予算'],['settings','設定']];
 let current = new Date(); current.setDate(1);
 let state = loadState();
 let mobileDailyDate = new Date();
@@ -871,7 +920,12 @@ function sum(arr){return arr.reduce((a,b)=>a+(+b||0),0)}
 function typeSum(type){return sum(monthTx().filter(t=>t.type===type).map(t=>t.amount))}
 function budgetTypeSum(type){return sum(Object.values(getBudget()[type]||{}))}
 function initNav(){for(const [k,l] of tabs){const b=document.createElement('button');b.className='tab'+(k==='dashboard'?' active':'');b.textContent=l;b.dataset.tab=k;document.querySelector('#tabs').appendChild(b);const m=b.cloneNode(true);m.className=k==='dashboard'?'active':'';m.dataset.tab=k;document.querySelector('#mobileNav').appendChild(m)} document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>showPanel(b.dataset.tab))}
-function showPanel(k){document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.dataset.panel===k));document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===k));if(k==='calendar'){renderCalendar();renderMobileDaily()}if(k==='budget'){renderBudgetEditor();renderItemManager();}}
+function showPanel(k){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.dataset.panel===k));
+  document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===k));
+  if(k==='expense'||k==='income'){renderCalendar();renderMobileDaily()}
+  if(k==='budget'){renderBudgetEditor();renderItemManager()}
+}
 function renderCurrentMonthViews(){renderMobileRecent();document.querySelector('#monthLabel').textContent=`${current.getFullYear()}年${current.getMonth()+1}月`;renderSummary();renderBudgetOverview();renderVariableStatus();renderCalendar();renderBudgetEditor();renderItemManager();requestAnimationFrame(()=>requestAnimationFrame(drawCharts))}
 function render(){refreshQuickEntry();renderCurrentMonthViews();renderMobileDaily()}
 function renderMobileRecent(){const wrap=document.getElementById('mobileRecentList');if(!wrap)return;const rows=[...monthTx()].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,5);if(!rows.length){wrap.innerHTML='<div class="recent-empty">まだ入力はありません</div>';return}wrap.innerHTML=rows.map(t=>{const d=(t.date||'').slice(5).replace('-','/');const sign=t.type==='income'?'+':'−';return `<div class="recent-row"><div class="recent-icon">${escapeHtml((t.category||'?').slice(0,1))}</div><div class="recent-main"><strong>${escapeHtml(t.item||t.category||'')}</strong><span>${d} ・ ${escapeHtml(t.category||'')}</span></div><div class="recent-amt ${t.type==='income'?'pos':''}">${sign}${money(t.amount).replace('¥','¥')}</div></div>`}).join('')}
@@ -1012,46 +1066,43 @@ function compactMoney(n){
   if(Math.abs(v)>=10000)return '¥'+(v/10000).toFixed(v%10000===0?0:1)+'万';
   return money(v)
 }
-function mobileCalendarExpenseForDate(dateKey){
-  return sum(state.transactions.filter(t=>t.date===dateKey&&t.type!=='income').map(t=>t.amount))
+function pageTypeFor(kind){return kind==='income'?'income':'variable'}
+function pageLabelFor(kind){return kind==='income'?'収入':'支出'}
+function pageAmountForDate(kind,dateKey){
+  const type=pageTypeFor(kind);
+  return sum(state.transactions.filter(t=>t.date===dateKey&&t.type===type).map(t=>t.amount))
 }
-function mobileCalendarIncomeForDate(dateKey){
-  return sum(state.transactions.filter(t=>t.date===dateKey&&t.type==='income').map(t=>t.amount))
-}
-function renderMobileMonthCalendar(){
-  const root=document.getElementById('mobileMonthCalendar');
+function renderPageMonthCalendar(kind){
+  const root=document.getElementById(kind==='income'?'incomeMonthCalendar':'expenseMonthCalendar');
   if(!root)return;
   const selected=new Date(mobileDailyDate.getFullYear(),mobileDailyDate.getMonth(),mobileDailyDate.getDate());
   const y=selected.getFullYear(),m=selected.getMonth();
   const days=new Date(y,m+1,0).getDate();
-  const offset=new Date(y,m,1).getDay(); // Sunday-first
+  const offset=new Date(y,m,1).getDay();
   const todayKey=localDateKey(new Date());
   const selectedKey=localDateKey(selected);
+  const label=pageLabelFor(kind);
+  const moneyClass=kind==='income'?'income':'expense';
   const cells=[];
   for(let i=0;i<offset;i++)cells.push('<span class="mobile-cal-day empty" aria-hidden="true"></span>');
   for(let d=1;d<=days;d++){
-    const dt=new Date(y,m,d),key=localDateKey(dt),cls=dayClass(dt);
-    const income=mobileCalendarIncomeForDate(key);
-    const expense=mobileCalendarExpenseForDate(key);
-    const selectedClass=key===selectedKey?' selected':'';
-    const todayClass=key===todayKey?' today':'';
-    cells.push(`<button type="button" class="mobile-cal-day${selectedClass}${todayClass}" data-mobile-date="${key}" aria-label="${m+1}月${d}日">
-      <span class="mobile-cal-date ${cls}">${d}</span>
-      ${income>0?`<span class="mobile-cal-money income">${compactMoney(income)}</span>`:''}
-      ${expense>0?`<span class="mobile-cal-money expense">-${compactMoney(expense)}</span>`:''}
+    const dt=new Date(y,m,d),key=localDateKey(dt),dayCls=dayClass(dt);
+    const amount=pageAmountForDate(kind,key);
+    cells.push(`<button type="button" class="mobile-cal-day${key===selectedKey?' selected':''}${key===todayKey?' today':''}" data-${kind}-date="${key}" aria-label="${m+1}月${d}日">
+      <span class="mobile-cal-date ${dayCls}">${d}</span>
+      ${amount>0?`<span class="mobile-cal-money ${moneyClass}">${compactMoney(amount)}</span>`:''}
     </button>`)
   }
   root.innerHTML=`<div class="mobile-cal-head">
-      <div class="mobile-cal-title">${y}年${m+1}月</div>
-      <div class="mobile-cal-range">(${m+1}月1日〜${m+1}月${days}日)</div>
+      <div class="mobile-cal-title">${label}カレンダー</div>
+      <div class="mobile-cal-range">${y}年${m+1}月</div>
     </div>
     <div class="mobile-cal-weekdays">
       <span class="mobile-cal-weekday sun">日</span><span class="mobile-cal-weekday">月</span><span class="mobile-cal-weekday">火</span><span class="mobile-cal-weekday">水</span><span class="mobile-cal-weekday">木</span><span class="mobile-cal-weekday">金</span><span class="mobile-cal-weekday sat">土</span>
     </div>
     <div class="mobile-cal-grid">${cells.join('')}</div>
-    <div class="mobile-cal-legend"><span><i class="income-dot"></i>収入</span><span><i class="expense-dot"></i>支出</span></div>`;
+    <div class="mobile-cal-legend single"><span><i class="single-dot ${moneyClass}-dot"></i>${label}</span></div>`;
 }
-
 function setMobileDailyDate(d){
   if(!(d instanceof Date)||Number.isNaN(d.getTime()))return;
   const next=new Date(d.getFullYear(),d.getMonth(),d.getDate());
@@ -1059,9 +1110,7 @@ function setMobileDailyDate(d){
   const monthChanged=current.getFullYear()!==next.getFullYear()||current.getMonth()!==next.getMonth();
   mobileDailyDate=next;
   if(monthChanged)current=new Date(next.getFullYear(),next.getMonth(),1);
-  // 日別画面はパネル切替や全体 render() に依存せず、選択直後に更新する。
   renderMobileDaily();
-  // 月をまたいだ場合だけ、月単位の画面も選択日に同期する。
   if(monthChanged)renderCurrentMonthViews();
   return dateChanged||monthChanged
 }
@@ -1070,58 +1119,68 @@ function shiftMobileDailyDate(days){
   d.setDate(d.getDate()+days);
   setMobileDailyDate(d)
 }
-function renderMobileDaily(){
-  if(!document.getElementById('mobileDaily'))return;
-  renderMobileMonthCalendar();
+function renderMobilePage(kind){
+  const type=pageTypeFor(kind);
+  const prefix=kind==='income'?'income':'expense';
   const d=mobileDailyDate;
   const dateKey=localDateKey(d);
-  const today=new Date();
-  const todayKey=localDateKey(today);
-  dailyDateLabel.textContent=formatJapaneseDay(d);
-  dailyDateLabel.className='day-date-main '+dayClass(d);
+  const todayKey=localDateKey(new Date());
+  const dateLabel=document.getElementById(prefix+'DateLabel');
+  const dateSub=document.getElementById(prefix+'DateSub');
+  const datePicker=document.getElementById(prefix+'DatePicker');
+  if(!dateLabel||!dateSub||!datePicker)return;
+
+  renderPageMonthCalendar(kind);
+  dateLabel.textContent=formatJapaneseDay(d);
+  dateLabel.className='day-date-main '+dayClass(d);
   const hname=holidayName(d);
-  dailyDateSub.textContent=hname||(dateKey===todayKey?'今日':'');
-  dailyDateSub.className='day-date-sub '+(hname?'holiday':'');
-  dailyDatePicker.value=dateKey;
-  const incomeTx=state.transactions.filter(t=>t.type==='income'&&t.date===dateKey);
-  const incomeTotal=sum(incomeTx.map(t=>t.amount));
-  dailyIncomeTotal.textContent=money(incomeTotal);
-  const incomeCats=catsFor('income');
-  dailyIncomeList.innerHTML=incomeCats.length?incomeCats.map((cat,i)=>{
-    const amount=sum(incomeTx.filter(t=>t.category===cat).map(t=>t.amount));
-    const palette=['#347fd6','#438edc','#54a0e6','#69afea','#7dbbea'];
-    return `<button type="button" class="day-cat-row" onclick="${amount?`openDailyIncomeHistory('${encodeArg(cat)}')`:`openDailyIncome('${encodeArg(cat)}')`}">
-      <span class="day-cat-main"><i class="day-cat-dot" style="background:${palette[i%palette.length]}"></i><span class="day-cat-name">${escapeHtml(cat)}</span></span>
-      <span class="day-cat-action">${amount?`<strong class="day-cat-amount">${money(amount)}</strong>`:`<span class="day-cat-add">＋追加</span>`}<span class="day-cat-arrow">›</span></span>
-    </button>`
-  }).join(''):'<div class="empty">収入の項目がありません</div>';
+  dateSub.textContent=hname||(dateKey===todayKey?'今日':'');
+  dateSub.className='day-date-sub '+(hname?'holiday':'');
+  datePicker.value=dateKey;
 
-  const dayTx=state.transactions.filter(t=>t.type==='variable'&&t.date===dateKey);
-  const dayTotal=sum(dayTx.map(t=>t.amount));
-  dailyTotal.textContent=money(dayTotal);
-  dailySummaryToday.textContent=money(dayTotal);
+  const tx=state.transactions.filter(t=>t.type===type&&t.date===dateKey);
+  const dayTotal=sum(tx.map(t=>t.amount));
+  document.getElementById(prefix+'DayTotal').textContent=money(dayTotal);
+  document.getElementById(prefix+'SummaryDay').textContent=money(dayTotal);
 
-  const ws=startOfWeekMonday(d), we=new Date(ws);we.setDate(we.getDate()+6);
-  const weekTotal=sum(state.transactions.filter(t=>t.type==='variable'&&validDateString(t.date)).filter(t=>{
+  const ws=startOfWeekMonday(d),we=new Date(ws);we.setDate(we.getDate()+6);
+  const weekTotal=sum(state.transactions.filter(t=>t.type===type&&validDateString(t.date)).filter(t=>{
     const [y,m,dd]=t.date.split('-').map(Number),x=new Date(y,m-1,dd);
     return x>=ws&&x<=we
   }).map(t=>t.amount));
-  dailySummaryWeek.textContent=money(weekTotal);
+  document.getElementById(prefix+'SummaryWeek').textContent=money(weekTotal);
 
   const monthKey=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-  const monthTotal=sum(state.transactions.filter(t=>t.type==='variable'&&String(t.date).startsWith(monthKey)).map(t=>t.amount));
-  dailySummaryMonth.textContent=money(monthTotal);
+  const monthTotal=sum(state.transactions.filter(t=>t.type===type&&String(t.date).startsWith(monthKey)).map(t=>t.amount));
+  document.getElementById(prefix+'SummaryMonth').textContent=money(monthTotal);
 
-  const cats=catsFor('variable');
-  dailyCategoryList.innerHTML=cats.length?cats.map((cat,i)=>{
-    const amount=sum(dayTx.filter(t=>t.category===cat).map(t=>t.amount));
-    const palette=['#2f6fed','#3188f5','#57a6f8','#29a8df','#20b7c7','#35b89a','#6f8ef6','#8665e8','#a856db','#d44a9b'];
-    return `<button type="button" class="day-cat-row" onclick="${amount?`openDailyHistory('${encodeArg(cat)}')`:`openDailyEntry('${encodeArg(cat)}')`}">
+  const list=document.getElementById(prefix+'CategoryList');
+  const cats=catsFor(type);
+  const palette=kind==='income'
+    ?['#347fd6','#438edc','#54a0e6','#69afea','#7dbbea','#5f9ee0']
+    :['#df4f5c','#e3646e','#e77982','#ee8d95','#d96675','#c84f63','#ef6f61','#d85c70','#e88770','#ca596a'];
+
+  list.innerHTML=cats.length?cats.map((cat,i)=>{
+    const amount=sum(tx.filter(t=>t.category===cat).map(t=>t.amount));
+    const action=amount
+      ? `openPageDailyHistory('${kind}','${encodeArg(cat)}')`
+      : `openPageDailyEntry('${kind}','${encodeArg(cat)}')`;
+    return `<button type="button" class="day-cat-row" onclick="${action}">
       <span class="day-cat-main"><i class="day-cat-dot" style="background:${palette[i%palette.length]}"></i><span class="day-cat-name">${escapeHtml(cat)}</span></span>
       <span class="day-cat-action">${amount?`<strong class="day-cat-amount">${money(amount)}</strong>`:`<span class="day-cat-add">＋追加</span>`}<span class="day-cat-arrow">›</span></span>
     </button>`
-  }).join(''):'<div class="empty">変動費の項目がありません</div>';
+  }).join(''):`<div class="empty">${kind==='income'?'収入':'変動費'}の項目がありません</div>`;
 }
+function renderMobileDaily(){
+  renderMobilePage('expense');
+  renderMobilePage('income');
+}
+window.openPageDailyEntry=(kind,encoded)=>{
+  openDailyEntryEditor(pageTypeFor(kind),decodeURIComponent(encoded))
+};
+window.openPageDailyHistory=(kind,encoded)=>{
+  openDailyHistoryFor(pageTypeFor(kind),encoded)
+};
 let dailyEntryType='variable';
 let dailyEntryCategory='';
 let dailyEntryEditId='';
@@ -1262,26 +1321,51 @@ function dateFromPickerValue(value){
   const [y,m,d]=value.split('-').map(Number);
   return new Date(y,m-1,d)
 }
-function handleDailyDatePicker(){
-  const picked=dateFromPickerValue(dailyDatePicker.value);
+function handlePageDatePicker(id){
+  const picker=document.getElementById(id);
+  const picked=dateFromPickerValue(picker?.value);
   if(picked)setMobileDailyDate(picked)
 }
+function bindMonthCalendar(rootId,kind){
+  const root=document.getElementById(rootId);
+  if(!root)return;
+  root.addEventListener('click',e=>{
+    const btn=e.target.closest(`[data-${kind}-date]`);
+    if(!btn)return;
+    const value=btn.getAttribute(`data-${kind}-date`);
+    const picked=dateFromPickerValue(value);
+    if(picked)setMobileDailyDate(picked)
+  })
+}
+function bindDailySwipe(rootId){
+  const root=document.getElementById(rootId);
+  if(!root)return;
+  let touchX=null;
+  root.addEventListener('touchstart',e=>{touchX=e.changedTouches[0]?.clientX??null},{passive:true});
+  root.addEventListener('touchend',e=>{
+    if(touchX===null)return;
+    const dx=(e.changedTouches[0]?.clientX??touchX)-touchX;touchX=null;
+    if(Math.abs(dx)>55)shiftMobileDailyDate(dx<0?1:-1)
+  },{passive:true})
+}
 function initMobileDaily(){
-  if(!document.getElementById('mobileDaily'))return;
+  if(!document.getElementById('mobileExpense')||!document.getElementById('mobileIncome'))return;
   const now=new Date();
   mobileDailyDate=new Date(now.getFullYear(),now.getMonth(),now.getDate());
-  dailyPrevBtn.onclick=()=>shiftMobileDailyDate(-1);
-  dailyNextBtn.onclick=()=>shiftMobileDailyDate(1);
-  // iPhone Safari は picker の確定方法により input / change の片方だけが
-  // 発火することがあるため、両方を同じ更新関数へ通す。
-  dailyDatePicker.addEventListener('input',handleDailyDatePicker);
-  dailyDatePicker.addEventListener('change',handleDailyDatePicker);
-  mobileMonthCalendar.addEventListener('click',e=>{
-    const btn=e.target.closest('[data-mobile-date]');
-    if(!btn)return;
-    const picked=dateFromPickerValue(btn.dataset.mobileDate);
-    if(picked)setMobileDailyDate(picked);
-  });
+
+  expensePrevBtn.onclick=()=>shiftMobileDailyDate(-1);
+  expenseNextBtn.onclick=()=>shiftMobileDailyDate(1);
+  incomePrevBtn.onclick=()=>shiftMobileDailyDate(-1);
+  incomeNextBtn.onclick=()=>shiftMobileDailyDate(1);
+
+  expenseDatePicker.addEventListener('input',()=>handlePageDatePicker('expenseDatePicker'));
+  expenseDatePicker.addEventListener('change',()=>handlePageDatePicker('expenseDatePicker'));
+  incomeDatePicker.addEventListener('input',()=>handlePageDatePicker('incomeDatePicker'));
+  incomeDatePicker.addEventListener('change',()=>handlePageDatePicker('incomeDatePicker'));
+
+  bindMonthCalendar('expenseMonthCalendar','expense');
+  bindMonthCalendar('incomeMonthCalendar','income');
+
   dailyEntryAmount.addEventListener('input',updateDailyEntryCalc);
   dailyEntryCancel.onclick=()=>dailyEntryDialog.close();
   dailyEntrySave.onclick=saveDailyEntry;
@@ -1293,39 +1377,17 @@ function initMobileDaily(){
     openDailyEntryEditor(type,cat,'',true);
   };
   dailyEntryAmount.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();saveDailyEntry()}});
-  let touchX=null;
-  mobileDaily.addEventListener('touchstart',e=>{touchX=e.changedTouches[0]?.clientX??null},{passive:true});
-  mobileDaily.addEventListener('touchend',e=>{
-    if(touchX===null)return;
-    const dx=(e.changedTouches[0]?.clientX??touchX)-touchX;touchX=null;
-    if(Math.abs(dx)>55)shiftMobileDailyDate(dx<0?1:-1)
-  },{passive:true})
-}
 
-function renderCalendar(){
-  const incomeCats=catsFor('income'), variableCats=catsFor('variable');
+  bindDailySwipe('mobileExpense');
+  bindDailySwipe('mobileIncome');
+}
+function renderTypeCalendar(wrapId,type,cats,label){
+  const root=document.getElementById(wrapId);
+  if(!root)return;
   const y=current.getFullYear(),m=current.getMonth();
   const days=new Date(y,m+1,0).getDate(), offset=(new Date(y,m,1).getDay()+6)%7;
   const weeks=Math.ceil((offset+days)/7);
-  const tx=monthTx();
-  const groupRows=(type,cats,ds,label)=>{
-    let html=`<tr class="cal-group-row"><td colspan="${ds.length+2}">${label}</td></tr>`;
-    for(const cat of cats){
-      html+=`<tr><td class="cal-cat">${escapeHtml(cat)}</td>${ds.map(d=>{
-        if(!d)return '<td></td>';
-        const date=ym()+'-'+String(d).padStart(2,'0');
-        const a=sum(tx.filter(t=>t.type===type&&t.category===cat&&t.date===date).map(t=>t.amount));
-        return `<td class="cal-cell ${type==='income'?'income-cell':''}" onclick="quickAddType('${date}','${type}','${encodeArg(cat)}')">${a?`<span class="amt">${money(a)}</span>`:''}</td>`
-      }).join('')}<td class="cal-cell ${type==='income'?'income-cell':''}"><b>${money(sum(tx.filter(t=>t.type===type&&t.category===cat&&ds.includes(+t.date.slice(-2))).map(t=>t.amount)))}</b></td></tr>`
-    }
-    html+=`<tr><td class="cal-cat"><b>${label}合計</b></td>${ds.map(d=>{
-      if(!d)return '<td></td>';
-      const date=ym()+'-'+String(d).padStart(2,'0');
-      const a=sum(tx.filter(t=>t.type===type&&t.date===date).map(t=>t.amount));
-      return `<td class="${type==='income'?'income-cell':''}"><b>${a?money(a):''}</b></td>`
-    }).join('')}<td></td></tr>`;
-    return html
-  };
+  const tx=monthTx().filter(t=>t.type===type);
   let html='<table class="cal-table">';
   for(let w=0;w<weeks;w++){
     const ds=[];
@@ -1335,11 +1397,29 @@ function renderCalendar(){
       const dt=new Date(y,m,d),cls=dayClass(dt),wd=['日','月','火','水','木','金','土'][dt.getDay()],hn=holidayName(dt);
       return `<th class="${cls}" title="${escapeHtml(hn)}">${d}<span class="weekday-label">${wd}</span></th>`
     }).join('')}<th>合計</th></tr>`;
-    html+=groupRows('income',incomeCats,ds,'収入');
-    html+=groupRows('variable',variableCats,ds,'変動費');
+
+    for(const cat of cats){
+      html+=`<tr><td class="cal-cat">${escapeHtml(cat)}</td>${ds.map(d=>{
+        if(!d)return '<td></td>';
+        const date=ym()+'-'+String(d).padStart(2,'0');
+        const a=sum(tx.filter(t=>t.category===cat&&t.date===date).map(t=>t.amount));
+        return `<td class="cal-cell ${type==='income'?'income-cell':''}" onclick="quickAddType('${date}','${type}','${encodeArg(cat)}')">${a?`<span class="amt">${money(a)}</span>`:''}</td>`
+      }).join('')}<td class="cal-cell ${type==='income'?'income-cell':''}"><b>${money(sum(tx.filter(t=>t.category===cat&&ds.includes(+t.date.slice(-2))).map(t=>t.amount)))}</b></td></tr>`
+    }
+
+    html+=`<tr><td class="cal-cat"><b>${label}合計</b></td>${ds.map(d=>{
+      if(!d)return '<td></td>';
+      const date=ym()+'-'+String(d).padStart(2,'0');
+      const a=sum(tx.filter(t=>t.date===date).map(t=>t.amount));
+      return `<td class="${type==='income'?'income-cell':''}"><b>${a?money(a):''}</b></td>`
+    }).join('')}<td></td></tr>`;
   }
   html+='</table>';
-  calendarWrap.innerHTML=html
+  root.innerHTML=html
+}
+function renderCalendar(){
+  renderTypeCalendar('expenseCalendarWrap','variable',catsFor('variable'),'支出');
+  renderTypeCalendar('incomeCalendarWrap','income',catsFor('income'),'収入');
 }
 window.quickAddType=(date,type,encoded)=>{
   const cat=decodeURIComponent(encoded);
@@ -1538,7 +1618,10 @@ function initTheme(){
   };
 }
 
-function mobileDailyPanelActive(){return matchMedia('(max-width:700px)').matches&&document.querySelector('.panel[data-panel="calendar"]')?.classList.contains('active')}
+function mobileDailyPanelActive(){
+  if(!matchMedia('(max-width:700px)').matches)return false;
+  return !!document.querySelector('.panel[data-panel="expense"].active,.panel[data-panel="income"].active')
+}
 function shiftVisibleMonth(delta){
   if(mobileDailyPanelActive()){
     const originalDay=mobileDailyDate.getDate();
