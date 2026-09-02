@@ -185,7 +185,12 @@
       line-height:1;
       text-align:center;
     }
-    .theme-icon.is-sun{font-size:20px}
+    .theme-icon svg{
+      display:block;
+      width:20px;
+      height:20px;
+      stroke:currentColor;
+    }
 
     .theme-toggle .theme-label{font-size:12px;font-weight:750}
 
@@ -691,7 +696,7 @@
     <section class="panel" data-panel="settings">
       <div class="settings-box">
         <div class="card"><h2>データ管理</h2><div class="card-body"><p class="hint">この版は端末内に保存します。Safari/Chromeで同じURLを開けば使えますが、端末間の自動同期はまだ行いません。実データはGitHubへ送信されません。ブラウザデータを消す前にJSONバックアップを保存してください。</p><div class="toolbar"><button class="secondary" id="exportBtn">JSONを書き出す</button><label class="secondary" style="cursor:pointer">JSONを読み込む<input id="importInput" type="file" accept="application/json" hidden></label><button class="danger" id="resetBtn">データ初期化</button></div></div></div>
-        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span> <span class="pill">v2.4.3 Stable</span></div></div>
+        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span> <span class="pill">v2.4.4 Stable</span></div></div>
       </div>
     </section>
   </main>
@@ -1257,8 +1262,11 @@ function applyTheme(theme){
     const icon=btn.querySelector('.theme-icon');
     const label=btn.querySelector('.theme-label');
     if(icon){
-      icon.textContent=dark?'☀':'☾';
-      icon.classList.toggle('is-sun',dark);
+      if(dark){
+        icon.innerHTML='<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="4" stroke-width="2"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42" stroke-width="2" stroke-linecap="round"/></svg>';
+      }else{
+        icon.textContent='☾';
+      }
     }
     if(label) label.textContent=dark?'ライト':'ダーク';
     btn.title=dark?'ライトモードに切替':'ダークモードに切替';
