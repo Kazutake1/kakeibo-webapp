@@ -379,10 +379,30 @@
       .daily-entry-dialog .dialog-body{padding:8px 18px 18px}
       .daily-entry-dialog input{font-size:18px}
     }
-
-    .day-date-picker-wrap{position:relative;min-width:0}
-    #dailyDatePicker{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;color-scheme:light}
-    body.dark-mode #dailyDatePicker{color-scheme:dark}
+    .day-date-picker-wrap{min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+    .daily-native-date{
+      margin-top:3px;
+      min-height:30px;
+      max-width:160px;
+      padding:4px 8px;
+      border:1px solid #dce9f8;
+      border-radius:10px;
+      background:#f5f9ff;
+      color:#31547f;
+      font-size:12px;
+      font-weight:700;
+      text-align:center;
+      color-scheme:light;
+      -webkit-appearance:none;
+      appearance:none;
+    }
+    .daily-native-date::-webkit-date-and-time-value{text-align:center}
+    body.dark-mode .daily-native-date{
+      background:#172638;
+      border-color:#30465d;
+      color:#dcecff;
+      color-scheme:dark
+    }
     .weekday-label{display:block;font-size:10px;font-weight:700;margin-top:2px;color:var(--muted)}
     .holiday,.holiday .weekday-label{color:#df4f5c!important}
     .sat,.sat .weekday-label{color:#347fd6!important}
@@ -439,11 +459,9 @@
           <div class="mobile-day-head">
             <button type="button" class="day-nav-btn" id="dailyPrevBtn" aria-label="前の日">‹</button>
             <div class="day-date-picker-wrap">
-              <button type="button" class="day-date-btn" id="dailyDateBtn" aria-label="日付を選択">
-                <span class="day-date-main" id="dailyDateLabel"></span>
-                <span class="day-date-sub" id="dailyDateSub">日付を選択</span>
-              </button>
-              <input type="date" id="dailyDatePicker" aria-label="日付を選択">
+              <span class="day-date-main" id="dailyDateLabel"></span>
+              <span class="day-date-sub" id="dailyDateSub">今日</span>
+              <input type="date" id="dailyDatePicker" class="daily-native-date" aria-label="日付を選択">
             </div>
             <button type="button" class="day-nav-btn" id="dailyNextBtn" aria-label="次の日">›</button>
           </div>
@@ -478,7 +496,7 @@
     <section class="panel" data-panel="settings">
       <div class="settings-box">
         <div class="card"><h2>データ管理</h2><div class="card-body"><p class="hint">この版は端末内に保存します。Safari/Chromeで同じURLを開けば使えますが、端末間の自動同期はまだ行いません。実データはGitHubへ送信されません。ブラウザデータを消す前にJSONバックアップを保存してください。</p><div class="toolbar"><button class="secondary" id="exportBtn">JSONを書き出す</button><label class="secondary" style="cursor:pointer">JSONを読み込む<input id="importInput" type="file" accept="application/json" hidden></label><button class="danger" id="resetBtn">データ初期化</button></div></div></div>
-        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span> <span class="pill">v2.3.3 Stable</span></div></div>
+        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span> <span class="pill">v2.3.4 Stable</span></div></div>
       </div>
     </section>
   </main>
@@ -566,7 +584,7 @@ function sum(arr){return arr.reduce((a,b)=>a+(+b||0),0)}
 function typeSum(type){return sum(monthTx().filter(t=>t.type===type).map(t=>t.amount))}
 function budgetTypeSum(type){return sum(Object.values(getBudget()[type]||{}))}
 function initNav(){for(const [k,l] of tabs){const b=document.createElement('button');b.className='tab'+(k==='dashboard'?' active':'');b.textContent=l;b.dataset.tab=k;document.querySelector('#tabs').appendChild(b);const m=b.cloneNode(true);m.className=k==='dashboard'?'active':'';m.dataset.tab=k;document.querySelector('#mobileNav').appendChild(m)} document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>showPanel(b.dataset.tab))}
-function showPanel(k){document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.dataset.panel===k));document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===k)); if(k==='calendar') renderCalendar();renderMobileDaily(); if(k==='budget'){renderBudgetEditor();renderItemManager();}}
+function showPanel(k){document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.dataset.panel===k));document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===k));if(k==='calendar'){renderCalendar();renderMobileDaily()}if(k==='budget'){renderBudgetEditor();renderItemManager();}}
 function render(){refreshQuickEntry();renderMobileRecent();document.querySelector('#monthLabel').textContent=`${current.getFullYear()}年${current.getMonth()+1}月`;renderSummary();renderBudgetOverview();renderVariableStatus();renderCalendar();renderBudgetEditor();renderItemManager();requestAnimationFrame(()=>requestAnimationFrame(drawCharts))}
 function renderMobileRecent(){const wrap=document.getElementById('mobileRecentList');if(!wrap)return;const rows=[...monthTx()].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,5);if(!rows.length){wrap.innerHTML='<div class="recent-empty">まだ入力はありません</div>';return}wrap.innerHTML=rows.map(t=>{const d=(t.date||'').slice(5).replace('-','/');const sign=t.type==='income'?'+':'−';return `<div class="recent-row"><div class="recent-icon">${escapeHtml((t.category||'?').slice(0,1))}</div><div class="recent-main"><strong>${escapeHtml(t.item||t.category||'')}</strong><span>${d} ・ ${escapeHtml(t.category||'')}</span></div><div class="recent-amt ${t.type==='income'?'pos':''}">${sign}${money(t.amount).replace('¥','¥')}</div></div>`}).join('')}
 function renderSummary(){const income=typeSum('income'), expense=sum(['tax','saving','self','fixed','special','variable'].map(typeSum)); const fixedBudget=budgetTypeSum('fixed'), variable=typeSum('variable'); const budgetVar=budgetTypeSum('variable'); const data=[['収入',income,'当月の実績'],['支出',expense,'貯蓄・投資を含む'],['収支',income-expense,income-expense>=0?'黒字':'赤字'],['固定費',fixedBudget,'毎月の予算'],['変動費',variable,`予算残り ${money(budgetVar-variable)}`]]; document.querySelector('#summaryCards').innerHTML=data.map(([l,v,s])=>`<div class="metric"><div class="label">${l}</div><div class="value ${l==='収支'?(v>=0?'pos':'neg'):(l==='変動費'&&budgetVar>0&&v>budgetVar?'neg':'')}">${money(v)}</div><div class="sub">${s}</div></div>`).join('')}
@@ -718,7 +736,7 @@ function renderMobileDaily(){
   dailyDateLabel.textContent=formatJapaneseDay(d);
   dailyDateLabel.className='day-date-main '+dayClass(d);
   const hname=holidayName(d);
-  dailyDateSub.textContent=hname||(dateKey===todayKey?'今日':'日付を選択');
+  dailyDateSub.textContent=hname||(dateKey===todayKey?'今日':'');
   dailyDateSub.className='day-date-sub '+(hname?'holiday':'');
   dailyDatePicker.value=dateKey;
   const dayTx=state.transactions.filter(t=>t.type==='variable'&&t.date===dateKey);
@@ -783,10 +801,6 @@ function initMobileDaily(){
   mobileDailyDate=new Date(now.getFullYear(),now.getMonth(),now.getDate());
   dailyPrevBtn.onclick=()=>shiftMobileDailyDate(-1);
   dailyNextBtn.onclick=()=>shiftMobileDailyDate(1);
-  dailyDateBtn.onclick=()=>{
-    if(typeof dailyDatePicker.showPicker==='function') dailyDatePicker.showPicker();
-    else dailyDatePicker.click();
-  };
   dailyDatePicker.onchange=()=>{
     if(!dailyDatePicker.value)return;
     const [y,m,d]=dailyDatePicker.value.split('-').map(Number);
