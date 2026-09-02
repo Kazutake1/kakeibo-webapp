@@ -1,6 +1,12 @@
-# 家計簿Webアプリ v2.1.2
+# 家計簿Webアプリ v2.3.5 Stable
 
 Excel家計簿をベースにした iPhone / iPad / Mac 対応のレスポンシブPWAです。
+
+## v2.3.5 Stable
+- 正式採用済みの家計簿アイコンの意匠を維持し、黒ベースの配色へ変更
+- `icon-192.png` と `icon-512.png` を更新
+- ヘッダー左のマークをPWAアイコン画像へ統一
+- manifest / theme color / Service Workerキャッシュを更新
 
 ## v2.1.2
 - スマートフォンの概要画面上部に「今日の支出を入力」を追加

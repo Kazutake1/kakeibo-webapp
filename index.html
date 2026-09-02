@@ -3,11 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#2f3a36" />
+  <meta name="theme-color" content="#090a0c" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="家計簿" />
   <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <title>家計簿アプリ</title>
   <style>
@@ -23,7 +24,7 @@
     .app{min-height:100dvh;padding-bottom:90px}
     .topbar{position:sticky;top:0;z-index:20;background:rgba(47,58,54,.96);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.08)}
     .topbar-inner{max-width:1500px;margin:auto;padding:calc(11px + env(safe-area-inset-top)) 18px 11px;display:flex;gap:12px;align-items:center;justify-content:space-between}
-    .brand{font-size:22px;font-weight:760;letter-spacing:.08em;color:#f7f5ef}.brand::before{content:"▦";font-size:14px;margin-right:9px;color:#cbd6d1}
+    .brand{display:inline-flex;align-items:center;gap:9px;font-size:22px;font-weight:760;letter-spacing:.08em;color:#f7f5ef}.brand-icon{display:block;width:30px;height:30px;border-radius:7px;object-fit:cover;flex:0 0 auto}
     .monthnav{display:flex;align-items:center;gap:8px}.monthnav button,.ghost{border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 12px;color:var(--ink)}
     .topbar .monthnav button{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.18);color:#f7f5ef}.topbar .monthnav button:hover{background:rgba(255,255,255,.14)}
     .monthlabel{font-weight:720;min-width:110px;text-align:center;color:#f7f5ef;font-variant-numeric:tabular-nums}.container{max-width:1500px;margin:18px auto;padding:0 16px}
@@ -131,7 +132,7 @@
     body{background:linear-gradient(180deg,#eaf4ff 0,#f7faff 260px,#f6f8fc 100%)}
     .topbar{background:rgba(255,255,255,.92);border-bottom:1px solid rgba(117,151,196,.14);box-shadow:0 6px 20px rgba(43,91,154,.06)}
     .topbar-inner{padding-top:calc(13px + env(safe-area-inset-top));padding-bottom:13px}
-    .brand{color:var(--text);letter-spacing:.02em}.brand::before{color:var(--accent)}
+    .brand{color:var(--text);letter-spacing:.02em}
     .monthlabel{color:var(--text);font-weight:800}.topbar .monthnav button{background:#f5f9ff;border-color:#dce9f8;color:var(--text);box-shadow:none}.topbar .monthnav button:hover{background:#edf5ff}
     .metric{border:0;box-shadow:var(--shadow);padding:18px;border-radius:22px;background:rgba(255,255,255,.96)}
     .metric .label{color:#7b8ba3}.metric .value{color:#16233a}.metric:nth-child(3){border:0;background:linear-gradient(145deg,#2f8cf5,#56a6ff);color:#fff}.metric:nth-child(3) .label,.metric:nth-child(3) .sub,.metric:nth-child(3) .value{color:#fff}
@@ -422,7 +423,7 @@
 <body>
 <div class="app">
   <header class="topbar"><div class="topbar-inner">
-    <div class="brand">家計簿</div>
+    <div class="brand"><img class="brand-icon" src="icon-192.png" alt="" width="30" height="30" aria-hidden="true">家計簿</div>
     <div class="monthnav"><button id="prevMonth">‹</button><div class="monthlabel" id="monthLabel"></div><button id="nextMonth">›</button><button class="theme-toggle" id="themeToggle" aria-label="ダークモードに切替"><span class="theme-icon">☾</span><span class="theme-label">ダーク</span></button><button class="ghost" id="todayBtn">今月</button></div>
   </div></header>
 
@@ -496,7 +497,7 @@
     <section class="panel" data-panel="settings">
       <div class="settings-box">
         <div class="card"><h2>データ管理</h2><div class="card-body"><p class="hint">この版は端末内に保存します。Safari/Chromeで同じURLを開けば使えますが、端末間の自動同期はまだ行いません。実データはGitHubへ送信されません。ブラウザデータを消す前にJSONバックアップを保存してください。</p><div class="toolbar"><button class="secondary" id="exportBtn">JSONを書き出す</button><label class="secondary" style="cursor:pointer">JSONを読み込む<input id="importInput" type="file" accept="application/json" hidden></label><button class="danger" id="resetBtn">データ初期化</button></div></div></div>
-        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span> <span class="pill">v2.3.4 Stable</span></div></div>
+        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span> <span class="pill">v2.3.5 Stable</span></div></div>
       </div>
     </section>
   </main>
