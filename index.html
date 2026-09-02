@@ -799,7 +799,7 @@
           </div>
         </div></div>
         <div class="card"><h2>データ管理</h2><div class="card-body"><p class="hint">データは端末内にも保存され、ログイン中はSupabaseへ自動同期します。実データはGitHubへ送信されません。万一に備えてJSONバックアップも定期的に保存してください。</p><div class="toolbar"><button class="secondary" id="exportBtn">JSONを書き出す</button><label class="secondary" style="cursor:pointer">JSONを読み込む<input id="importInput" type="file" accept="application/json" hidden></label><button class="danger" id="resetBtn">データ初期化</button></div></div></div>
-        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span> <span class="pill">v2.6.0 Stable</span></div></div>
+        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span> <span class="pill">v2.6.1 Stable</span></div></div>
       </div>
     </section>
   </main>
@@ -930,7 +930,48 @@ function renderCurrentMonthViews(){renderMobileRecent();document.querySelector('
 function render(){refreshQuickEntry();renderCurrentMonthViews();renderMobileDaily()}
 function renderMobileRecent(){const wrap=document.getElementById('mobileRecentList');if(!wrap)return;const rows=[...monthTx()].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,5);if(!rows.length){wrap.innerHTML='<div class="recent-empty">まだ入力はありません</div>';return}wrap.innerHTML=rows.map(t=>{const d=(t.date||'').slice(5).replace('-','/');const sign=t.type==='income'?'+':'−';return `<div class="recent-row"><div class="recent-icon">${escapeHtml((t.category||'?').slice(0,1))}</div><div class="recent-main"><strong>${escapeHtml(t.item||t.category||'')}</strong><span>${d} ・ ${escapeHtml(t.category||'')}</span></div><div class="recent-amt ${t.type==='income'?'pos':''}">${sign}${money(t.amount).replace('¥','¥')}</div></div>`}).join('')}
 function renderSummary(){const income=typeSum('income'), expense=sum(['tax','saving','self','fixed','special','variable'].map(typeSum)); const fixedBudget=budgetTypeSum('fixed'), variable=typeSum('variable'); const budgetVar=budgetTypeSum('variable'); const data=[['収入',income,'当月の実績'],['支出',expense,'貯蓄・投資を含む'],['収支',income-expense,income-expense>=0?'黒字':'赤字'],['固定費',fixedBudget,'毎月の予算'],['変動費',variable,`予算残り ${money(budgetVar-variable)}`]]; document.querySelector('#summaryCards').innerHTML=data.map(([l,v,s])=>`<div class="metric"><div class="label">${l}</div><div class="value ${l==='収支'?(v>=0?'pos':'neg'):(l==='変動費'&&budgetVar>0&&v>budgetVar?'neg':'')}">${money(v)}</div><div class="sub">${s}</div></div>`).join('')}
-function renderBudgetOverview(){const root=document.querySelector('#budgetOverview');const b=getBudget();root.innerHTML=TYPES.map(t=>{let actual=typeSum(t.key), bud=budgetTypeSum(t.key);let cats=Object.keys(b[t.key]||{}).slice(0,8);const variable=t.key==='variable';return `<div class="budget-section" data-budget-section="${t.key}"><h3 onclick="toggleBudgetSection('${t.key}')"><span>${t.label}${variable?' <span style="font-size:10px;font-weight:600;color:#63736c">・予算</span>':' <span style="font-size:10px;font-weight:600;color:#63736c"></span>'}</span><span class="budget-toggle">表示 ▼</span></h3><div class="rows">${cats.map(c=>{let a=sum(monthTx().filter(x=>x.type===t.key&&x.category===c).map(x=>x.amount));if(!variable)return `<div class="row"><span>${escapeHtml(c)}</span><strong class="actual">${money(a)}</strong></div>`;let pct=b[t.key][c]>0?Math.min(100,Math.round(a/b[t.key][c]*100)):0;let over=b[t.key][c]>0&&a>b[t.key][c];return `<div class="row"><span>${escapeHtml(c)}${b[t.key][c]>0?`<div class="progress"><span class="${over?'over':''}" style="width:${pct}%"></span></div>`:''}</span><strong class="budget-pair"><span class="actual ${over?'neg':''}">${money(a)}</span><span class="budget-ref">/ ${money(b[t.key][c])}</span></strong></div>`}).join('')}<div class="row total"><b>合計</b><strong>${variable?`<span class="budget-pair"><span class="actual ${bud>0&&actual>bud?'neg':''}">${money(actual)}</span><span class="budget-ref">/ ${money(bud)}</span></span>`:`<span class="actual">${money(actual)}</span>`}</strong></div></div></div>`}).join('');applyMobileBudgetCollapse()}
+function renderBudgetOverview(){
+  const root=document.querySelector('#budgetOverview');
+  const b=getBudget();
+  root.innerHTML=TYPES.map(t=>{
+    const actual=typeSum(t.key);
+    const bud=budgetTypeSum(t.key);
+    // Always use the category master order. Never derive display order from budget object keys.
+    const cats=[...catsFor(t.key)];
+    const variable=t.key==='variable';
+    const fixed=t.key==='fixed';
+    const suffix=(variable||fixed)?' <span style="font-size:10px;font-weight:600;color:#63736c">・予算</span>':' <span style="font-size:10px;font-weight:600;color:#63736c"></span>';
+
+    const rows=cats.map(c=>{
+      const a=sum(monthTx().filter(x=>x.type===t.key&&x.category===c).map(x=>x.amount));
+      const budgetValue=+(b[t.key]?.[c]||0);
+
+      // Fixed expenses: the configured monthly budget is the amount shown in the overview.
+      if(fixed){
+        return `<div class="row"><span>${escapeHtml(c)}</span><strong class="fixed-budget">${money(budgetValue)}</strong></div>`
+      }
+
+      // Variable expenses: actual / budget + progress.
+      if(variable){
+        const pct=budgetValue>0?Math.min(100,Math.round(a/budgetValue*100)):0;
+        const over=budgetValue>0&&a>budgetValue;
+        return `<div class="row"><span>${escapeHtml(c)}${budgetValue>0?`<div class="progress"><span class="${over?'over':''}" style="width:${pct}%"></span></div>`:''}</span><strong class="budget-pair"><span class="actual ${over?'neg':''}">${money(a)}</span><span class="budget-ref">/ ${money(budgetValue)}</span></strong></div>`
+      }
+
+      // Other sections continue to show actual amounts.
+      return `<div class="row"><span>${escapeHtml(c)}</span><strong class="actual">${money(a)}</strong></div>`
+    }).join('');
+
+    const totalValue=fixed
+      ? `<span class="fixed-budget">${money(bud)}</span>`
+      : variable
+        ? `<span class="budget-pair"><span class="actual ${bud>0&&actual>bud?'neg':''}">${money(actual)}</span><span class="budget-ref">/ ${money(bud)}</span></span>`
+        : `<span class="actual">${money(actual)}</span>`;
+
+    return `<div class="budget-section" data-budget-section="${t.key}"><h3 onclick="toggleBudgetSection('${t.key}')"><span>${t.label}${suffix}</span><span class="budget-toggle">表示 ▼</span></h3><div class="rows">${rows}<div class="row total"><b>合計</b><strong>${totalValue}</strong></div></div></div>`
+  }).join('');
+  applyMobileBudgetCollapse()
+}
 window.toggleBudgetSection=(key)=>{if(!matchMedia('(max-width:700px)').matches)return;const el=document.querySelector(`[data-budget-section="${key}"]`);if(!el)return;el.classList.toggle('collapsed');const t=el.querySelector('.budget-toggle');if(t)t.textContent=el.classList.contains('collapsed')?'表示 ▼':'閉じる ▲'}
 function applyMobileBudgetCollapse(){if(!matchMedia('(max-width:700px)').matches)return;document.querySelectorAll('[data-budget-section]').forEach(el=>{el.classList.add('collapsed');const t=el.querySelector('.budget-toggle');if(t)t.textContent='表示 ▼'})}
 function renderVariableStatus(){
