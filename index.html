@@ -380,6 +380,9 @@
       .daily-entry-dialog input{font-size:18px}
     }
 
+    .day-date-picker-wrap{position:relative;min-width:0}
+    #dailyDatePicker{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;color-scheme:light}
+    body.dark-mode #dailyDatePicker{color-scheme:dark}
   </style>
 </head>
 <body>
@@ -415,21 +418,19 @@
       </div>
     </section>
 
-    <section class="panel" data-panel="transactions">
-      <div class="toolbar"><button class="primary" id="addTxBtn2">＋ 収支を追加</button></div>
-      <div class="table-wrap"><table class="data-table"><thead><tr><th>日付</th><th>種別</th><th>カテゴリ</th><th>項目</th><th>メモ</th><th style="text-align:right">金額</th><th></th></tr></thead><tbody id="txBody"></tbody></table></div>
-    </section>
-
     <section class="panel" data-panel="calendar">
       <div class="card daily-desktop-card"><h2>変動費 日別入力表</h2><div class="card-body calendar" id="calendarWrap"></div></div>
       <div class="mobile-daily" id="mobileDaily">
         <div class="mobile-day-card">
           <div class="mobile-day-head">
             <button type="button" class="day-nav-btn" id="dailyPrevBtn" aria-label="前の日">‹</button>
-            <button type="button" class="day-date-btn" id="dailyTodayBtn">
-              <span class="day-date-main" id="dailyDateLabel"></span>
-              <span class="day-date-sub" id="dailyDateSub">今日</span>
-            </button>
+            <div class="day-date-picker-wrap">
+              <button type="button" class="day-date-btn" id="dailyDateBtn" aria-label="日付を選択">
+                <span class="day-date-main" id="dailyDateLabel"></span>
+                <span class="day-date-sub" id="dailyDateSub">日付を選択</span>
+              </button>
+              <input type="date" id="dailyDatePicker" aria-label="日付を選択">
+            </div>
             <button type="button" class="day-nav-btn" id="dailyNextBtn" aria-label="次の日">›</button>
           </div>
           <div class="day-total-block">
@@ -463,7 +464,7 @@
     <section class="panel" data-panel="settings">
       <div class="settings-box">
         <div class="card"><h2>データ管理</h2><div class="card-body"><p class="hint">この版は端末内に保存します。Safari/Chromeで同じURLを開けば使えますが、端末間の自動同期はまだ行いません。実データはGitHubへ送信されません。ブラウザデータを消す前にJSONバックアップを保存してください。</p><div class="toolbar"><button class="secondary" id="exportBtn">JSONを書き出す</button><label class="secondary" style="cursor:pointer">JSONを読み込む<input id="importInput" type="file" accept="application/json" hidden></label><button class="danger" id="resetBtn">データ初期化</button></div></div></div>
-        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span> <span class="pill">v2.3.0 Stable</span></div></div>
+        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span> <span class="pill">v2.3.1 Stable</span></div></div>
       </div>
     </section>
   </main>
@@ -510,7 +511,7 @@ const DEFAULT_CATS = {
   variable:['セブンイレブン','ローソン','ファミリーマート','スギ薬局','ゲンキー','その他','外食','インターネット','ネット通販','その他2']
 };
 const DEFAULT_BUDGET = {income:{},tax:{},saving:{NISA:30000},self:{},fixed:{生命保険:25646,住宅ローン:60000,通信費:2181,Youtube:1280,'iCloud+':150,MoneyForward:550},special:{},variable:{セブンイレブン:20000,ローソン:0,ファミリーマート:0,スギ薬局:15000,ゲンキー:15000,その他:0,外食:0,インターネット:0,ネット通販:0,その他2:0}};
-const tabs=[['dashboard','概要'],['transactions','収支'],['calendar','日別'],['budget','予算'],['settings','設定']];
+const tabs=[['dashboard','概要'],['calendar','日別'],['budget','予算'],['settings','設定']];
 let current = new Date(); current.setDate(1);
 let state = loadState();
 let mobileDailyDate = new Date();
@@ -552,7 +553,7 @@ function typeSum(type){return sum(monthTx().filter(t=>t.type===type).map(t=>t.am
 function budgetTypeSum(type){return sum(Object.values(getBudget()[type]||{}))}
 function initNav(){for(const [k,l] of tabs){const b=document.createElement('button');b.className='tab'+(k==='dashboard'?' active':'');b.textContent=l;b.dataset.tab=k;document.querySelector('#tabs').appendChild(b);const m=b.cloneNode(true);m.className=k==='dashboard'?'active':'';m.dataset.tab=k;document.querySelector('#mobileNav').appendChild(m)} document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>showPanel(b.dataset.tab))}
 function showPanel(k){document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.dataset.panel===k));document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===k)); if(k==='calendar') renderCalendar();renderMobileDaily(); if(k==='budget'){renderBudgetEditor();renderItemManager();}}
-function render(){refreshQuickEntry();renderMobileRecent();document.querySelector('#monthLabel').textContent=`${current.getFullYear()}年${current.getMonth()+1}月`;renderSummary();renderBudgetOverview();renderVariableStatus();renderTransactions();renderCalendar();renderBudgetEditor();renderItemManager();requestAnimationFrame(()=>requestAnimationFrame(drawCharts))}
+function render(){refreshQuickEntry();renderMobileRecent();document.querySelector('#monthLabel').textContent=`${current.getFullYear()}年${current.getMonth()+1}月`;renderSummary();renderBudgetOverview();renderVariableStatus();renderCalendar();renderBudgetEditor();renderItemManager();requestAnimationFrame(()=>requestAnimationFrame(drawCharts))}
 function renderMobileRecent(){const wrap=document.getElementById('mobileRecentList');if(!wrap)return;const rows=[...monthTx()].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,5);if(!rows.length){wrap.innerHTML='<div class="recent-empty">まだ入力はありません</div>';return}wrap.innerHTML=rows.map(t=>{const d=(t.date||'').slice(5).replace('-','/');const sign=t.type==='income'?'+':'−';return `<div class="recent-row"><div class="recent-icon">${escapeHtml((t.category||'?').slice(0,1))}</div><div class="recent-main"><strong>${escapeHtml(t.item||t.category||'')}</strong><span>${d} ・ ${escapeHtml(t.category||'')}</span></div><div class="recent-amt ${t.type==='income'?'pos':''}">${sign}${money(t.amount).replace('¥','¥')}</div></div>`}).join('')}
 function renderSummary(){const income=typeSum('income'), expense=sum(['tax','saving','self','fixed','special','variable'].map(typeSum)); const fixedBudget=budgetTypeSum('fixed'), variable=typeSum('variable'); const budgetVar=budgetTypeSum('variable'); const data=[['収入',income,'当月の実績'],['支出',expense,'貯蓄・投資を含む'],['収支',income-expense,income-expense>=0?'黒字':'赤字'],['固定費',fixedBudget,'毎月の予算'],['変動費',variable,`予算残り ${money(budgetVar-variable)}`]]; document.querySelector('#summaryCards').innerHTML=data.map(([l,v,s])=>`<div class="metric"><div class="label">${l}</div><div class="value ${l==='収支'?(v>=0?'pos':'neg'):(l==='変動費'&&budgetVar>0&&v>budgetVar?'neg':'')}">${money(v)}</div><div class="sub">${s}</div></div>`).join('')}
 function renderBudgetOverview(){const root=document.querySelector('#budgetOverview');const b=getBudget();root.innerHTML=TYPES.map(t=>{let actual=typeSum(t.key), bud=budgetTypeSum(t.key);let cats=Object.keys(b[t.key]||{}).slice(0,8);const variable=t.key==='variable';return `<div class="budget-section" data-budget-section="${t.key}"><h3 onclick="toggleBudgetSection('${t.key}')"><span>${t.label}${variable?' <span style="font-size:10px;font-weight:600;color:#63736c">・予算</span>':' <span style="font-size:10px;font-weight:600;color:#63736c"></span>'}</span><span class="budget-toggle">表示 ▼</span></h3><div class="rows">${cats.map(c=>{let a=sum(monthTx().filter(x=>x.type===t.key&&x.category===c).map(x=>x.amount));if(!variable)return `<div class="row"><span>${escapeHtml(c)}</span><strong class="actual">${money(a)}</strong></div>`;let pct=b[t.key][c]>0?Math.min(100,Math.round(a/b[t.key][c]*100)):0;let over=b[t.key][c]>0&&a>b[t.key][c];return `<div class="row"><span>${escapeHtml(c)}${b[t.key][c]>0?`<div class="progress"><span class="${over?'over':''}" style="width:${pct}%"></span></div>`:''}</span><strong class="budget-pair"><span class="actual ${over?'neg':''}">${money(a)}</span><span class="budget-ref">/ ${money(b[t.key][c])}</span></strong></div>`}).join('')}<div class="row total"><b>合計</b><strong>${variable?`<span class="budget-pair"><span class="actual ${bud>0&&actual>bud?'neg':''}">${money(actual)}</span><span class="budget-ref">/ ${money(bud)}</span></span>`:`<span class="actual">${money(actual)}</span>`}</strong></div></div></div>`}).join('');applyMobileBudgetCollapse()}
@@ -631,7 +632,7 @@ function renderMobileDaily(){
   const today=new Date();
   const todayKey=localDateKey(today);
   dailyDateLabel.textContent=formatJapaneseDay(d);
-  dailyDateSub.textContent=dateKey===todayKey?'今日':'';
+  dailyDateSub.textContent=dateKey===todayKey?'今日':'日付を選択';dailyDatePicker.value=dateKey;
   const dayTx=state.transactions.filter(t=>t.type==='variable'&&t.date===dateKey);
   const dayTotal=sum(dayTx.map(t=>t.amount));
   dailyTotal.textContent=money(dayTotal);
@@ -694,7 +695,16 @@ function initMobileDaily(){
   mobileDailyDate=new Date(now.getFullYear(),now.getMonth(),now.getDate());
   dailyPrevBtn.onclick=()=>shiftMobileDailyDate(-1);
   dailyNextBtn.onclick=()=>shiftMobileDailyDate(1);
-  dailyTodayBtn.onclick=()=>setMobileDailyDate(new Date());
+  dailyDateBtn.onclick=()=>{
+    if(typeof dailyDatePicker.showPicker==='function') dailyDatePicker.showPicker();
+    else dailyDatePicker.click();
+  };
+  dailyDatePicker.onchange=()=>{
+    if(!dailyDatePicker.value)return;
+    const [y,m,d]=dailyDatePicker.value.split('-').map(Number);
+    const picked=new Date(y,m-1,d);
+    if(picked.getFullYear()===y&&picked.getMonth()===m-1&&picked.getDate()===d)setMobileDailyDate(picked);
+  };
   dailyEntryAmount.addEventListener('input',updateDailyEntryCalc);
   dailyEntryCancel.onclick=()=>dailyEntryDialog.close();
   dailyEntrySave.onclick=saveDailyEntry;
@@ -776,7 +786,7 @@ function initTheme(){
 }
 
 prevMonth.onclick=()=>{current.setMonth(current.getMonth()-1);render()};nextMonth.onclick=()=>{current.setMonth(current.getMonth()+1);render()};todayBtn.onclick=()=>{current=new Date();current.setDate(1);render()};
-addTxBtn.onclick=addTxBtn2.onclick=()=>openTx();addBudgetBtn.onclick=()=>openBudget();txCancel.onclick=()=>txDialog.close();txType.onchange=updateCats;txAmount.addEventListener('input',updateAmountPreview);budgetCancel.onclick=()=>budgetDialog.close();budgetSave.onclick=saveBudget;itemType.onchange=renderItemList;addItemBtn.onclick=addItem;newItemName.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addItem()}});
+addTxBtn.onclick=()=>openTx();addBudgetBtn.onclick=()=>openBudget();txCancel.onclick=()=>txDialog.close();txType.onchange=updateCats;txAmount.addEventListener('input',updateAmountPreview);budgetCancel.onclick=()=>budgetDialog.close();budgetSave.onclick=saveBudget;itemType.onchange=renderItemList;addItemBtn.onclick=addItem;newItemName.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addItem()}});
 exportBtn.onclick=()=>{let blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='kakeibo-backup-'+ym()+'.json';a.click();URL.revokeObjectURL(a.href)};
 importInput.onchange=async e=>{let f=e.target.files[0];if(!f)return;try{if(f.size>10*1024*1024)throw 0;let d=JSON.parse(await f.text());if(!d||typeof d!=='object'||!Array.isArray(d.transactions)||!d.budgets||typeof d.budgets!=='object')throw 0;state=normalizeState(d);if(saveState()){render();alert('読み込みました')}}catch{alert('読み込めないファイルです')}finally{e.target.value=''}};
 resetBtn.onclick=()=>{if(confirm('すべての家計簿データを初期化しますか？')){state=normalizeState({});saveState();render()}};
