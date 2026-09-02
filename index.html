@@ -616,6 +616,19 @@
     body.dark-mode .daily-history-buttons button{background:#172638;border-color:#30465d;color:#edf4fc}
     body.dark-mode .daily-history-buttons .history-delete{color:#ff8d92;border-color:#5a343d;background:#261b23}
 
+    /* v2.5.0: Supabase account + cloud sync */
+    .sync-card .card-body{display:flex;flex-direction:column;gap:12px}
+    .sync-status-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 12px;border:1px solid var(--line-soft);border-radius:12px;background:#f8fbff}
+    .sync-status-main{min-width:0}.sync-status-main strong{display:block;font-size:13px;color:var(--text)}
+    .sync-status-main span{display:block;margin-top:3px;font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .sync-dot{width:9px;height:9px;border-radius:50%;background:#94a3b8;flex:0 0 auto}
+    .sync-dot.ok{background:#22a06b}.sync-dot.busy{background:#d79a2b}.sync-dot.err{background:#df4f5c}
+    .sync-auth-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.sync-auth-actions{display:flex;flex-wrap:wrap;gap:8px}
+    .sync-auth-actions button{flex:1 1 130px}.sync-help{font-size:11px;color:var(--muted);line-height:1.55}
+    .sync-user{font-size:12px;color:var(--text);font-weight:700;word-break:break-all}
+    body.dark-mode .sync-status-row{background:#101c29;border-color:#26384c}
+    @media(max-width:700px){.sync-auth-grid{grid-template-columns:1fr}}
+
   </style>
 </head>
 <body>
@@ -695,8 +708,32 @@
 
     <section class="panel" data-panel="settings">
       <div class="settings-box">
+        <div class="card sync-card"><h2>クラウド同期</h2><div class="card-body">
+          <div class="sync-status-row">
+            <div class="sync-status-main"><strong id="syncStatusTitle">未ログイン</strong><span id="syncStatusDetail">この端末内だけに保存されています</span></div>
+            <i class="sync-dot" id="syncStatusDot" aria-hidden="true"></i>
+          </div>
+          <div id="syncSignedOut">
+            <div class="sync-auth-grid">
+              <div class="field"><label>メールアドレス</label><input type="email" id="syncEmail" autocomplete="email" placeholder="name@example.com"></div>
+              <div class="field"><label>パスワード</label><input type="password" id="syncPassword" autocomplete="current-password" minlength="8" placeholder="8文字以上"></div>
+            </div>
+            <div class="sync-auth-actions" style="margin-top:10px">
+              <button type="button" class="primary" id="syncSignInBtn">ログイン</button>
+              <button type="button" class="secondary" id="syncSignUpBtn">新規登録</button>
+            </div>
+            <div class="sync-help" style="margin-top:8px">同じアカウントでiPhone・iPad・Macにログインすると、家計簿データを同期できます。</div>
+          </div>
+          <div id="syncSignedIn" hidden>
+            <div class="sync-user" id="syncUserEmail"></div>
+            <div class="sync-auth-actions" style="margin-top:10px">
+              <button type="button" class="primary" id="syncNowBtn">今すぐ同期</button>
+              <button type="button" class="secondary" id="syncSignOutBtn">ログアウト</button>
+            </div>
+          </div>
+        </div></div>
         <div class="card"><h2>データ管理</h2><div class="card-body"><p class="hint">この版は端末内に保存します。Safari/Chromeで同じURLを開けば使えますが、端末間の自動同期はまだ行いません。実データはGitHubへ送信されません。ブラウザデータを消す前にJSONバックアップを保存してください。</p><div class="toolbar"><button class="secondary" id="exportBtn">JSONを書き出す</button><label class="secondary" style="cursor:pointer">JSONを読み込む<input id="importInput" type="file" accept="application/json" hidden></label><button class="danger" id="resetBtn">データ初期化</button></div></div></div>
-        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span> <span class="pill">v2.4.4 Stable</span></div></div>
+        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span> <span class="pill">v2.5.0 Stable</span></div></div>
       </div>
     </section>
   </main>
@@ -761,6 +798,15 @@ const tabs=[['dashboard','概要'],['calendar','日別'],['budget','予算'],['s
 let current = new Date(); current.setDate(1);
 let state = loadState();
 let mobileDailyDate = new Date();
+const SUPABASE_URL='https://blyyxmhehubufqzyqapq.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY='sb_publishable_DB6exzL5oiIQ3e30r6nqmw_FC14UaM4';
+const SYNC_SESSION_KEY='kakeibo-sync-session-v1';
+let syncSession=null;
+let syncUser=null;
+let syncSaveTimer=null;
+let syncBusy=false;
+let suppressCloudSync=false;
+
 function newId(){return crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2)}
 function cleanText(v,max=200){return String(v??'').replace(/[\u0000-\u001F\u007F]/g,' ').trim().slice(0,max)}
 function validDateString(v){const s=String(v||'');if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return false;const [y,m,d]=s.split('-').map(Number),dt=new Date(y,m-1,d);return dt.getFullYear()===y&&dt.getMonth()===m-1&&dt.getDate()===d}
@@ -788,7 +834,17 @@ function normalizeState(input){
   return {transactions,budgets,categories};
 }
 function catsFor(type){return state.categories?.[type]||[]}
-function saveState(){try{localStorage.setItem('kakeibo-v1',JSON.stringify(state));return true}catch(e){console.error('保存に失敗しました',e);alert('データを保存できませんでした。ブラウザの保存容量やプライベートブラウズ設定を確認してください。');return false}}
+function saveState(){
+  try{
+    localStorage.setItem('kakeibo-v1',JSON.stringify(state));
+    if(!suppressCloudSync)scheduleCloudSync();
+    return true
+  }catch(e){
+    console.error('保存に失敗しました',e);
+    alert('データを保存できませんでした。ブラウザの保存容量やプライベートブラウズ設定を確認してください。');
+    return false
+  }
+}
 function ym(d=current){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
 function money(n){return '¥'+Math.round(n||0).toLocaleString('ja-JP')}
 function deepCopy(o){return JSON.parse(JSON.stringify(o))}
@@ -1253,6 +1309,117 @@ function drawDonut(canvasId,legendId,data){
   document.getElementById(legendId).innerHTML=data.map(([l,v],i)=>`<div class="donut-legend-row"><div class="donut-legend-name"><i class="dot" style="background:${colors[i%colors.length]}"></i><span>${escapeHtml(l)}</span></div><span class="donut-legend-pct">${Math.round(v/total*100)}%</span><strong class="donut-legend-amt">${money(v)}</strong></div>`).join('')
 }
 
+
+function syncHeaders(includeAuth=true){
+  const h={'apikey':SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'};
+  if(includeAuth&&syncSession?.access_token)h.Authorization='Bearer '+syncSession.access_token;
+  return h
+}
+function setSyncStatus(kind,title,detail){
+  const t=document.getElementById('syncStatusTitle'),d=document.getElementById('syncStatusDetail'),dot=document.getElementById('syncStatusDot');
+  if(t)t.textContent=title;if(d)d.textContent=detail||'';if(dot)dot.className='sync-dot'+(kind?' '+kind:'')
+}
+function updateSyncUI(){
+  const signedIn=!!syncUser,out=document.getElementById('syncSignedOut'),inside=document.getElementById('syncSignedIn'),email=document.getElementById('syncUserEmail');
+  if(out)out.hidden=signedIn;if(inside)inside.hidden=!signedIn;if(email)email.textContent=signedIn?`ログイン中: ${syncUser.email||''}`:'';
+  if(!signedIn)setSyncStatus('','未ログイン','この端末内だけに保存されています')
+}
+function persistSyncSession(){try{if(syncSession)localStorage.setItem(SYNC_SESSION_KEY,JSON.stringify(syncSession));else localStorage.removeItem(SYNC_SESSION_KEY)}catch{}}
+function loadSyncSession(){try{const s=JSON.parse(localStorage.getItem(SYNC_SESSION_KEY)||'null');if(s&&s.access_token&&s.refresh_token)syncSession=s}catch{}}
+async function refreshSyncSession(){
+  if(!syncSession?.refresh_token)return false;
+  try{
+    const r=await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,{method:'POST',headers:syncHeaders(false),body:JSON.stringify({refresh_token:syncSession.refresh_token})});
+    if(!r.ok)throw new Error('refresh failed');
+    syncSession=await r.json();persistSyncSession();return true
+  }catch{syncSession=null;syncUser=null;persistSyncSession();updateSyncUI();return false}
+}
+async function supabaseFetch(path,options={},retry=true){
+  if(!syncSession?.access_token)throw new Error('not signed in');
+  const doFetch=()=>fetch(SUPABASE_URL+path,{...options,headers:{...syncHeaders(true),...(options.headers||{})}});
+  let r=await doFetch();if(r.status===401&&retry&&await refreshSyncSession())r=await doFetch();return r
+}
+async function fetchSyncUser(){
+  if(!syncSession?.access_token)return null;
+  try{
+    let r=await fetch(`${SUPABASE_URL}/auth/v1/user`,{headers:syncHeaders(true)});
+    if(r.status===401&&await refreshSyncSession())r=await fetch(`${SUPABASE_URL}/auth/v1/user`,{headers:syncHeaders(true)});
+    if(!r.ok)throw new Error('user fetch failed');
+    syncUser=await r.json();return syncUser
+  }catch{syncUser=null;return null}
+}
+function hasMeaningfulLocalData(){return Array.isArray(state?.transactions)&&state.transactions.length>0}
+async function fetchCloudState(){
+  const r=await supabaseFetch(`/rest/v1/kakeibo_user_state?select=state,updated_at&user_id=eq.${encodeURIComponent(syncUser.id)}&limit=1`,{method:'GET',headers:{Accept:'application/json'}});
+  if(!r.ok)throw new Error(`cloud read ${r.status}`);const rows=await r.json();return rows[0]||null
+}
+async function uploadCloudState(){
+  if(!syncUser||syncBusy)return false;
+  syncBusy=true;setSyncStatus('busy','同期中','クラウドへ保存しています…');
+  try{
+    const r=await supabaseFetch('/rest/v1/kakeibo_user_state?on_conflict=user_id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=representation',Accept:'application/json'},body:JSON.stringify({user_id:syncUser.id,state})});
+    if(!r.ok)throw new Error(`cloud write ${r.status}`);
+    await r.json();setSyncStatus('ok','同期済み',`最終同期 ${new Date().toLocaleString('ja-JP')}`);return true
+  }catch(e){console.error(e);setSyncStatus('err','同期エラー','通信状況を確認して「今すぐ同期」を押してください');return false}
+  finally{syncBusy=false}
+}
+function scheduleCloudSync(){if(!syncUser)return;clearTimeout(syncSaveTimer);syncSaveTimer=setTimeout(()=>uploadCloudState(),700)}
+async function applyCloudState(row){
+  if(!row?.state)return false;suppressCloudSync=true;
+  try{state=normalizeState(row.state);localStorage.setItem('kakeibo-v1',JSON.stringify(state));render();return true}
+  finally{suppressCloudSync=false}
+}
+async function initialCloudSync(){
+  if(!syncUser)return;setSyncStatus('busy','同期中','クラウドデータを確認しています…');
+  try{
+    const cloud=await fetchCloudState();
+    if(!cloud){await uploadCloudState();return}
+    if(hasMeaningfulLocalData()){
+      const useCloud=confirm('クラウド上にも家計簿データがあります。\\n\\n「OK」: クラウドのデータをこの端末へ読み込む\\n「キャンセル」: この端末のデータでクラウドを上書きする');
+      if(useCloud){await applyCloudState(cloud);setSyncStatus('ok','同期済み','クラウドのデータを読み込みました')}else await uploadCloudState()
+    }else{await applyCloudState(cloud);setSyncStatus('ok','同期済み','クラウドのデータを読み込みました')}
+  }catch(e){console.error(e);setSyncStatus('err','同期エラー','クラウドデータを取得できませんでした')}
+}
+async function signInCloud(){
+  const email=syncEmail.value.trim(),password=syncPassword.value;if(!email||!password){alert('メールアドレスとパスワードを入力してください');return}
+  setSyncStatus('busy','ログイン中','認証しています…');
+  try{
+    const r=await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`,{method:'POST',headers:syncHeaders(false),body:JSON.stringify({email,password})});
+    const data=await r.json();if(!r.ok)throw new Error(data?.msg||data?.error_description||'ログインできませんでした');
+    syncSession=data;persistSyncSession();syncUser=await fetchSyncUser();if(!syncUser)throw new Error('ユーザー情報を取得できませんでした');
+    updateSyncUI();await initialCloudSync()
+  }catch(e){setSyncStatus('err','ログイン失敗',e.message||'ログインできませんでした')}
+}
+async function signUpCloud(){
+  const email=syncEmail.value.trim(),password=syncPassword.value;if(!email||!password){alert('メールアドレスとパスワードを入力してください');return}
+  if(password.length<8){alert('パスワードは8文字以上にしてください');return}
+  setSyncStatus('busy','登録中','アカウントを作成しています…');
+  try{
+    const r=await fetch(`${SUPABASE_URL}/auth/v1/signup`,{method:'POST',headers:syncHeaders(false),body:JSON.stringify({email,password})});
+    const data=await r.json();if(!r.ok)throw new Error(data?.msg||data?.error_description||'登録できませんでした');
+    if(data.access_token){syncSession=data;persistSyncSession();syncUser=await fetchSyncUser();updateSyncUI();await initialCloudSync()}
+    else setSyncStatus('ok','確認メールを送信しました','メール内の確認リンクを開いたあと、この画面からログインしてください')
+  }catch(e){setSyncStatus('err','登録失敗',e.message||'登録できませんでした')}
+}
+async function signOutCloud(){
+  try{if(syncSession?.access_token)await fetch(`${SUPABASE_URL}/auth/v1/logout`,{method:'POST',headers:syncHeaders(true)})}catch{}
+  syncSession=null;syncUser=null;persistSyncSession();updateSyncUI()
+}
+async function manualCloudSync(){
+  if(!syncUser){alert('先にログインしてください');return}
+  try{
+    const cloud=await fetchCloudState();if(!cloud){await uploadCloudState();return}
+    const useCloud=confirm('同期方法を選んでください。\\n\\n「OK」: クラウド → この端末\\n「キャンセル」: この端末 → クラウド');
+    if(useCloud){await applyCloudState(cloud);setSyncStatus('ok','同期済み','クラウドのデータを読み込みました')}else await uploadCloudState()
+  }catch(e){console.error(e);setSyncStatus('err','同期エラー','同期できませんでした')}
+}
+async function initCloudSync(){
+  loadSyncSession();
+  if(syncSession){syncUser=await fetchSyncUser();updateSyncUI();if(syncUser)await initialCloudSync()}else updateSyncUI();
+  const a=document.getElementById('syncSignInBtn'),b=document.getElementById('syncSignUpBtn'),c=document.getElementById('syncSignOutBtn'),d=document.getElementById('syncNowBtn');
+  if(a)a.onclick=signInCloud;if(b)b.onclick=signUpCloud;if(c)c.onclick=signOutCloud;if(d)d.onclick=manualCloudSync
+}
+
 const THEME_KEY='kakeibo-theme';
 function applyTheme(theme){
   const dark=theme==='dark';
@@ -1308,6 +1475,7 @@ if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catc
 let chartResizeTimer;window.addEventListener('resize',()=>{clearTimeout(chartResizeTimer);chartResizeTimer=setTimeout(()=>requestAnimationFrame(drawCharts),120)});
 initNav();populateType();initQuickEntry();initTheme();initMobileDaily();
 render();
+initCloudSync();
 </script>
 </body>
 </html>
