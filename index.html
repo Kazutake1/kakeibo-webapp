@@ -418,6 +418,136 @@
       .mobile-hide-overview{display:none!important}
     }
 
+    /* v2.4.0: smartphone daily-page monthly income/expense calendar */
+    .mobile-month-calendar{display:none}
+    @media(max-width:700px){
+      .mobile-month-calendar{
+        display:block;
+        margin-bottom:12px;
+        background:var(--card);
+        border-radius:20px;
+        box-shadow:var(--shadow);
+        overflow:hidden;
+        border:1px solid var(--line-soft);
+      }
+      .mobile-cal-head{
+        padding:14px 14px 9px;
+        text-align:center;
+        border-bottom:1px solid var(--line-soft);
+      }
+      .mobile-cal-title{
+        font-size:19px;
+        line-height:1.2;
+        font-weight:850;
+        color:var(--text);
+        letter-spacing:.01em;
+      }
+      .mobile-cal-range{
+        margin-top:4px;
+        font-size:11px;
+        color:var(--muted);
+        font-weight:650;
+      }
+      .mobile-cal-weekdays{
+        display:grid;
+        grid-template-columns:repeat(7,minmax(0,1fr));
+        padding:0 8px;
+        border-bottom:1px solid var(--line-soft);
+      }
+      .mobile-cal-weekday{
+        padding:9px 0 8px;
+        text-align:center;
+        font-size:12px;
+        font-weight:750;
+        color:var(--text);
+      }
+      .mobile-cal-weekday.sun{color:#df4f5c!important}
+      .mobile-cal-weekday.sat{color:#347fd6!important}
+      .mobile-cal-grid{
+        display:grid;
+        grid-template-columns:repeat(7,minmax(0,1fr));
+        padding:0 8px 8px;
+      }
+      .mobile-cal-day{
+        position:relative;
+        appearance:none;
+        -webkit-appearance:none;
+        min-width:0;
+        min-height:64px;
+        padding:7px 2px 5px;
+        border:0;
+        border-bottom:1px solid var(--line-soft);
+        background:transparent;
+        color:var(--text);
+        text-align:center;
+        border-radius:11px;
+        overflow:hidden;
+      }
+      .mobile-cal-day.empty{pointer-events:none}
+      .mobile-cal-day.selected{
+        background:rgba(49,136,245,.10);
+        box-shadow:inset 0 0 0 2px var(--accent);
+      }
+      .mobile-cal-day.today:not(.selected)::after{
+        content:"";
+        position:absolute;
+        width:4px;height:4px;border-radius:50%;
+        background:var(--accent);
+        left:50%;bottom:4px;transform:translateX(-50%);
+      }
+      .mobile-cal-date{
+        display:block;
+        font-size:13px;
+        line-height:1.2;
+        font-weight:780;
+        color:inherit;
+      }
+      .mobile-cal-date.holiday,.mobile-cal-date.sun{color:#df4f5c!important}
+      .mobile-cal-date.sat{color:#347fd6!important}
+      .mobile-cal-money{
+        display:block;
+        margin-top:4px;
+        font-size:9.5px;
+        line-height:1.15;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+        font-variant-numeric:tabular-nums;
+        font-weight:760;
+      }
+      .mobile-cal-money.income{color:#347fd6}
+      .mobile-cal-money.expense{color:#df4f5c}
+      .mobile-cal-legend{
+        display:flex;
+        justify-content:center;
+        gap:18px;
+        padding:8px 10px 11px;
+        font-size:11px;
+        color:var(--muted);
+      }
+      .mobile-cal-legend span{display:flex;align-items:center;gap:5px}
+      .mobile-cal-legend i{width:7px;height:7px;border-radius:50%;display:inline-block}
+      .mobile-cal-legend .income-dot{background:#347fd6}
+      .mobile-cal-legend .expense-dot{background:#df4f5c}
+
+      body.dark-mode .mobile-month-calendar{
+        background:#162231;
+        border-color:#26384c;
+      }
+      body.dark-mode .mobile-cal-head,
+      body.dark-mode .mobile-cal-weekdays{border-color:#26384c}
+      body.dark-mode .mobile-cal-day{border-color:#26384c;color:#edf4fc}
+      body.dark-mode .mobile-cal-day.selected{
+        background:rgba(85,168,255,.13);
+        box-shadow:inset 0 0 0 2px #55a8ff;
+      }
+      body.dark-mode .mobile-cal-date.holiday,
+      body.dark-mode .mobile-cal-date.sun,
+      body.dark-mode .mobile-cal-money.expense{color:#ff8d92!important}
+      body.dark-mode .mobile-cal-date.sat,
+      body.dark-mode .mobile-cal-money.income{color:#76b9ff!important}
+    }
+
   </style>
 </head>
 <body>
@@ -456,6 +586,7 @@
     <section class="panel" data-panel="calendar">
       <div class="card daily-desktop-card"><h2>変動費 日別入力表</h2><div class="card-body calendar" id="calendarWrap"></div></div>
       <div class="mobile-daily" id="mobileDaily">
+        <div class="mobile-month-calendar" id="mobileMonthCalendar" aria-label="月間収支カレンダー"></div>
         <div class="mobile-day-card">
           <div class="mobile-day-head">
             <button type="button" class="day-nav-btn" id="dailyPrevBtn" aria-label="前の日">‹</button>
@@ -497,7 +628,7 @@
     <section class="panel" data-panel="settings">
       <div class="settings-box">
         <div class="card"><h2>データ管理</h2><div class="card-body"><p class="hint">この版は端末内に保存します。Safari/Chromeで同じURLを開けば使えますが、端末間の自動同期はまだ行いません。実データはGitHubへ送信されません。ブラウザデータを消す前にJSONバックアップを保存してください。</p><div class="toolbar"><button class="secondary" id="exportBtn">JSONを書き出す</button><label class="secondary" style="cursor:pointer">JSONを読み込む<input id="importInput" type="file" accept="application/json" hidden></label><button class="danger" id="resetBtn">データ初期化</button></div></div></div>
-        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span> <span class="pill">v2.3.7 Stable</span></div></div>
+        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span> <span class="pill">v2.4.0 Stable</span></div></div>
       </div>
     </section>
   </main>
@@ -719,6 +850,53 @@ function formatJapaneseDay(d){
   const ws=['日','月','火','水','木','金','土'];
   return `${d.getMonth()+1}月${d.getDate()}日（${ws[d.getDay()]}）`
 }
+
+function compactMoney(n){
+  const v=Math.round(+n||0);
+  if(Math.abs(v)>=1000000)return '¥'+(v/1000000).toFixed(v%1000000===0?0:1)+'M';
+  if(Math.abs(v)>=10000)return '¥'+(v/10000).toFixed(v%10000===0?0:1)+'万';
+  return money(v)
+}
+function mobileCalendarExpenseForDate(dateKey){
+  return sum(state.transactions.filter(t=>t.date===dateKey&&t.type!=='income').map(t=>t.amount))
+}
+function mobileCalendarIncomeForDate(dateKey){
+  return sum(state.transactions.filter(t=>t.date===dateKey&&t.type==='income').map(t=>t.amount))
+}
+function renderMobileMonthCalendar(){
+  const root=document.getElementById('mobileMonthCalendar');
+  if(!root)return;
+  const selected=new Date(mobileDailyDate.getFullYear(),mobileDailyDate.getMonth(),mobileDailyDate.getDate());
+  const y=selected.getFullYear(),m=selected.getMonth();
+  const days=new Date(y,m+1,0).getDate();
+  const offset=new Date(y,m,1).getDay(); // Sunday-first
+  const todayKey=localDateKey(new Date());
+  const selectedKey=localDateKey(selected);
+  const cells=[];
+  for(let i=0;i<offset;i++)cells.push('<span class="mobile-cal-day empty" aria-hidden="true"></span>');
+  for(let d=1;d<=days;d++){
+    const dt=new Date(y,m,d),key=localDateKey(dt),cls=dayClass(dt);
+    const income=mobileCalendarIncomeForDate(key);
+    const expense=mobileCalendarExpenseForDate(key);
+    const selectedClass=key===selectedKey?' selected':'';
+    const todayClass=key===todayKey?' today':'';
+    cells.push(`<button type="button" class="mobile-cal-day${selectedClass}${todayClass}" data-mobile-date="${key}" aria-label="${m+1}月${d}日">
+      <span class="mobile-cal-date ${cls}">${d}</span>
+      ${income>0?`<span class="mobile-cal-money income">${compactMoney(income)}</span>`:''}
+      ${expense>0?`<span class="mobile-cal-money expense">-${compactMoney(expense)}</span>`:''}
+    </button>`)
+  }
+  root.innerHTML=`<div class="mobile-cal-head">
+      <div class="mobile-cal-title">${y}年${m+1}月</div>
+      <div class="mobile-cal-range">(${m+1}月1日〜${m+1}月${days}日)</div>
+    </div>
+    <div class="mobile-cal-weekdays">
+      <span class="mobile-cal-weekday sun">日</span><span class="mobile-cal-weekday">月</span><span class="mobile-cal-weekday">火</span><span class="mobile-cal-weekday">水</span><span class="mobile-cal-weekday">木</span><span class="mobile-cal-weekday">金</span><span class="mobile-cal-weekday sat">土</span>
+    </div>
+    <div class="mobile-cal-grid">${cells.join('')}</div>
+    <div class="mobile-cal-legend"><span><i class="income-dot"></i>収入</span><span><i class="expense-dot"></i>支出</span></div>`;
+}
+
 function setMobileDailyDate(d){
   if(!(d instanceof Date)||Number.isNaN(d.getTime()))return;
   const next=new Date(d.getFullYear(),d.getMonth(),d.getDate());
@@ -739,6 +917,7 @@ function shiftMobileDailyDate(days){
 }
 function renderMobileDaily(){
   if(!document.getElementById('mobileDaily'))return;
+  renderMobileMonthCalendar();
   const d=mobileDailyDate;
   const dateKey=localDateKey(d);
   const today=new Date();
@@ -825,6 +1004,12 @@ function initMobileDaily(){
   // 発火することがあるため、両方を同じ更新関数へ通す。
   dailyDatePicker.addEventListener('input',handleDailyDatePicker);
   dailyDatePicker.addEventListener('change',handleDailyDatePicker);
+  mobileMonthCalendar.addEventListener('click',e=>{
+    const btn=e.target.closest('[data-mobile-date]');
+    if(!btn)return;
+    const picked=dateFromPickerValue(btn.dataset.mobileDate);
+    if(picked)setMobileDailyDate(picked);
+  });
   dailyEntryAmount.addEventListener('input',updateDailyEntryCalc);
   dailyEntryCancel.onclick=()=>dailyEntryDialog.close();
   dailyEntrySave.onclick=saveDailyEntry;
@@ -905,7 +1090,19 @@ function initTheme(){
   };
 }
 
-prevMonth.onclick=()=>{current.setMonth(current.getMonth()-1);render()};nextMonth.onclick=()=>{current.setMonth(current.getMonth()+1);render()};todayBtn.onclick=()=>{current=new Date();current.setDate(1);render()};
+function mobileDailyPanelActive(){return matchMedia('(max-width:700px)').matches&&document.querySelector('.panel[data-panel="calendar"]')?.classList.contains('active')}
+function shiftVisibleMonth(delta){
+  if(mobileDailyPanelActive()){
+    const originalDay=mobileDailyDate.getDate();
+    const d=new Date(mobileDailyDate.getFullYear(),mobileDailyDate.getMonth()+delta,1);
+    d.setDate(Math.min(originalDay,new Date(d.getFullYear(),d.getMonth()+1,0).getDate()));
+    setMobileDailyDate(d);
+  }else{
+    current.setMonth(current.getMonth()+delta);
+    render();
+  }
+}
+prevMonth.onclick=()=>shiftVisibleMonth(-1);nextMonth.onclick=()=>shiftVisibleMonth(1);todayBtn.onclick=()=>{if(mobileDailyPanelActive())setMobileDailyDate(new Date());else{current=new Date();current.setDate(1);render()}};
 addTxBtn.onclick=()=>openTx();addBudgetBtn.onclick=()=>openBudget();txCancel.onclick=()=>txDialog.close();txType.onchange=updateCats;txAmount.addEventListener('input',updateAmountPreview);budgetCancel.onclick=()=>budgetDialog.close();budgetSave.onclick=saveBudget;itemType.onchange=renderItemList;addItemBtn.onclick=addItem;newItemName.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addItem()}});
 exportBtn.onclick=()=>{let blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='kakeibo-backup-'+ym()+'.json';a.click();URL.revokeObjectURL(a.href)};
 importInput.onchange=async e=>{let f=e.target.files[0];if(!f)return;try{if(f.size>10*1024*1024)throw 0;let d=JSON.parse(await f.text());if(!d||typeof d!=='object'||!Array.isArray(d.transactions)||!d.budgets||typeof d.budgets!=='object')throw 0;state=normalizeState(d);if(saveState()){render();alert('読み込みました')}}catch{alert('読み込めないファイルです')}finally{e.target.value=''}};
