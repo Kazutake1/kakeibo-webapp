@@ -1678,11 +1678,9 @@ function drawWeekly(){
     }
   });
 
-  const used=cats.map((c,j)=>[c,sum(matrix.map(r=>r[j])),j]).filter(x=>x[1]>0);
-  document.getElementById('weeklyLegend').innerHTML=
-    used.length
-      ? used.map(([c,v,j])=>`<span><i class="dot" style="background:${colors[j%colors.length]}"></i>${escapeHtml(c)}</span>`).join('')
-      : '<span>データなし</span>';
+  document.getElementById('weeklyLegend').innerHTML=cats
+    .map((c,j)=>`<span><i class="dot" style="background:${colors[j%colors.length]}"></i>${escapeHtml(c)}</span>`)
+    .join('');
 }
 const colors=['#2563eb','#3b82f6','#60a5fa','#0ea5e9','#38bdf8','#06b6d4','#14b8a6','#6366f1','#818cf8','#a78bfa'];
 function drawDonut(canvasId,legendId,data){
