@@ -1,0 +1,114 @@
+name: Patch negative balance contrast v2.6.11
+
+on:
+  push:
+    paths:
+      - '.github/workflows/patch-negative-balance-contrast-v2611.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Apply negative balance contrast fix
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          if 'v2.6.10 Stable' not in s:
+              raise SystemExit('Expected v2.6.10 Stable')
+          s=s.replace('v2.6.10 Stable','v2.6.11 Stable')
+
+          marker='\n  </style>'
+          if marker not in s:
+              raise SystemExit('style marker not found')
+
+          css=r'''
+
+    /* v2.6.11: improve negative-balance contrast on the blue summary card */
+    .metric:nth-child(3):has(.value.neg) .value{
+      color:#ffffff!important;
+      text-shadow:0 1px 2px rgba(0,0,0,.18);
+    }
+    .metric:nth-child(3):has(.value.neg) .label{
+      color:#eaf4ff!important;
+    }
+    .metric:nth-child(3):has(.value.neg) .sub{
+      color:#ffe4e6!important;
+      font-weight:750;
+    }
+    body.dark-mode .metric:nth-child(3):has(.value.neg) .value{
+      color:#ffffff!important;
+    }
+    body.dark-mode .metric:nth-child(3):has(.value.neg) .label{
+      color:#eaf4ff!important;
+    }
+    body.dark-mode .metric:nth-child(3):has(.value.neg) .sub{
+      color:#ffd7dc!important;
+    }
+'''
+          s=s.replace(marker,css+marker,1)
+          p.write_text(s,encoding='utf-8')
+
+          sw=Path('sw.js')
+          sws=sw.read_text(encoding='utf-8')
+          if 'kakeibo-v2.6.10-stable' not in sws:
+              raise SystemExit('Expected v2.6.10 cache')
+          sw.write_text(sws.replace('kakeibo-v2.6.10-stable','kakeibo-v2.6.11-stable'),encoding='utf-8')
+
+          r=Path('README.md')
+          rs=r.read_text(encoding='utf-8')
+          if '# 家計簿Webアプリ v2.6.10 Stable' not in rs:
+              raise SystemExit('Expected v2.6.10 README heading')
+          rs=rs.replace('# 家計簿Webアプリ v2.6.10 Stable','# 家計簿Webアプリ v2.6.11 Stable',1)
+          entry='''## v2.6.11 Stable
+- 青い「収支」カードで赤字時の金額を白文字へ変更し、コントラストを改善
+- 「赤字」ラベルは淡いピンク、項目名は明るいブルーホワイトにして警告状態を維持しつつ読みやすく調整
+- ライト/ダーク両モードで同じ考え方の高コントラスト表示を適用
+- 変動費の予算超過など、青背景ではない箇所の赤色警告表示は従来どおり維持
+- Supabase同期、固定費自動計上、グラフ配色など既存機能は変更なし
+
+'''
+          rs=rs.replace('## v2.6.10 Stable\n',entry+'## v2.6.10 Stable\n',1)
+          r.write_text(rs,encoding='utf-8')
+          PY
+
+      - name: Validate
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, subprocess
+          s=Path('index.html').read_text(encoding='utf-8')
+          assert 'v2.6.11 Stable' in s
+          assert '.metric:nth-child(3):has(.value.neg) .value' in s
+          assert 'color:#ffffff!important' in s
+          assert 'color:#ffe4e6!important' in s
+          assert 'SUPABASE_URL' in s and 'scheduleCloudSync()' in s
+          assert 'effectiveTypeSum' in s
+          assert 'CHART_COLORS_LIGHT' in s and 'CHART_COLORS_DARK' in s
+          scripts=re.findall(r'<script[^>]*>(.*?)</script>',s,re.S)
+          Path('/tmp/check.js').write_text('\n'.join(scripts),encoding='utf-8')
+          subprocess.run(['node','--check','/tmp/check.js'],check=True)
+          ids=re.findall(r'\bid="([^"]+)"',s)
+          assert len(ids)==len(set(ids)), 'duplicate ids'
+          assert 'kakeibo-v2.6.11-stable' in Path('sw.js').read_text(encoding='utf-8')
+          assert '# 家計簿Webアプリ v2.6.11 Stable' in Path('README.md').read_text(encoding='utf-8')
+          print('validation ok')
+          PY
+
+      - name: Commit changes and remove temporary workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html sw.js README.md
+          git rm .github/workflows/patch-negative-balance-contrast-v2611.yml
+          git commit -m "Improve negative balance contrast v2.6.11"
+          git push
