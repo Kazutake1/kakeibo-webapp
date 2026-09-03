@@ -1,0 +1,152 @@
+name: "Patch balance card v2.6.12"
+
+on:
+  push:
+    paths:
+      - ".github/workflows/patch-balance-card-v2612.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Apply balance card redesign
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          if 'v2.6.11 Stable' not in s:
+              raise SystemExit('Expected v2.6.11 Stable')
+          s = s.replace('v2.6.11 Stable', 'v2.6.12 Stable')
+
+          marker = '\n  </style>'
+          if marker not in s:
+              raise SystemExit('style marker not found')
+
+          css = r'''
+
+    /* v2.6.12: neutral balance card with blue outline */
+    .metric:nth-child(3){
+      background:var(--card)!important;
+      border:2px solid var(--accent)!important;
+      color:var(--text)!important;
+      box-shadow:var(--shadow)!important;
+    }
+    .metric:nth-child(3) .label,
+    .metric:nth-child(3) .sub{
+      color:var(--muted)!important;
+    }
+    .metric:nth-child(3) .value{
+      color:var(--text)!important;
+      text-shadow:none!important;
+    }
+    .metric:nth-child(3) .value.pos{
+      color:var(--good)!important;
+    }
+    .metric:nth-child(3) .value.neg{
+      color:#dc2626!important;
+      text-shadow:none!important;
+    }
+    .metric:nth-child(3):has(.value.neg) .label{
+      color:var(--muted)!important;
+    }
+    .metric:nth-child(3):has(.value.neg) .sub{
+      color:#dc2626!important;
+      font-weight:750;
+    }
+    body.dark-mode .metric:nth-child(3){
+      background:var(--card)!important;
+      border-color:#55a8ff!important;
+      color:var(--text)!important;
+    }
+    body.dark-mode .metric:nth-child(3) .label,
+    body.dark-mode .metric:nth-child(3):has(.value.neg) .label{
+      color:var(--muted)!important;
+    }
+    body.dark-mode .metric:nth-child(3) .sub{
+      color:var(--muted)!important;
+    }
+    body.dark-mode .metric:nth-child(3) .value{
+      color:var(--text)!important;
+    }
+    body.dark-mode .metric:nth-child(3) .value.pos{
+      color:var(--good)!important;
+    }
+    body.dark-mode .metric:nth-child(3) .value.neg{
+      color:#ff6b6b!important;
+    }
+    body.dark-mode .metric:nth-child(3):has(.value.neg) .sub{
+      color:#ff8d92!important;
+    }
+'''
+          s = s.replace(marker, css + marker, 1)
+          p.write_text(s, encoding='utf-8')
+
+          sw = Path('sw.js')
+          sws = sw.read_text(encoding='utf-8')
+          if 'kakeibo-v2.6.11-stable' not in sws:
+              raise SystemExit('Expected v2.6.11 cache')
+          sw.write_text(sws.replace('kakeibo-v2.6.11-stable', 'kakeibo-v2.6.12-stable'), encoding='utf-8')
+
+          r = Path('README.md')
+          rs = r.read_text(encoding='utf-8')
+          if '# 家計簿Webアプリ v2.6.11 Stable' not in rs:
+              raise SystemExit('Expected v2.6.11 README heading')
+          rs = rs.replace('# 家計簿Webアプリ v2.6.11 Stable', '# 家計簿Webアプリ v2.6.12 Stable', 1)
+          entry = '''## v2.6.12 Stable
+- 概要の「収支」カード背景を他のカードと同じ色に統一
+- 「収支」カードは青い枠線で識別できるデザインへ変更
+- 収支がマイナスの場合は金額と「赤字」を赤色で表示
+- 収支がプラスの場合は金額を緑色で表示
+- ライト/ダーク両モードでコントラストを調整
+- 変動費の予算超過など既存の赤色警告表示は維持
+- Supabase同期、固定費自動計上、グラフ配色など既存機能は変更なし
+
+'''
+          rs = rs.replace('## v2.6.11 Stable\n', entry + '## v2.6.11 Stable\n', 1)
+          r.write_text(rs, encoding='utf-8')
+          PY
+
+      - name: Validate
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, subprocess
+          s = Path('index.html').read_text(encoding='utf-8')
+          assert 'v2.6.12 Stable' in s
+          assert 'background:var(--card)!important' in s
+          assert 'border:2px solid var(--accent)!important' in s
+          assert '.metric:nth-child(3) .value.neg' in s
+          assert 'color:#dc2626!important' in s
+          assert 'SUPABASE_URL' in s and 'scheduleCloudSync()' in s
+          assert 'effectiveTypeSum' in s
+          assert 'CHART_COLORS_LIGHT' in s and 'CHART_COLORS_DARK' in s
+          scripts = re.findall(r'<script[^>]*>(.*?)</script>', s, re.S)
+          Path('/tmp/check.js').write_text('\n'.join(scripts), encoding='utf-8')
+          subprocess.run(['node', '--check', '/tmp/check.js'], check=True)
+          ids = re.findall(r'\bid="([^"]+)"', s)
+          assert len(ids) == len(set(ids)), 'duplicate ids'
+          assert 'kakeibo-v2.6.12-stable' in Path('sw.js').read_text(encoding='utf-8')
+          assert '# 家計簿Webアプリ v2.6.12 Stable' in Path('README.md').read_text(encoding='utf-8')
+          print('validation ok')
+          PY
+
+      - name: Commit changes and remove temporary workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html sw.js README.md
+          git rm .github/workflows/patch-balance-card-v2612.yml
+          git commit -m "Redesign balance card v2.6.12"
+          git push
