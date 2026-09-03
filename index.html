@@ -754,6 +754,35 @@ body:not(.dark-mode) .sync-status-row,body:not(.dark-mode) .daily-history-row,bo
     body.dark-mode .metric:nth-child(3) .value.neg{color:#ff6b6b!important}
     body.dark-mode .metric:nth-child(3):has(.value.neg) .sub{color:#ff8d92!important}
 
+
+    /* v2.6.13: fix light-mode specificity for the balance card */
+    body:not(.dark-mode) .metric:nth-child(3){
+      background:var(--card)!important;
+      border:2px solid var(--accent)!important;
+      color:var(--text)!important;
+      box-shadow:var(--shadow)!important;
+    }
+    body:not(.dark-mode) .metric:nth-child(3) .label{
+      color:var(--muted)!important;
+    }
+    body:not(.dark-mode) .metric:nth-child(3) .value{
+      color:var(--text)!important;
+      text-shadow:none!important;
+    }
+    body:not(.dark-mode) .metric:nth-child(3) .value.pos{
+      color:var(--good)!important;
+    }
+    body:not(.dark-mode) .metric:nth-child(3) .value.neg{
+      color:#dc2626!important;
+    }
+    body:not(.dark-mode) .metric:nth-child(3) .sub{
+      color:var(--muted)!important;
+    }
+    body:not(.dark-mode) .metric:nth-child(3):has(.value.neg) .sub{
+      color:#dc2626!important;
+      font-weight:750;
+    }
+
   </style>
 </head>
 <body>
@@ -892,7 +921,7 @@ body:not(.dark-mode) .sync-status-row,body:not(.dark-mode) .daily-history-row,bo
           </div>
         </div></div>
         <div class="card"><h2>データ管理</h2><div class="card-body"><p class="hint">データは端末内にも保存され、ログイン中はSupabaseへ自動同期します。実データはGitHubへ送信されません。万一に備えてJSONバックアップも定期的に保存してください。</p><div class="toolbar"><button class="secondary" id="exportBtn">JSONを書き出す</button><label class="secondary" style="cursor:pointer">JSONを読み込む<input id="importInput" type="file" accept="application/json" hidden></label><button class="danger" id="resetBtn">データ初期化</button></div></div></div>
-        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span> <span class="pill">v2.6.12 Stable</span></div></div>
+        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span> <span class="pill">v2.6.13 Stable</span></div></div>
       </div>
     </section>
   </main>
