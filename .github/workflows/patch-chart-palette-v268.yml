@@ -1,0 +1,87 @@
+name: Patch chart palette v2.6.8
+
+on:
+  push:
+    paths:
+      - '.github/workflows/patch-chart-palette-v268.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update chart palette and version
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          index = Path('index.html')
+          text = index.read_text(encoding='utf-8')
+
+          old_palette = "const colors=['#0072b2','#e69f00','#009e73','#cc79a7','#d55e00','#56b4e9','#f0e442','#6f42c1','#8c564b','#17becf'];"
+          new_palette = """const CHART_COLORS_LIGHT=['#2563eb','#f59e0b','#059669','#db2777','#dc2626','#0891b2','#7c3aed','#65a30d','#a16207','#0f766e'];
+          const CHART_COLORS_DARK=['#60a5fa','#fbbf24','#34d399','#f472b6','#f87171','#22d3ee','#a78bfa','#a3e635','#f59e0b','#2dd4bf'];
+          function chartColors(){return document.body.classList.contains('dark-mode')?CHART_COLORS_DARK:CHART_COLORS_LIGHT}
+          function chartColor(index){const palette=chartColors();return palette[index%palette.length]}"""
+          if old_palette not in text:
+              raise SystemExit('Current chart palette was not found; refusing to patch an unexpected baseline.')
+          text = text.replace(old_palette, new_palette, 1)
+          text = text.replace('colors[j%colors.length]', 'chartColor(j)')
+          text = text.replace('colors[i%colors.length]', 'chartColor(i)')
+          text = text.replace('v2.6.7 Stable', 'v2.6.8 Stable')
+          index.write_text(text, encoding='utf-8')
+
+          sw = Path('sw.js')
+          sw_text = sw.read_text(encoding='utf-8')
+          if "kakeibo-v2.6.7-stable" not in sw_text:
+              raise SystemExit('Unexpected service-worker cache baseline.')
+          sw.write_text(sw_text.replace('kakeibo-v2.6.7-stable','kakeibo-v2.6.8-stable'), encoding='utf-8')
+
+          readme = Path('README.md')
+          rd = readme.read_text(encoding='utf-8')
+          rd = rd.replace('# 家計簿Webアプリ v2.6.7 Stable', '# 家計簿Webアプリ v2.6.8 Stable', 1)
+          entry = """## v2.6.8 Stable
+          - グラフ・凡例の配色をライト/ダークモード別の高コントラストパレットへ変更
+          - 青・黄橙・緑・マゼンタ・赤・シアン・紫・ライム・茶・ティールの10系統で隣接色を識別しやすく調整
+          - ドーナツグラフと週間比較グラフで凡例と描画色を一致
+          - 0円カテゴリも従来どおり凡例に 0% / ¥0 で表示
+
+          """
+          if '## v2.6.8 Stable' not in rd:
+              marker = '## v2.6.7 Stable'
+              rd = rd.replace(marker, entry + marker, 1)
+          readme.write_text(rd, encoding='utf-8')
+          PY
+
+      - name: Check JavaScript syntax
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          text=Path('index.html').read_text(encoding='utf-8')
+          scripts=re.findall(r'<script[^>]*>(.*?)</script>',text,re.S)
+          Path('/tmp/kakeibo-check.js').write_text('\n'.join(scripts),encoding='utf-8')
+          assert 'CHART_COLORS_LIGHT' in text
+          assert 'CHART_COLORS_DARK' in text
+          assert 'chartColor(j)' in text
+          assert 'chartColor(i)' in text
+          assert "const colors=[" not in text
+          assert 'v2.6.8 Stable' in text
+          PY
+          node --check /tmp/kakeibo-check.js
+
+      - name: Commit patch and remove temporary workflow
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html sw.js README.md
+          git rm .github/workflows/patch-chart-palette-v268.yml
+          git commit -m 'Improve chart palette contrast (v2.6.8)'
+          git push
