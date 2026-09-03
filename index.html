@@ -824,7 +824,7 @@
           </div>
         </div></div>
         <div class="card"><h2>データ管理</h2><div class="card-body"><p class="hint">データは端末内にも保存され、ログイン中はSupabaseへ自動同期します。実データはGitHubへ送信されません。万一に備えてJSONバックアップも定期的に保存してください。</p><div class="toolbar"><button class="secondary" id="exportBtn">JSONを書き出す</button><label class="secondary" style="cursor:pointer">JSONを読み込む<input id="importInput" type="file" accept="application/json" hidden></label><button class="danger" id="resetBtn">データ初期化</button></div></div></div>
-        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span> <span class="pill">v2.6.7 Stable</span></div></div>
+        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span> <span class="pill">v2.6.8 Stable</span></div></div>
       </div>
     </section>
   </main>
@@ -1657,7 +1657,7 @@ function drawWeekly(){
       if(!v)return;
       const bh=v/max*plotH;
       yBottom-=bh;
-      ctx.fillStyle=colors[j%colors.length];
+      ctx.fillStyle=chartColor(j);
       ctx.fillRect(x,yBottom,barW,bh);
     });
 
@@ -1679,10 +1679,13 @@ function drawWeekly(){
   });
 
   document.getElementById('weeklyLegend').innerHTML=cats
-    .map((c,j)=>`<span><i class="dot" style="background:${colors[j%colors.length]}"></i>${escapeHtml(c)}</span>`)
+    .map((c,j)=>`<span><i class="dot" style="background:${chartColor(j)}"></i>${escapeHtml(c)}</span>`)
     .join('');
 }
-const colors=['#0072b2','#e69f00','#009e73','#cc79a7','#d55e00','#56b4e9','#f0e442','#6f42c1','#8c564b','#17becf'];
+const CHART_COLORS_LIGHT=['#2563eb','#f59e0b','#059669','#db2777','#dc2626','#0891b2','#7c3aed','#65a30d','#a16207','#0f766e'];
+const CHART_COLORS_DARK=['#60a5fa','#fbbf24','#34d399','#f472b6','#f87171','#22d3ee','#a78bfa','#a3e635','#f59e0b','#2dd4bf'];
+function chartColors(){return document.body.classList.contains('dark-mode')?CHART_COLORS_DARK:CHART_COLORS_LIGHT}
+function chartColor(index){const palette=chartColors();return palette[index%palette.length]}
 function drawDonut(canvasId,legendId,data){
   let [ctx,w,h]=prepCanvas(canvasId);
   ctx.clearRect(0,0,w,h);
@@ -1696,7 +1699,7 @@ function drawDonut(canvasId,legendId,data){
   }else{
     drawableData.forEach(([l,v,i])=>{
       let a=v/total*Math.PI*2;
-      ctx.fillStyle=colors[i%colors.length];
+      ctx.fillStyle=chartColor(i);
       ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,start,start+a);ctx.closePath();ctx.fill();
       start+=a
     });
@@ -1705,7 +1708,7 @@ function drawDonut(canvasId,legendId,data){
   const ct=chartTheme();
   ctx.fillStyle=ct.strong;ctx.textAlign='center';ctx.font='700 22px sans-serif';ctx.fillText(money(total),cx,cy-1);
   ctx.fillStyle=ct.muted;ctx.font='12px sans-serif';ctx.fillText('合計',cx,cy+20);
-  document.getElementById(legendId).innerHTML=allData.map(([l,v],i)=>`<div class="donut-legend-row"><div class="donut-legend-name"><i class="dot" style="background:${colors[i%colors.length]}"></i><span>${escapeHtml(l)}</span></div><span class="donut-legend-pct">${total?Math.round(v/total*100):0}%</span><strong class="donut-legend-amt">${money(v)}</strong></div>`).join('')
+  document.getElementById(legendId).innerHTML=allData.map(([l,v],i)=>`<div class="donut-legend-row"><div class="donut-legend-name"><i class="dot" style="background:${chartColor(i)}"></i><span>${escapeHtml(l)}</span></div><span class="donut-legend-pct">${total?Math.round(v/total*100):0}%</span><strong class="donut-legend-amt">${money(v)}</strong></div>`).join('')
 }
 
 
