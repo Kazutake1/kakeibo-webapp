@@ -824,7 +824,7 @@
           </div>
         </div></div>
         <div class="card"><h2>データ管理</h2><div class="card-body"><p class="hint">データは端末内にも保存され、ログイン中はSupabaseへ自動同期します。実データはGitHubへ送信されません。万一に備えてJSONバックアップも定期的に保存してください。</p><div class="toolbar"><button class="secondary" id="exportBtn">JSONを書き出す</button><label class="secondary" style="cursor:pointer">JSONを読み込む<input id="importInput" type="file" accept="application/json" hidden></label><button class="danger" id="resetBtn">データ初期化</button></div></div></div>
-        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span> <span class="pill">v2.6.6 Stable</span></div></div>
+        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span> <span class="pill">v2.6.7 Stable</span></div></div>
       </div>
     </section>
   </main>
@@ -1689,27 +1689,25 @@ function drawDonut(canvasId,legendId,data){
   let [ctx,w,h]=prepCanvas(canvasId);
   ctx.clearRect(0,0,w,h);
   const allData=data.slice();
-  data=data.filter(x=>x[1]>0);
-  let total=sum(data.map(x=>x[1]));
+  const drawableData=allData.map((entry,index)=>[...entry,index]).filter(x=>x[1]>0);
+  let total=sum(allData.map(x=>x[1]));
   let cx=w/2,cy=h/2-2,r=Math.min(w,h)*.34,inner=r*.58,start=-Math.PI/2;
   if(!total){
     const ct=chartTheme();ctx.fillStyle=ct.empty;
     ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.arc(cx,cy,inner,0,Math.PI*2,true);ctx.fill('evenodd');
-    ctx.fillStyle=ct.muted;ctx.textAlign='center';ctx.font='14px sans-serif';ctx.fillText('データなし',cx,cy+4);
-    document.getElementById(legendId).innerHTML=allData.slice(0,7).map(([l,v],i)=>`<div class="donut-legend-row"><div class="donut-legend-name"><i class="dot" style="background:${colors[i%colors.length]}"></i><span>${escapeHtml(l)}</span></div><span class="donut-legend-pct">0%</span><strong class="donut-legend-amt">${money(0)}</strong></div>`).join('');
-    return;
+  }else{
+    drawableData.forEach(([l,v,i])=>{
+      let a=v/total*Math.PI*2;
+      ctx.fillStyle=colors[i%colors.length];
+      ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,start,start+a);ctx.closePath();ctx.fill();
+      start+=a
+    });
+    ctx.globalCompositeOperation='destination-out';ctx.beginPath();ctx.arc(cx,cy,inner,0,Math.PI*2);ctx.fill();ctx.globalCompositeOperation='source-over';
   }
   const ct=chartTheme();
-  data.forEach(([l,v],i)=>{
-    let a=v/total*Math.PI*2;
-    ctx.fillStyle=colors[i%colors.length];
-    ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,start,start+a);ctx.closePath();ctx.fill();
-    start+=a
-  });
-  ctx.globalCompositeOperation='destination-out';ctx.beginPath();ctx.arc(cx,cy,inner,0,Math.PI*2);ctx.fill();ctx.globalCompositeOperation='source-over';
   ctx.fillStyle=ct.strong;ctx.textAlign='center';ctx.font='700 22px sans-serif';ctx.fillText(money(total),cx,cy-1);
   ctx.fillStyle=ct.muted;ctx.font='12px sans-serif';ctx.fillText('合計',cx,cy+20);
-  document.getElementById(legendId).innerHTML=data.map(([l,v],i)=>`<div class="donut-legend-row"><div class="donut-legend-name"><i class="dot" style="background:${colors[i%colors.length]}"></i><span>${escapeHtml(l)}</span></div><span class="donut-legend-pct">${Math.round(v/total*100)}%</span><strong class="donut-legend-amt">${money(v)}</strong></div>`).join('')
+  document.getElementById(legendId).innerHTML=allData.map(([l,v],i)=>`<div class="donut-legend-row"><div class="donut-legend-name"><i class="dot" style="background:${colors[i%colors.length]}"></i><span>${escapeHtml(l)}</span></div><span class="donut-legend-pct">${total?Math.round(v/total*100):0}%</span><strong class="donut-legend-amt">${money(v)}</strong></div>`).join('')
 }
 
 
