@@ -1682,7 +1682,7 @@ function drawWeekly(){
     .map((c,j)=>`<span><i class="dot" style="background:${colors[j%colors.length]}"></i>${escapeHtml(c)}</span>`)
     .join('');
 }
-const colors=['#2563eb','#3b82f6','#60a5fa','#0ea5e9','#38bdf8','#06b6d4','#14b8a6','#6366f1','#818cf8','#a78bfa'];
+const colors=['#0072b2','#e69f00','#009e73','#cc79a7','#d55e00','#56b4e9','#f0e442','#6f42c1','#8c564b','#17becf'];
 function drawDonut(canvasId,legendId,data){
   let [ctx,w,h]=prepCanvas(canvasId);
   ctx.clearRect(0,0,w,h);
