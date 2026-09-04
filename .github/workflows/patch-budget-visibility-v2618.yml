@@ -1,0 +1,38 @@
+name: Patch budget visibility v2.6.18
+
+on:
+  push:
+    paths:
+      - '.github/workflows/patch-budget-visibility-v2618.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Apply requested budget visibility change
+        run: python3 .github/scripts/patch_budget_visibility_v2618.py
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: JavaScript syntax check
+        run: node --check app.js
+      - name: Run regression tests
+        run: npm test
+      - name: Commit verified change
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app.js index.html sw.js README.md tests/ui-regression.spec.js
+          git commit -m "Hide income and tax from budget settings v2.6.18"
+          git push
