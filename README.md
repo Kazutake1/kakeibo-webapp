@@ -1,6 +1,14 @@
-# 家計簿Webアプリ v2.6.14 Stable
+# 家計簿Webアプリ v2.6.15 Stable
 
 Excel家計簿をベースにした iPhone / iPad / Mac 対応のレスポンシブPWAです。
+
+## v2.6.15 Stable
+- `index.html` に集中していたCSSを `style.css`、JavaScriptを `app.js` へ分離し、画面構造・見た目・処理の責務を整理
+- Service Workerのアプリシェルに `style.css` と `app.js` を追加し、PWAのオフライン動作を維持
+- PlaywrightによるUI回帰テストを追加
+- ライト/ダーク両モードの収支カード、赤字表示、変動費予算超過、0円凡例、スマホ主要ナビを自動検証
+- GitHub Actionsでpush / pull request時に回帰テストを自動実行
+- Supabase同期、固定費自動計上、予算継承、グラフ、PWAなど既存機能は変更なし
 
 ## v2.6.14 Stable
 - ダークモードの「収支」カードで、収支マイナス時の金額を赤色で確実に表示するようCSS優先順位を修正

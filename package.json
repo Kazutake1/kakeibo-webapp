@@ -1,0 +1,11 @@
+{
+  "name": "kakeibo-webapp",
+  "version": "2.6.15",
+  "private": true,
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0"
+  }
+}
