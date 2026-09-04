@@ -1,0 +1,77 @@
+name: Patch iPad layout v2.6.16
+
+on:
+  push:
+    paths:
+      - '.github/workflows/patch-ipad-v2616.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Apply only the two iPad fixes
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          index=Path('index.html')
+          s=index.read_text(encoding='utf-8')
+          if 'v2.6.15 Stable' not in s:
+              raise SystemExit('Expected v2.6.15 Stable')
+          s=s.replace('v2.6.15 Stable','v2.6.16 Stable')
+          index.write_text(s,encoding='utf-8')
+
+          css=Path('style.css')
+          c=css.read_text(encoding='utf-8')
+          marker='/* v2.6.16: iPad overview fixes */'
+          if marker not in c:
+              c += '''\n\n/* v2.6.16: iPad overview fixes */\n/* Keep the variable-expense donut legend inside narrow overview cards. */\n.card:has(#variableDonut){container-type:inline-size}\n@container (max-width:620px){\n  .card:has(#variableDonut) .donut-layout{grid-template-columns:1fr;gap:12px;min-height:0}\n  .card:has(#variableDonut) .donut-canvas-wrap{height:240px}\n  .card:has(#variableDonut) .donut-side-legend{min-width:0;padding-bottom:4px}\n}\n\n/* Keep the main page tabs visible while scrolling on tablet-sized screens. */\n@media (min-width:701px) and (max-width:1366px){\n  .desktop-tabs{\n    position:sticky;\n    top:calc(60px + env(safe-area-inset-top));\n    z-index:19;\n    background:var(--bg);\n    padding-top:8px;\n  }\n}\n'''
+          css.write_text(c,encoding='utf-8')
+
+          sw=Path('sw.js')
+          w=sw.read_text(encoding='utf-8')
+          if 'kakeibo-v2.6.15-stable' not in w:
+              raise SystemExit('Expected v2.6.15 cache')
+          sw.write_text(w.replace('kakeibo-v2.6.15-stable','kakeibo-v2.6.16-stable'),encoding='utf-8')
+
+          readme=Path('README.md')
+          r=readme.read_text(encoding='utf-8')
+          if '# 家計簿Webアプリ v2.6.15 Stable' not in r:
+              raise SystemExit('Expected v2.6.15 README')
+          r=r.replace('# 家計簿Webアプリ v2.6.15 Stable','# 家計簿Webアプリ v2.6.16 Stable',1)
+          entry='''## v2.6.16 Stable\n- iPadの概要ページで「変動費カテゴリ」が狭いカード幅でも見切れないよう、カード幅に応じてドーナツと凡例を縦配置へ切り替え\n- iPadでページをスクロールしても「概要・支出・収入・予算・設定」のタブが画面上部に残るよう固定\n- 上記2点以外の機能・表示仕様は変更なし\n\n'''
+          r=r.replace('## v2.6.15 Stable\n',entry+'## v2.6.15 Stable\n',1)
+          readme.write_text(r,encoding='utf-8')
+
+          test=Path('tests/ui-regression.spec.js')
+          t=test.read_text(encoding='utf-8')
+          if "iPad: variable category card does not clip" not in t:
+              t += r'''\n\ntest('iPad: variable category card does not clip and tabs stay visible while scrolling', async ({ page }) => {\n  await page.setViewportSize({ width: 1024, height: 768 });\n  await openApp(page);\n\n  const variableCard = page.locator('.card').filter({ has: page.locator('#variableDonut') }).first();\n  const layout = variableCard.locator('.donut-layout');\n  const geometry = await variableCard.evaluate(card => ({\n    clientWidth: card.clientWidth,\n    scrollWidth: card.scrollWidth\n  }));\n  expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth + 1);\n\n  const columns = await layout.evaluate(el => getComputedStyle(el).gridTemplateColumns);\n  expect(columns.trim().split(/\\s+/)).toHaveLength(1);\n\n  await page.evaluate(() => window.scrollTo(0, 1200));\n  await page.waitForTimeout(100);\n  const tabs = page.locator('#tabs');\n  await expect(tabs).toBeVisible();\n  const box = await tabs.boundingBox();\n  expect(box).not.toBeNull();\n  expect(box.y).toBeGreaterThanOrEqual(55);\n  expect(box.y).toBeLessThan(110);\n});\n'''
+          test.write_text(t,encoding='utf-8')
+          PY
+      - name: Install test dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Syntax check
+        run: node --check app.js
+      - name: Run regression tests
+        run: npm test
+      - name: Commit verified fixes
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html style.css sw.js README.md tests/ui-regression.spec.js
+          git commit -m "Fix iPad overview layout v2.6.16"
+          git push
