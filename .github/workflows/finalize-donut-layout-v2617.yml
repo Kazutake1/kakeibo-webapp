@@ -36,3 +36,4 @@ jobs:
           git add style.css tests/ui-regression.spec.js
           git commit -m "Polish iPad donut layout v2.6.17"
           git push
+# rerun after updating the v2.6.17 iPad regression expectation
