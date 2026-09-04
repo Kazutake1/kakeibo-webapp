@@ -151,3 +151,24 @@ test('iPad donut cards use full width with side-by-side legend', async ({ page }
     expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth+1);
   }
 });
+
+
+test('budget page hides income and tax budget sections', async ({ page }) => {
+  await openApp(page);
+  await page.locator('[data-tab="budget"]').first().click();
+  const budgetEditor=page.locator('#budgetEditor');
+  await expect(budgetEditor).toBeVisible();
+  await expect(budgetEditor).not.toContainText('収入');
+  await expect(budgetEditor).not.toContainText('社会保険・税金');
+  await expect(budgetEditor).toContainText('貯蓄');
+  await expect(budgetEditor).toContainText('固定費');
+  await expect(budgetEditor).toContainText('変動費');
+
+  await budgetEditor.getByRole('button',{name:'予算を編集'}).click();
+  const dialog=page.locator('#budgetDialog');
+  await expect(dialog).toBeVisible();
+  await expect(dialog).not.toContainText('社会保険・税金');
+  await expect(dialog.locator('[data-budget-type="income"]')).toHaveCount(0);
+  await expect(dialog.locator('[data-budget-type="tax"]')).toHaveCount(0);
+  await expect(dialog.locator('[data-budget-type="fixed"]')).not.toHaveCount(0);
+});
