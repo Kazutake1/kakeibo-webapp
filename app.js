@@ -813,6 +813,19 @@ const CHART_COLORS_LIGHT=['#2563eb','#f59e0b','#059669','#db2777','#dc2626','#08
 const CHART_COLORS_DARK=['#60a5fa','#fbbf24','#34d399','#f472b6','#f87171','#22d3ee','#a78bfa','#a3e635','#f59e0b','#2dd4bf'];
 function chartColors(){return document.body.classList.contains('dark-mode')?CHART_COLORS_DARK:CHART_COLORS_LIGHT}
 function chartColor(index){const palette=chartColors();return palette[index%palette.length]}
+const donutLegendModes={donutLegend:'percent',variableLegend:'percent'};
+function setDonutLegendMode(legendId,mode){
+  if(mode!=='percent'&&mode!=='amount')return;
+  donutLegendModes[legendId]=mode;
+  const root=document.getElementById(legendId);
+  if(!root)return;
+  root.dataset.mode=mode;
+  root.querySelectorAll('.donut-mode-btn').forEach(btn=>{
+    const active=btn.dataset.mode===mode;
+    btn.classList.toggle('active',active);
+    btn.setAttribute('aria-pressed',active?'true':'false');
+  });
+}
 function drawDonut(canvasId,legendId,data){
   let [ctx,w,h]=prepCanvas(canvasId);
   ctx.clearRect(0,0,w,h);
@@ -835,7 +848,12 @@ function drawDonut(canvasId,legendId,data){
   const ct=chartTheme();
   ctx.fillStyle=ct.strong;ctx.textAlign='center';ctx.font='700 22px sans-serif';ctx.fillText(money(total),cx,cy-1);
   ctx.fillStyle=ct.muted;ctx.font='12px sans-serif';ctx.fillText('合計',cx,cy+20);
-  document.getElementById(legendId).innerHTML=allData.map(([l,v],i)=>`<div class="donut-legend-row"><div class="donut-legend-name"><i class="dot" style="background:${chartColor(i)}"></i><span>${escapeHtml(l)}</span></div><span class="donut-legend-pct">${total?Math.round(v/total*100):0}%</span><strong class="donut-legend-amt">${money(v)}</strong></div>`).join('')
+  const mode=donutLegendModes[legendId]||'percent';
+  const root=document.getElementById(legendId);
+  root.dataset.mode=mode;
+  root.innerHTML=`<div class="donut-mode-toggle" role="group" aria-label="凡例の表示切替"><button type="button" class="donut-mode-btn ${mode==='percent'?'active':''}" data-mode="percent" aria-pressed="${mode==='percent'}">割合</button><button type="button" class="donut-mode-btn ${mode==='amount'?'active':''}" data-mode="amount" aria-pressed="${mode==='amount'}">金額</button></div><div class="donut-legend-list">${allData.map(([l,v],i)=>`<div class="donut-legend-row"><div class="donut-legend-name"><i class="dot" style="background:${chartColor(i)}"></i><span>${escapeHtml(l)}</span></div><span class="donut-legend-value donut-value-percent">${total?Math.round(v/total*100):0}%</span><strong class="donut-legend-value donut-value-amount">${money(v)}</strong></div>`).join('')}</div>`;
+  root.querySelectorAll('.donut-mode-btn').forEach(btn=>btn.addEventListener('click',()=>setDonutLegendMode(legendId,btn.dataset.mode)));
+  setDonutLegendMode(legendId,mode);
 }
 
 

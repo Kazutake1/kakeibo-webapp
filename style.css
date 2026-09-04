@@ -800,3 +800,27 @@ body:not(.dark-mode) .sync-status-row,body:not(.dark-mode) .daily-history-row,bo
     padding-top:8px;
   }
 }
+
+
+/* v2.6.17: compact donut legend toggle */
+.donut-side-legend{align-self:stretch;justify-content:center}
+.donut-mode-toggle{display:grid;grid-template-columns:1fr 1fr;gap:3px;padding:3px;margin:0 0 12px;border:1px solid var(--line-soft);border-radius:12px;background:var(--header2)}
+.donut-mode-btn{border:0;border-radius:9px;padding:7px 12px;background:transparent;color:var(--muted);font-size:12px;font-weight:750;line-height:1.2}
+.donut-mode-btn.active{background:var(--card);color:var(--accent);box-shadow:0 1px 5px rgba(30,70,120,.10)}
+.donut-legend-list{display:flex;flex-direction:column;gap:11px;min-width:0}
+.donut-legend-row{grid-template-columns:minmax(0,1fr) minmax(72px,auto)}
+.donut-legend-value{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.donut-side-legend[data-mode="percent"] .donut-value-amount{display:none}
+.donut-side-legend[data-mode="amount"] .donut-value-percent{display:none}
+.donut-value-percent{color:#70819d}
+.donut-value-amount{color:#173b67;font-weight:750}
+body.dark-mode .donut-value-percent{color:#a9bbd3}
+body.dark-mode .donut-value-amount{color:#dce9f8}
+
+/* With a single value column, iPad can keep the cleaner side-by-side donut layout. */
+@media (min-width:701px) and (max-width:1000px){
+  .donut-layout{grid-template-columns:minmax(220px,.9fr) minmax(260px,1.1fr);gap:16px;min-height:300px}
+  .donut-canvas-wrap{height:270px}
+  .donut-legend-row{grid-template-columns:minmax(0,1fr) minmax(68px,auto);gap:9px}
+  .donut-card .card-body{padding:16px}
+}

@@ -114,3 +114,26 @@ test('iPad: variable category card does not clip and tabs stay visible while scr
   expect(box.y).toBeGreaterThanOrEqual(55);
   expect(box.y).toBeLessThan(110);
 });
+
+
+test('donut legends switch between percentage and amount', async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await openApp(page);
+
+  for (const legendId of ['donutLegend','variableLegend']) {
+    const legend=page.locator(`#${legendId}`);
+    await expect(legend.locator('.donut-mode-btn')).toHaveCount(2);
+    await expect(legend.locator('.donut-mode-btn[data-mode="percent"]')).toHaveClass(/active/);
+    await expect(legend.locator('.donut-value-percent').first()).toBeVisible();
+    await expect(legend.locator('.donut-value-amount').first()).toBeHidden();
+
+    await legend.locator('.donut-mode-btn[data-mode="amount"]').click();
+    await expect(legend.locator('.donut-mode-btn[data-mode="amount"]')).toHaveClass(/active/);
+    await expect(legend.locator('.donut-value-percent').first()).toBeHidden();
+    await expect(legend.locator('.donut-value-amount').first()).toBeVisible();
+  }
+
+  const variableCard=page.locator('.card').filter({has:page.locator('#variableDonut')}).first();
+  const geometry=await variableCard.evaluate(card=>({clientWidth:card.clientWidth,scrollWidth:card.scrollWidth}));
+  expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth+1);
+});
