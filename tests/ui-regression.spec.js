@@ -199,3 +199,18 @@ test('iPad: calendar entry dialog does not auto-focus date input', async ({ page
   const activeId = await page.evaluate(() => document.activeElement?.id || '');
   expect(activeId).not.toBe('txDate');
 });
+
+
+test('iPad: transaction date cannot be automatic dialog focus target', async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await openApp(page);
+  await page.locator('#tabs [data-tab="expense"]').click();
+  const cell = page.locator('#expenseCalendarWrap .cal-cell[onclick*="quickAddType"]').first();
+  await cell.click();
+  await expect(page.locator('#txDialog')).toBeVisible();
+  const date = page.locator('#txDate');
+  await expect(date).toBeEnabled();
+  expect(await date.getAttribute('tabindex')).toBe('-1');
+  const activeId = await page.evaluate(() => document.activeElement?.id || '');
+  expect(activeId).not.toBe('txDate');
+});
