@@ -187,3 +187,15 @@ test('smartphone expense composition matches variable category donut layout', as
     expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth + 1);
   }
 });
+
+
+test('iPad: calendar entry dialog does not auto-focus date input', async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await openApp(page);
+  await page.locator('#tabs [data-tab="expense"]').click();
+  const cell = page.locator('#expenseCalendarWrap .cal-cell[onclick*="quickAddType"]').first();
+  await cell.click();
+  await expect(page.locator('#txDialog')).toBeVisible();
+  const activeId = await page.evaluate(() => document.activeElement?.id || '');
+  expect(activeId).not.toBe('txDate');
+});
