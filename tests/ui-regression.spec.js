@@ -103,7 +103,7 @@ test('iPad: variable category card does not clip and tabs stay visible while scr
   expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth + 1);
 
   const columns = await layout.evaluate(el => getComputedStyle(el).gridTemplateColumns);
-  expect(columns.trim().split(/\s+/)).toHaveLength(1);
+  expect(columns.trim().split(/\s+/).length).toBeGreaterThanOrEqual(2);
 
   await page.evaluate(() => window.scrollTo(0, 1200));
   await page.waitForTimeout(100);
@@ -136,4 +136,18 @@ test('donut legends switch between percentage and amount', async ({ page }) => {
   const variableCard=page.locator('.card').filter({has:page.locator('#variableDonut')}).first();
   const geometry=await variableCard.evaluate(card=>({clientWidth:card.clientWidth,scrollWidth:card.scrollWidth}));
   expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth+1);
+});
+
+
+test('iPad donut cards use full width with side-by-side legend', async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await openApp(page);
+  for (const canvasId of ['donutChart','variableDonut']) {
+    const card=page.locator('.card').filter({has:page.locator(`#${canvasId}`)}).first();
+    const layout=card.locator('.donut-layout');
+    const columns=await layout.evaluate(el=>getComputedStyle(el).gridTemplateColumns.trim().split(/\s+/).length);
+    expect(columns).toBeGreaterThanOrEqual(2);
+    const geometry=await card.evaluate(el=>({clientWidth:el.clientWidth,scrollWidth:el.scrollWidth}));
+    expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth+1);
+  }
 });
