@@ -781,13 +781,13 @@ body:not(.dark-mode) .sync-status-row,body:not(.dark-mode) .daily-history-row,bo
     }
 
 
-/* v2.6.16: iPad overview fixes */
-/* Keep the variable-expense donut legend inside narrow overview cards. */
-.card:has(#variableDonut){container-type:inline-size}
+/* v2.6.16 / v2.6.19: narrow overview donut layout */
+/* Keep both donut legends inside narrow overview cards using the same design. */
+.card:has(#donutChart),.card:has(#variableDonut){container-type:inline-size}
 @container (max-width:620px){
-  .card:has(#variableDonut) .donut-layout{grid-template-columns:1fr;gap:12px;min-height:0}
-  .card:has(#variableDonut) .donut-canvas-wrap{height:240px}
-  .card:has(#variableDonut) .donut-side-legend{min-width:0;padding-bottom:4px}
+  .card:has(#donutChart) .donut-layout,.card:has(#variableDonut) .donut-layout{grid-template-columns:1fr;gap:12px;min-height:0}
+  .card:has(#donutChart) .donut-canvas-wrap,.card:has(#variableDonut) .donut-canvas-wrap{height:240px}
+  .card:has(#donutChart) .donut-side-legend,.card:has(#variableDonut) .donut-side-legend{min-width:0;padding-bottom:4px}
 }
 
 /* Keep the main page tabs visible while scrolling on tablet-sized screens. */

@@ -172,3 +172,18 @@ test('budget page hides income and tax budget sections', async ({ page }) => {
   await expect(dialog.locator('[data-budget-type="tax"]')).toHaveCount(0);
   await expect(dialog.locator('[data-budget-type="fixed"]')).not.toHaveCount(0);
 });
+
+
+test('smartphone expense composition matches variable category donut layout', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openApp(page);
+
+  for (const canvasId of ['donutChart', 'variableDonut']) {
+    const card = page.locator('.card').filter({ has: page.locator(`#${canvasId}`) }).first();
+    const layout = card.locator('.donut-layout');
+    const columns = await layout.evaluate(el => getComputedStyle(el).gridTemplateColumns.trim().split(/\s+/).length);
+    expect(columns).toBe(1);
+    const geometry = await card.evaluate(el => ({ clientWidth: el.clientWidth, scrollWidth: el.scrollWidth }));
+    expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth + 1);
+  }
+});
