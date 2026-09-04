@@ -18,6 +18,9 @@ css.write_text(c,encoding='utf-8')
 
 test=Path('tests/ui-regression.spec.js')
 t=test.read_text(encoding='utf-8')
+# v2.6.16 expected the variable donut to stack vertically on iPad.
+# v2.6.17 intentionally restores the cleaner side-by-side layout, so update that assertion only.
+t=t.replace("expect(columns.trim().split(/\\s+/)).toHaveLength(1);","expect(columns.trim().split(/\\s+/).length).toBeGreaterThanOrEqual(2);",1)
 name='iPad donut cards use full width with side-by-side legend'
 if name not in t:
     t += '''
