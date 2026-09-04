@@ -88,3 +88,29 @@ test('mobile bottom navigation opens the main pages', async ({ page }) => {
     await expect(page.locator(`section[data-panel="${key}"]`)).toHaveClass(/active/);
   }
 });
+
+
+test('iPad: variable category card does not clip and tabs stay visible while scrolling', async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await openApp(page);
+
+  const variableCard = page.locator('.card').filter({ has: page.locator('#variableDonut') }).first();
+  const layout = variableCard.locator('.donut-layout');
+  const geometry = await variableCard.evaluate(card => ({
+    clientWidth: card.clientWidth,
+    scrollWidth: card.scrollWidth
+  }));
+  expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth + 1);
+
+  const columns = await layout.evaluate(el => getComputedStyle(el).gridTemplateColumns);
+  expect(columns.trim().split(/\s+/)).toHaveLength(1);
+
+  await page.evaluate(() => window.scrollTo(0, 1200));
+  await page.waitForTimeout(100);
+  const tabs = page.locator('#tabs');
+  await expect(tabs).toBeVisible();
+  const box = await tabs.boundingBox();
+  expect(box).not.toBeNull();
+  expect(box.y).toBeGreaterThanOrEqual(55);
+  expect(box.y).toBeLessThan(110);
+});
