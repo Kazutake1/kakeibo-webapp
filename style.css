@@ -842,3 +842,9 @@ body.dark-mode .donut-value-amount{color:#dce9f8}
 @media (min-width:1001px){
   .weekly-canvas{height:400px;min-height:400px}
 }
+
+
+/* v2.6.21: hide small native date picker on smartphone daily pages */
+@media(max-width:700px){
+  .daily-native-date{display:none!important}
+}
