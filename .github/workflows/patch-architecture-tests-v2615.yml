@@ -16,13 +16,17 @@ jobs:
         with:
           ref: main
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
       - name: Apply refactor
         run: python3 .github/scripts/refactor_v2615.py
 
       - name: Install dependencies
         run: |
-          npm install --package-lock-only
-          npm ci
+          npm install --package-lock-only --no-audit --no-fund
+          npm ci --no-audit --no-fund
 
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
