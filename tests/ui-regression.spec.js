@@ -297,3 +297,26 @@ test('donut canvases stay perfectly square on smartphone and iPad', async ({ pag
     }
   }
 });
+
+
+test('desktop expense weekly total row matches item row height and shows week sum', async ({ page }) => {
+  const date=currentDateKey();
+  await openApp(page,{transactions:[
+    {id:'week-total-test',date,type:'variable',category:'セブンイレブン',item:'test',amount:4321,amountExpression:'4321',memo:''}
+  ]});
+  await page.locator('#tabs [data-tab="expense"]').click();
+
+  const totalRows=page.locator('#expenseCalendarWrap .expense-week-total-row');
+  expect(await totalRows.count()).toBeGreaterThan(0);
+
+  const heights=await totalRows.evaluateAll(rows=>rows.map(row=>({
+    total:row.getBoundingClientRect().height,
+    previous:row.previousElementSibling?.getBoundingClientRect().height||0
+  })));
+  for(const pair of heights){
+    expect(Math.abs(pair.total-pair.previous)).toBeLessThanOrEqual(1);
+  }
+
+  const weekTotals=page.locator('#expenseCalendarWrap .expense-week-total-row .expense-week-total-cell:last-child');
+  await expect(weekTotals.filter({hasText:'¥4,321'})).toHaveCount(1);
+});

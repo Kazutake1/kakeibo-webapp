@@ -735,12 +735,22 @@ function renderTypeCalendar(wrapId,type,cats,label){
       }).join('')}<td class="cal-cell ${type==='income'?'income-cell':''}"><b>${money(sum(tx.filter(t=>t.category===cat&&ds.includes(+t.date.slice(-2))).map(t=>t.amount)))}</b></td></tr>`
     }
 
-    html+=`<tr><td class="cal-cat"><b>${label}合計</b></td>${ds.map(d=>{
-      if(!d)return '<td></td>';
-      const date=ym()+'-'+String(d).padStart(2,'0');
-      const a=sum(tx.filter(t=>t.date===date).map(t=>t.amount));
-      return `<td class="${type==='income'?'income-cell':''}"><b>${a?money(a):''}</b></td>`
-    }).join('')}<td></td></tr>`;
+    if(type==='variable'){
+      const weekTotal=sum(tx.filter(t=>ds.includes(+t.date.slice(-2))).map(t=>t.amount));
+      html+=`<tr class="expense-week-total-row"><td class="cal-cat"><b>${label}合計</b></td>${ds.map(d=>{
+        if(!d)return '<td class="cal-cell expense-week-total-cell"></td>';
+        const date=ym()+'-'+String(d).padStart(2,'0');
+        const a=sum(tx.filter(t=>t.date===date).map(t=>t.amount));
+        return `<td class="cal-cell expense-week-total-cell"><b>${a?money(a):''}</b></td>`
+      }).join('')}<td class="cal-cell expense-week-total-cell"><b>${money(weekTotal)}</b></td></tr>`;
+    }else{
+      html+=`<tr><td class="cal-cat"><b>${label}合計</b></td>${ds.map(d=>{
+        if(!d)return '<td></td>';
+        const date=ym()+'-'+String(d).padStart(2,'0');
+        const a=sum(tx.filter(t=>t.date===date).map(t=>t.amount));
+        return `<td class="${type==='income'?'income-cell':''}"><b>${a?money(a):''}</b></td>`
+      }).join('')}<td></td></tr>`;
+    }
   }
   html+='</table>';
   root.innerHTML=html
