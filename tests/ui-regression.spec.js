@@ -320,3 +320,12 @@ test('desktop expense weekly total row matches item row height and shows week su
   const weekTotals=page.locator('#expenseCalendarWrap .expense-week-total-row .expense-week-total-cell:last-child');
   await expect(weekTotals.filter({hasText:'¥4,321'})).toHaveCount(1);
 });
+
+
+
+test('release assets use v2.6.30 cache-busting URLs', async ({ page }) => {
+  await openApp(page);
+  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.30');
+  const appSrc = await page.locator('script[src*="app.js"]').getAttribute('src');
+  expect(appSrc).toBe('app.js?v=2.6.30');
+});

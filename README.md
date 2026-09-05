@@ -1,6 +1,11 @@
-# 家計簿Webアプリ v2.6.29 Stable
+# 家計簿Webアプリ v2.6.30 Stable
 
 Excel家計簿をベースにした iPhone / iPad / Mac 対応のレスポンシブPWAです。
+
+## v2.6.30 Stable
+- `style.css` と `app.js` の読み込みURLにリリース番号を付与し、通常のリロードでも最新版のCSS/JavaScriptを取得しやすいよう改善
+- Service Worker のキャッシュ対象も同じバージョン付きURLへ更新
+- 支出カレンダーを含む機能・表示仕様そのものは変更なし
 
 ## v2.6.29 Stable
 - PC版の支出カレンダーで「支出合計」行の高さを他の項目行と同じに統一
