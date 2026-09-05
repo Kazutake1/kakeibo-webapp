@@ -19,7 +19,34 @@ style = Path('style.css')
 c = style.read_text(encoding='utf-8')
 marker = '/* v2.6.28: force donut canvases to a square drawing area */'
 if marker not in c:
-    c += '''\n\n/* v2.6.28: force donut canvases to a square drawing area */\n.donut-canvas-wrap{\n  width:min(310px,100%);\n  height:auto!important;\n  aspect-ratio:1 / 1;\n  margin-left:auto;\n  margin-right:auto;\n}\n.donut-canvas-wrap canvas{width:100%;height:100%;display:block}\n@container (max-width:620px){\n  .card:has(#donutChart) .donut-canvas-wrap,.card:has(#variableDonut) .donut-canvas-wrap{\n    width:min(240px,100%);\n    height:auto!important;\n  }\n}\n@media (min-width:701px) and (max-width:1366px){\n  .donut-card .donut-canvas-wrap{\n    width:min(280px,100%);\n    height:auto!important;\n  }\n}\n@media (min-width:1367px){\n  .donut-card .donut-canvas-wrap{\n    width:min(330px,100%);\n    height:auto!important;\n  }\n}\n'''
+    c += '''\n\n/* v2.6.28: force donut canvases to a square drawing area */
+.donut-canvas-wrap{
+  width:min(310px,100%);
+  height:auto!important;
+  aspect-ratio:1 / 1;
+  margin-left:auto;
+  margin-right:auto;
+}
+.donut-canvas-wrap canvas{width:100%;height:100%;display:block}
+@container (max-width:620px){
+  .card:has(#donutChart) .donut-canvas-wrap,.card:has(#variableDonut) .donut-canvas-wrap{
+    width:min(240px,100%);
+    height:auto!important;
+  }
+}
+@media (min-width:701px) and (max-width:1366px){
+  .donut-card .donut-canvas-wrap{
+    width:min(280px,100%);
+    height:auto!important;
+  }
+}
+@media (min-width:1367px){
+  .donut-card .donut-canvas-wrap{
+    width:min(330px,100%);
+    height:auto!important;
+  }
+}
+'''
 style.write_text(c, encoding='utf-8')
 
 index = Path('index.html')
@@ -53,5 +80,21 @@ test = Path('tests/ui-regression.spec.js')
 t = test.read_text(encoding='utf-8')
 test_marker = "test('donut canvases stay perfectly square on smartphone and iPad'"
 if test_marker not in t:
-    t += r'''\n\ntest('donut canvases stay perfectly square on smartphone and iPad', async ({ page }) => {\n  for (const viewport of [{ width: 390, height: 844 }, { width: 1024, height: 768 }]) {\n    await page.setViewportSize(viewport);\n    await openApp(page);\n    for (const id of ['donutChart','variableDonut']) {\n      const dims = await page.locator(`#${id}`).evaluate(el => {\n        const rect = el.getBoundingClientRect();\n        return { cssWidth: rect.width, cssHeight: rect.height, backingWidth: el.width, backingHeight: el.height };\n      });\n      expect(Math.abs(dims.cssWidth - dims.cssHeight)).toBeLessThanOrEqual(1);\n      expect(dims.backingWidth).toBe(dims.backingHeight);\n    }\n  }\n});\n'''
+    t += """
+
+test('donut canvases stay perfectly square on smartphone and iPad', async ({ page }) => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1024, height: 768 }]) {
+    await page.setViewportSize(viewport);
+    await openApp(page);
+    for (const id of ['donutChart','variableDonut']) {
+      const dims = await page.locator(`#${id}`).evaluate(el => {
+        const rect = el.getBoundingClientRect();
+        return { cssWidth: rect.width, cssHeight: rect.height, backingWidth: el.width, backingHeight: el.height };
+      });
+      expect(Math.abs(dims.cssWidth - dims.cssHeight)).toBeLessThanOrEqual(1);
+      expect(dims.backingWidth).toBe(dims.backingHeight);
+    }
+  }
+});
+"""
 test.write_text(t, encoding='utf-8')
