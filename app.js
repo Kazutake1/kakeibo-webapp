@@ -16,6 +16,7 @@ const tabs=[['dashboard','概要'],['expense','支出'],['income','収入'],['bu
 let current = new Date(); current.setDate(1);
 let state = loadState();
 let mobileDailyDate = new Date();
+let expenseHistoryFilter='nonvariable';
 const SUPABASE_URL='https://blyyxmhehubufqzyqapq.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_DB6exzL5oiIQ3e30r6nqmw_FC14UaM4';
 const SYNC_SESSION_KEY='kakeibo-sync-session-v1';
@@ -116,9 +117,69 @@ function showPanel(k){
   if(k==='expense'||k==='income'){renderCalendar();renderMobileDaily()}
   if(k==='budget'){renderBudgetEditor();renderItemManager()}
 }
-function renderCurrentMonthViews(){renderMobileRecent();document.querySelector('#monthLabel').textContent=`${current.getFullYear()}年${current.getMonth()+1}月`;renderSummary();renderBudgetOverview();renderVariableStatus();renderCalendar();renderBudgetEditor();renderItemManager();requestAnimationFrame(()=>requestAnimationFrame(drawCharts))}
+function renderCurrentMonthViews(){renderMobileRecent();document.querySelector('#monthLabel').textContent=`${current.getFullYear()}年${current.getMonth()+1}月`;renderSummary();renderBudgetOverview();renderVariableStatus();renderCalendar();renderBudgetEditor();renderItemManager();renderExpenseHistory();requestAnimationFrame(()=>requestAnimationFrame(drawCharts))}
 function render(){refreshQuickEntry();renderCurrentMonthViews();renderMobileDaily()}
 function renderMobileRecent(){const wrap=document.getElementById('mobileRecentList');if(!wrap)return;const rows=[...monthTx()].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,5);if(!rows.length){wrap.innerHTML='<div class="recent-empty">まだ入力はありません</div>';return}wrap.innerHTML=rows.map(t=>{const d=(t.date||'').slice(5).replace('-','/');const sign=t.type==='income'?'+':'−';return `<div class="recent-row"><div class="recent-icon">${escapeHtml((t.category||'?').slice(0,1))}</div><div class="recent-main"><strong>${escapeHtml(t.item||t.category||'')}</strong><span>${d} ・ ${escapeHtml(t.category||'')}</span></div><div class="recent-amt ${t.type==='income'?'pos':''}">${sign}${money(t.amount).replace('¥','¥')}</div></div>`}).join('')}
+
+const EXPENSE_HISTORY_FILTERS=[
+  ['nonvariable','変動費以外'],['all','すべて'],['tax','社会保険・税金'],['saving','貯蓄'],
+  ['self','自己投資'],['special','特別費'],['variable','変動費'],['fixed','固定費']
+];
+function renderExpenseHistory(){
+  const filters=document.getElementById('expenseHistoryFilters');
+  const list=document.getElementById('expenseHistoryList');
+  if(!filters||!list)return;
+  filters.innerHTML=EXPENSE_HISTORY_FILTERS.map(([key,label])=>`<button type="button" class="expense-history-filter${expenseHistoryFilter===key?' active':''}" onclick="setExpenseHistoryFilter('${key}')">${label}</button>`).join('');
+
+  let rows=monthTx().filter(t=>t.type!=='income'&&t.type!=='fixed');
+  if(expenseHistoryFilter==='nonvariable')rows=rows.filter(t=>t.type!=='variable');
+  else if(expenseHistoryFilter!=='all'&&expenseHistoryFilter!=='fixed')rows=rows.filter(t=>t.type===expenseHistoryFilter);
+  else if(expenseHistoryFilter==='fixed')rows=[];
+  rows=[...rows].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+
+  const showFixed=expenseHistoryFilter==='nonvariable'||expenseHistoryFilter==='all'||expenseHistoryFilter==='fixed';
+  const fixedHtml=showFixed?`<div class="expense-history-row expense-history-fixed" data-expense-type="fixed">
+    <div class="expense-history-date">毎月</div>
+    <div class="expense-history-main"><span class="expense-history-type">固定費</span><strong>予算から自動計上</strong><span>当月の固定費合計</span></div>
+    <div class="expense-history-amount">${money(budgetTypeSum('fixed'))}</div>
+    <div class="expense-history-actions"><button type="button" class="expense-history-edit" onclick="openFixedBudgetSettings()">予算設定へ</button></div>
+  </div>`:'';
+
+  const txHtml=rows.map(t=>{
+    const typeLabel=TYPES.find(x=>x.key===t.type)?.label||t.type;
+    const title=t.item||t.category||typeLabel;
+    const detail=[t.category,t.memo].map(v=>cleanText(v,500)).filter(Boolean).join(' ・ ');
+    const date=(t.date||'').slice(5).replace('-','/');
+    return `<div class="expense-history-row" data-expense-type="${escapeHtml(t.type)}" data-expense-id="${escapeHtml(t.id)}">
+      <div class="expense-history-date">${escapeHtml(date)}</div>
+      <div class="expense-history-main"><span class="expense-history-type">${escapeHtml(typeLabel)}</span><strong>${escapeHtml(title)}</strong><span>${escapeHtml(detail)}</span></div>
+      <div class="expense-history-amount">${money(t.amount)}</div>
+      <div class="expense-history-actions"><button type="button" class="expense-history-edit" onclick="editTxEncoded('${encodeArg(t.id)}')">編集</button><button type="button" class="expense-history-delete" onclick="deleteExpenseHistoryTx('${encodeArg(t.id)}')">削除</button></div>
+    </div>`
+  }).join('');
+  list.innerHTML=fixedHtml+txHtml||'<div class="expense-history-empty">該当する支出はありません</div>';
+}
+window.setExpenseHistoryFilter=filter=>{
+  if(!EXPENSE_HISTORY_FILTERS.some(([key])=>key===filter))return;
+  expenseHistoryFilter=filter;
+  renderExpenseHistory();
+};
+window.deleteExpenseHistoryTx=encoded=>{
+  const id=decodeURIComponent(encoded);
+  const index=state.transactions.findIndex(t=>t.id===id&&t.type!=='income'&&t.type!=='fixed');
+  if(index<0)return;
+  const tx=state.transactions[index];
+  const typeLabel=TYPES.find(t=>t.key===tx.type)?.label||tx.type;
+  if(!confirm(`${tx.date} の「${typeLabel}・${tx.category}」 ${money(tx.amount)} を削除しますか？`))return;
+  const removed=state.transactions.splice(index,1)[0];
+  if(!saveState()){
+    state.transactions.splice(index,0,removed);
+    return;
+  }
+  render();
+};
+window.openFixedBudgetSettings=()=>showPanel('budget');
+
 function renderSummary(){
   const income=typeSum('income');
   const expense=sum(['tax','saving','self','fixed','special','variable'].map(effectiveTypeSum));

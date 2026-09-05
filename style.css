@@ -854,3 +854,39 @@ body.dark-mode .donut-value-amount{color:#dce9f8}
 @media (max-width:1366px){
   .daily-native-date{display:none!important}
 }
+
+
+/* v2.6.26: expense history */
+.expense-history-card{margin-top:16px}
+.expense-history-head{padding:18px 20px 0}
+.expense-history-head h2{margin:0 0 4px}
+.expense-history-head .hint{margin:0}
+.expense-history-filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.expense-history-filter{border:1px solid var(--line);background:var(--paper);color:var(--text);border-radius:999px;padding:7px 11px;font-size:12px;font-weight:700;cursor:pointer}
+.expense-history-filter.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.expense-history-list{display:grid;gap:0}
+.expense-history-row{display:grid;grid-template-columns:72px minmax(0,1fr) auto auto;gap:14px;align-items:center;padding:13px 0;border-top:1px solid var(--line-soft)}
+.expense-history-row:first-child{border-top:0}
+.expense-history-fixed{margin-bottom:2px;padding:13px 12px;border:1px solid var(--line-soft);border-radius:12px;background:var(--accent-soft)}
+.expense-history-date{font-size:12px;font-weight:750;color:var(--muted)}
+.expense-history-main{min-width:0;display:grid;gap:3px}
+.expense-history-main strong{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.expense-history-main>span:last-child{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.expense-history-type{width:max-content;font-size:10px!important;font-weight:800;color:var(--accent)!important;background:var(--accent-soft);border-radius:999px;padding:2px 7px}
+.expense-history-fixed .expense-history-type{background:var(--paper)}
+.expense-history-amount{font-size:15px;font-weight:850;white-space:nowrap}
+.expense-history-actions{display:flex;gap:6px;justify-content:flex-end}
+.expense-history-actions button{border:1px solid var(--line);background:var(--paper);color:var(--text);border-radius:8px;padding:7px 9px;font-size:12px;font-weight:750;cursor:pointer}
+.expense-history-actions .expense-history-delete{color:#dc2626}
+.expense-history-empty{padding:22px 0;text-align:center;color:var(--muted);font-size:13px}
+@media(max-width:700px){
+  .expense-history-head{padding:16px 16px 0}
+  .expense-history-card .card-body{padding-top:12px}
+  .expense-history-filters{gap:6px;overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+  .expense-history-filter{flex:0 0 auto}
+  .expense-history-row{grid-template-columns:56px minmax(0,1fr) auto;gap:10px;padding:12px 0}
+  .expense-history-fixed{padding:12px 10px}
+  .expense-history-actions{grid-column:2 / -1}
+  .expense-history-main strong{font-size:13px}
+  .expense-history-amount{font-size:14px}
+}

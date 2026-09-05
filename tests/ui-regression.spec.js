@@ -226,3 +226,41 @@ test('iPad: transaction date cannot be automatic dialog focus target', async ({ 
   await date.focus();
   await expect(date).toBeFocused();
 });
+
+
+
+test('expense history shows non-variable expenses and supports edit delete and fixed budget link', async ({ page }) => {
+  const date=currentDateKey();
+  await openApp(page,{transactions:[
+    {id:'tax-history',date,type:'tax',category:'所得税',item:'源泉税',amount:8000,amountExpression:'8000',memo:''},
+    {id:'self-history',date,type:'self',category:'書籍',item:'ビジネス書',amount:1500,amountExpression:'1500',memo:''},
+    {id:'special-history',date,type:'special',category:'特別支出',item:'家電',amount:12800,amountExpression:'12800',memo:''},
+    {id:'variable-history',date,type:'variable',category:'セブンイレブン',item:'コンビニ',amount:500,amountExpression:'500',memo:''}
+  ]});
+  await page.locator('#tabs [data-tab="expense"]').click();
+  const card=page.locator('.expense-history-card');
+  await expect(card).toBeVisible();
+  await expect(card.locator('.expense-history-filter.active')).toHaveText('変動費以外');
+  await expect(card.locator('[data-expense-id="tax-history"]')).toBeVisible();
+  await expect(card.locator('[data-expense-id="self-history"]')).toBeVisible();
+  await expect(card.locator('[data-expense-id="special-history"]')).toBeVisible();
+  await expect(card.locator('[data-expense-id="variable-history"]')).toHaveCount(0);
+  await expect(card.locator('[data-expense-type="fixed"]')).toBeVisible();
+
+  await card.locator('[data-expense-id="tax-history"] .expense-history-edit').click();
+  await expect(page.locator('#txDialog')).toBeVisible();
+  await expect(page.locator('#txType')).toHaveValue('tax');
+  await page.locator('#txCancel').click();
+
+  page.once('dialog',dialog=>dialog.accept());
+  await card.locator('[data-expense-id="self-history"] .expense-history-delete').click();
+  await expect(card.locator('[data-expense-id="self-history"]')).toHaveCount(0);
+
+  await card.getByRole('button',{name:'変動費',exact:true}).click();
+  await expect(card.locator('[data-expense-id="variable-history"]')).toBeVisible();
+  await expect(card.locator('[data-expense-id="tax-history"]')).toHaveCount(0);
+
+  await card.getByRole('button',{name:'固定費',exact:true}).click();
+  await card.getByRole('button',{name:'予算設定へ'}).click();
+  await expect(page.locator('section[data-panel="budget"]')).toHaveClass(/active/);
+});
