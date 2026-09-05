@@ -1,0 +1,37 @@
+name: Patch expense weekly total v2.6.29
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/patch-expense-week-total-v2629.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - name: Apply requested change
+        run: python3 .github/scripts/patch_expense_week_total_v2629.py
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: JavaScript syntax check
+        run: node --check app.js
+      - name: Run regression tests
+        run: npm test
+      - name: Commit verified change
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app.js index.html README.md sw.js tests/ui-regression.spec.js
+          git commit -m "v2.6.29 expense weekly totals" || exit 0
+          git push
