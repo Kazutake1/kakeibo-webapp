@@ -890,3 +890,9 @@ body.dark-mode .donut-value-amount{color:#dce9f8}
   .expense-history-main strong{font-size:13px}
   .expense-history-amount{font-size:14px}
 }
+
+
+/* v2.6.27: match expense history spacing to mobile calendar spacing */
+@media(max-width:700px){
+  .expense-history-card{margin-top:12px}
+}

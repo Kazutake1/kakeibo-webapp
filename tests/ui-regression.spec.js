@@ -264,3 +264,20 @@ test('expense history shows non-variable expenses and supports edit delete and f
   await card.getByRole('button',{name:'予算設定へ'}).click();
   await expect(page.locator('section[data-panel="budget"]')).toHaveClass(/active/);
 });
+
+
+test('mobile expense history gap matches calendar gap', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openApp(page);
+  await page.locator('#mobileNav [data-tab="expense"]').click();
+  const spacing = await page.evaluate(() => {
+    const calendar = document.getElementById('expenseMonthCalendar');
+    const history = document.querySelector('.expense-history-card');
+    return {
+      calendarBottom: getComputedStyle(calendar).marginBottom,
+      historyTop: getComputedStyle(history).marginTop
+    };
+  });
+  expect(spacing.calendarBottom).toBe('12px');
+  expect(spacing.historyTop).toBe(spacing.calendarBottom);
+});
