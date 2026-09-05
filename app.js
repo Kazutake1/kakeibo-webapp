@@ -777,6 +777,7 @@ function drawCharts(){
 
 function chartTheme(){const dark=document.body.classList.contains('dark-mode');return dark?{grid:'#2b4056',muted:'#9eb0c6',strong:'#cfe5fb',hole:'#162231',empty:'#264866'}:{grid:'#dbe7f7',muted:'#64748b',strong:'#1e3a5f',hole:'#ffffff',empty:'#dbeafe'}}
 function prepCanvas(id){const c=document.getElementById(id);let r=c.getBoundingClientRect();let w=Math.max(1,r.width||c.parentElement?.clientWidth||300);let h=Math.max(id==='weeklyChart'?300:180,r.height||c.parentElement?.clientHeight||250);const dpr=devicePixelRatio||1;c.width=Math.round(w*dpr);c.height=Math.round(h*dpr);let x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);return [x,w,h]}
+function prepDonutCanvas(id){const c=document.getElementById(id);const wrap=c.parentElement;const r=wrap.getBoundingClientRect();const size=Math.max(1,Math.min(r.width||wrap.clientWidth||300,r.height||wrap.clientHeight||300));const dpr=devicePixelRatio||1;c.style.width='100%';c.style.height='100%';c.width=Math.round(size*dpr);c.height=Math.round(size*dpr);const x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);return [x,size,size]}
 function drawWeekly(){
   let [ctx,w,h]=prepCanvas('weeklyChart');
   ctx.clearRect(0,0,w,h);
@@ -888,7 +889,7 @@ function setDonutLegendMode(legendId,mode){
   });
 }
 function drawDonut(canvasId,legendId,data){
-  let [ctx,w,h]=prepCanvas(canvasId);
+  let [ctx,w,h]=prepDonutCanvas(canvasId);
   ctx.clearRect(0,0,w,h);
   const allData=data.slice();
   const drawableData=allData.map((entry,index)=>[...entry,index]).filter(x=>x[1]>0);

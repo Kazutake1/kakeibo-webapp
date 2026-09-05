@@ -896,3 +896,32 @@ body.dark-mode .donut-value-amount{color:#dce9f8}
 @media(max-width:700px){
   .expense-history-card{margin-top:12px}
 }
+
+
+/* v2.6.28: force donut canvases to a square drawing area */
+.donut-canvas-wrap{
+  width:min(310px,100%);
+  height:auto!important;
+  aspect-ratio:1 / 1;
+  margin-left:auto;
+  margin-right:auto;
+}
+.donut-canvas-wrap canvas{width:100%;height:100%;display:block}
+@container (max-width:620px){
+  .card:has(#donutChart) .donut-canvas-wrap,.card:has(#variableDonut) .donut-canvas-wrap{
+    width:min(240px,100%);
+    height:auto!important;
+  }
+}
+@media (min-width:701px) and (max-width:1366px){
+  .donut-card .donut-canvas-wrap{
+    width:min(280px,100%);
+    height:auto!important;
+  }
+}
+@media (min-width:1367px){
+  .donut-card .donut-canvas-wrap{
+    width:min(330px,100%);
+    height:auto!important;
+  }
+}

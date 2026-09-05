@@ -281,3 +281,19 @@ test('mobile expense history gap matches calendar gap', async ({ page }) => {
   expect(spacing.calendarBottom).toBe('12px');
   expect(spacing.historyTop).toBe(spacing.calendarBottom);
 });
+
+
+test('donut canvases stay perfectly square on smartphone and iPad', async ({ page }) => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1024, height: 768 }]) {
+    await page.setViewportSize(viewport);
+    await openApp(page);
+    for (const id of ['donutChart','variableDonut']) {
+      const dims = await page.locator(`#${id}`).evaluate(el => {
+        const rect = el.getBoundingClientRect();
+        return { cssWidth: rect.width, cssHeight: rect.height, backingWidth: el.width, backingHeight: el.height };
+      });
+      expect(Math.abs(dims.cssWidth - dims.cssHeight)).toBeLessThanOrEqual(1);
+      expect(dims.backingWidth).toBe(dims.backingHeight);
+    }
+  }
+});
