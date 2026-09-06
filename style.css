@@ -925,3 +925,33 @@ body.dark-mode .donut-value-amount{color:#dce9f8}
     height:auto!important;
   }
 }
+
+
+/* v2.6.31: dedicated cloud sync choice dialog */
+.sync-choice-dialog{width:min(92vw,620px);max-width:620px;padding:0;overflow:hidden}
+.sync-choice-dialog .sync-choice-shell{background:var(--card);color:var(--text)}
+.sync-choice-head{padding:18px 20px 14px;border-bottom:1px solid var(--line-soft);background:var(--header2)}
+.sync-choice-kicker{display:block;margin-bottom:5px;font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--muted)}
+.sync-choice-dialog .dialog-head{padding:0;background:transparent;color:var(--text);font-size:20px;line-height:1.35}
+.sync-choice-body{padding:18px 20px 20px}
+.sync-choice-message{margin:0 0 15px;color:var(--text);font-size:14px;line-height:1.7}
+.sync-choice-options{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.sync-choice-option{display:flex;flex-direction:column;gap:8px;min-width:0;min-height:150px;padding:17px;text-align:left;border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--text);cursor:pointer;transition:border-color .15s ease,box-shadow .15s ease,transform .15s ease}
+.sync-choice-option:hover,.sync-choice-option:focus-visible{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent);outline:none}
+.sync-choice-option:active{transform:translateY(1px)}
+.sync-choice-option-title{font-size:16px;font-weight:800;line-height:1.4}
+.sync-choice-option-detail{font-size:12px;line-height:1.7;color:var(--muted)}
+.sync-choice-option-detail strong{display:block;margin-top:5px;color:var(--danger);font-size:12px}
+.sync-choice-cloud .sync-choice-option-title{color:var(--accent)}
+.sync-choice-local .sync-choice-option-title{color:var(--good)}
+.sync-choice-warning{margin:14px 0 0;padding:10px 12px;border-radius:10px;background:color-mix(in srgb,var(--danger) 8%,transparent);color:var(--danger);font-size:11px;line-height:1.6;font-weight:700}
+body.dark-mode .sync-choice-dialog .sync-choice-shell{background:var(--card)}
+body.dark-mode .sync-choice-option{background:#152231;border-color:var(--line)}
+@media(max-width:700px){
+  .sync-choice-dialog{width:min(94vw,560px)}
+  .sync-choice-head{padding:16px 16px 12px}
+  .sync-choice-dialog .dialog-head{font-size:18px}
+  .sync-choice-body{padding:15px 16px 17px}
+  .sync-choice-options{grid-template-columns:1fr;gap:10px}
+  .sync-choice-option{min-height:0;padding:15px}
+}

@@ -988,14 +988,40 @@ async function applyCloudState(row){
   try{state=normalizeState(row.state);localStorage.setItem('kakeibo-v1',JSON.stringify(state));render();return true}
   finally{suppressCloudSync=false}
 }
+let syncChoiceResolve=null;
+function finishSyncChoice(choice){
+  const dialog=document.getElementById('syncChoiceDialog');
+  const resolve=syncChoiceResolve;
+  syncChoiceResolve=null;
+  if(dialog?.open)dialog.close();
+  if(resolve)resolve(choice)
+}
+function chooseSyncSource(message='この端末とクラウドの両方に家計簿データがあります。残したいデータを選んでください。'){
+  const dialog=document.getElementById('syncChoiceDialog');
+  const text=document.getElementById('syncChoiceMessage');
+  if(!dialog)return Promise.resolve(null);
+  if(text)text.textContent=message;
+  if(syncChoiceResolve)finishSyncChoice(null);
+  return new Promise(resolve=>{
+    syncChoiceResolve=resolve;
+    dialog.showModal();
+    document.getElementById('syncUseCloudBtn')?.focus()
+  })
+}
 async function initialCloudSync(){
   if(!syncUser)return;setSyncStatus('busy','同期中','クラウドデータを確認しています…');
   try{
     const cloud=await fetchCloudState();
     if(!cloud){await uploadCloudState();return}
     if(hasMeaningfulLocalData()){
-      const useCloud=confirm('クラウド上にも家計簿データがあります。\\n\\n「OK」: クラウドのデータをこの端末へ読み込む\\n「キャンセル」: この端末のデータでクラウドを上書きする');
-      if(useCloud){await applyCloudState(cloud);setSyncStatus('ok','同期済み','クラウドのデータを読み込みました')}else await uploadCloudState()
+      const choice=await chooseSyncSource('この端末とクラウドの両方に家計簿データがあります。残したいデータを選んでください。');
+      if(choice==='cloud'){
+        await applyCloudState(cloud);setSyncStatus('ok','同期済み','クラウドのデータを読み込みました')
+      }else if(choice==='local'){
+        await uploadCloudState()
+      }else{
+        setSyncStatus('','同期を中止しました','データは変更されていません')
+      }
     }else{await applyCloudState(cloud);setSyncStatus('ok','同期済み','クラウドのデータを読み込みました')}
   }catch(e){console.error(e);setSyncStatus('err','同期エラー','クラウドデータを取得できませんでした')}
 }
@@ -1028,15 +1054,27 @@ async function manualCloudSync(){
   if(!syncUser){alert('先にログインしてください');return}
   try{
     const cloud=await fetchCloudState();if(!cloud){await uploadCloudState();return}
-    const useCloud=confirm('同期方法を選んでください。\\n\\n「OK」: クラウド → この端末\\n「キャンセル」: この端末 → クラウド');
-    if(useCloud){await applyCloudState(cloud);setSyncStatus('ok','同期済み','クラウドのデータを読み込みました')}else await uploadCloudState()
+    const choice=await chooseSyncSource('どちらのデータを最新データとして使用するか選んでください。');
+    if(choice==='cloud'){
+      await applyCloudState(cloud);setSyncStatus('ok','同期済み','クラウドのデータを読み込みました')
+    }else if(choice==='local'){
+      await uploadCloudState()
+    }else{
+      setSyncStatus('','同期を中止しました','データは変更されていません')
+    }
   }catch(e){console.error(e);setSyncStatus('err','同期エラー','同期できませんでした')}
 }
 async function initCloudSync(){
   loadSyncSession();
   if(syncSession){syncUser=await fetchSyncUser();updateSyncUI();if(syncUser)await initialCloudSync()}else updateSyncUI();
   const a=document.getElementById('syncSignInBtn'),b=document.getElementById('syncSignUpBtn'),c=document.getElementById('syncSignOutBtn'),d=document.getElementById('syncNowBtn');
-  if(a)a.onclick=signInCloud;if(b)b.onclick=signUpCloud;if(c)c.onclick=signOutCloud;if(d)d.onclick=manualCloudSync
+  if(a)a.onclick=signInCloud;if(b)b.onclick=signUpCloud;if(c)c.onclick=signOutCloud;if(d)d.onclick=manualCloudSync;
+  const dialog=document.getElementById('syncChoiceDialog');
+  const cloudBtn=document.getElementById('syncUseCloudBtn');
+  const localBtn=document.getElementById('syncUseLocalBtn');
+  if(cloudBtn)cloudBtn.onclick=()=>finishSyncChoice('cloud');
+  if(localBtn)localBtn.onclick=()=>finishSyncChoice('local');
+  if(dialog)dialog.addEventListener('cancel',e=>{e.preventDefault();finishSyncChoice(null)})
 }
 
 const THEME_KEY='kakeibo-theme';

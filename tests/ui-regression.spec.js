@@ -323,9 +323,31 @@ test('desktop expense weekly total row matches item row height and shows week su
 
 
 
-test('release assets use v2.6.30 cache-busting URLs', async ({ page }) => {
+test('release assets use v2.6.31 cache-busting URLs', async ({ page }) => {
   await openApp(page);
-  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.30');
+  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.31');
   const appSrc = await page.locator('script[src*="app.js"]').getAttribute('src');
-  expect(appSrc).toBe('app.js?v=2.6.30');
+  expect(appSrc).toBe('app.js?v=2.6.31');
+});
+
+
+
+test('cloud sync direction uses dedicated two-choice dialog', async ({ page }) => {
+  await openApp(page);
+  const resultPromise=page.evaluate(() => chooseSyncSource('どちらのデータを最新データとして使用するか選んでください。'));
+  const dialog=page.locator('#syncChoiceDialog');
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText('同期するデータを選んでください');
+  await expect(dialog).toContainText('クラウドのデータを使う');
+  await expect(dialog).toContainText('この端末のデータを使う');
+  await expect(dialog).toContainText('この端末の現在のデータは上書きされます');
+  await expect(dialog).toContainText('クラウドの現在のデータは上書きされます');
+  await expect(dialog.locator('button')).toHaveCount(2);
+  await dialog.locator('#syncUseCloudBtn').click();
+  expect(await resultPromise).toBe('cloud');
+
+  const localPromise=page.evaluate(() => chooseSyncSource());
+  await expect(dialog).toBeVisible();
+  await dialog.locator('#syncUseLocalBtn').click();
+  expect(await localPromise).toBe('local');
 });
