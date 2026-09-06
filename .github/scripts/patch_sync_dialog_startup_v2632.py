@@ -85,35 +85,27 @@ if name not in s:
 
 
 test('existing signed-in session can use sync choice dialog during startup', async ({ page }) => {
+  await openApp(page);
   const date=currentDateKey();
-  await page.route('https://blyyxmhehubufqzyqapq.supabase.co/**', async route => {
-    const url=route.request().url();
-    if(url.includes('/auth/v1/user')){
-      await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({id:'startup-sync-user',email:'test@example.com'})});
-      return;
-    }
-    if(url.includes('/rest/v1/kakeibo_user_state')){
-      await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify([{
-        state:{transactions:[],budgets:{},categories:{}},updated_at:'2026-09-06T00:00:00Z'
-      }])});
-      return;
-    }
-    await route.fulfill({status:200,contentType:'application/json',body:'{}'});
-  });
-  await page.addInitScript(({date})=>{
-    localStorage.setItem('kakeibo-theme','light');
-    localStorage.setItem('kakeibo-v1',JSON.stringify({
-      transactions:[{id:'local-startup',date,type:'variable',category:'セブンイレブン',item:'local',amount:100,amountExpression:'100',memo:''}],
-      budgets:{},categories:{}
-    }));
+  await page.evaluate(({date})=>{
+    document.getElementById('syncUseCloudBtn').onclick=null;
+    document.getElementById('syncUseLocalBtn').onclick=null;
+    state.transactions=[{id:'local-startup',date,type:'variable',category:'セブンイレブン',item:'local',amount:100,amountExpression:'100',memo:''}];
+    localStorage.setItem('kakeibo-v1',JSON.stringify(state));
     localStorage.setItem('kakeibo-sync-session-v1',JSON.stringify({access_token:'test-access',refresh_token:'test-refresh'}));
+    fetchSyncUser=async()=>{
+      syncUser={id:'startup-sync-user',email:'test@example.com'};
+      return syncUser;
+    };
+    fetchCloudState=async()=>({state:{transactions:[],budgets:{},categories:{}},updated_at:'2026-09-06T00:00:00Z'});
+    window.__startupSyncInit=initCloudSync();
   },{date});
-  await page.goto('/');
 
   const dialog=page.locator('#syncChoiceDialog');
   await expect(dialog).toBeVisible();
   await dialog.locator('#syncUseCloudBtn').click();
   await expect(dialog).not.toBeVisible();
+  await page.evaluate(()=>window.__startupSyncInit);
   await expect(page.locator('#syncStatusTitle')).toHaveText('同期済み');
   await expect(page.locator('#syncStatusDetail')).toHaveText('クラウドのデータを読み込みました');
 });
