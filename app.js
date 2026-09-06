@@ -1065,8 +1065,8 @@ async function manualCloudSync(){
   }catch(e){console.error(e);setSyncStatus('err','同期エラー','同期できませんでした')}
 }
 async function initCloudSync(){
-  loadSyncSession();
-  if(syncSession){syncUser=await fetchSyncUser();updateSyncUI();if(syncUser)await initialCloudSync()}else updateSyncUI();
+  // Bind every sync control before awaiting session restoration / initial sync.
+  // Otherwise an existing session can open syncChoiceDialog while its buttons still have no handlers.
   const a=document.getElementById('syncSignInBtn'),b=document.getElementById('syncSignUpBtn'),c=document.getElementById('syncSignOutBtn'),d=document.getElementById('syncNowBtn');
   if(a)a.onclick=signInCloud;if(b)b.onclick=signUpCloud;if(c)c.onclick=signOutCloud;if(d)d.onclick=manualCloudSync;
   const dialog=document.getElementById('syncChoiceDialog');
@@ -1074,7 +1074,10 @@ async function initCloudSync(){
   const localBtn=document.getElementById('syncUseLocalBtn');
   if(cloudBtn)cloudBtn.onclick=()=>finishSyncChoice('cloud');
   if(localBtn)localBtn.onclick=()=>finishSyncChoice('local');
-  if(dialog)dialog.addEventListener('cancel',e=>{e.preventDefault();finishSyncChoice(null)})
+  if(dialog)dialog.addEventListener('cancel',e=>{e.preventDefault();finishSyncChoice(null)});
+
+  loadSyncSession();
+  if(syncSession){syncUser=await fetchSyncUser();updateSyncUI();if(syncUser)await initialCloudSync()}else updateSyncUI();
 }
 
 const THEME_KEY='kakeibo-theme';

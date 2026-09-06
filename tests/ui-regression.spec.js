@@ -323,11 +323,11 @@ test('desktop expense weekly total row matches item row height and shows week su
 
 
 
-test('release assets use v2.6.31 cache-busting URLs', async ({ page }) => {
+test('release assets use v2.6.32 cache-busting URLs', async ({ page }) => {
   await openApp(page);
-  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.31');
+  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.32');
   const appSrc = await page.locator('script[src*="app.js"]').getAttribute('src');
-  expect(appSrc).toBe('app.js?v=2.6.31');
+  expect(appSrc).toBe('app.js?v=2.6.32');
 });
 
 
@@ -350,4 +350,32 @@ test('cloud sync direction uses dedicated two-choice dialog', async ({ page }) =
   await expect(dialog).toBeVisible();
   await dialog.locator('#syncUseLocalBtn').click();
   expect(await localPromise).toBe('local');
+});
+
+
+
+test('existing signed-in session can use sync choice dialog during startup', async ({ page }) => {
+  await openApp(page);
+  const date=currentDateKey();
+  await page.evaluate(({date})=>{
+    document.getElementById('syncUseCloudBtn').onclick=null;
+    document.getElementById('syncUseLocalBtn').onclick=null;
+    state.transactions=[{id:'local-startup',date,type:'variable',category:'セブンイレブン',item:'local',amount:100,amountExpression:'100',memo:''}];
+    localStorage.setItem('kakeibo-v1',JSON.stringify(state));
+    localStorage.setItem('kakeibo-sync-session-v1',JSON.stringify({access_token:'test-access',refresh_token:'test-refresh'}));
+    fetchSyncUser=async()=>{
+      syncUser={id:'startup-sync-user',email:'test@example.com'};
+      return syncUser;
+    };
+    fetchCloudState=async()=>({state:{transactions:[],budgets:{},categories:{}},updated_at:'2026-09-06T00:00:00Z'});
+    window.__startupSyncInit=initCloudSync();
+  },{date});
+
+  const dialog=page.locator('#syncChoiceDialog');
+  await expect(dialog).toBeVisible();
+  await dialog.locator('#syncUseCloudBtn').click();
+  await expect(dialog).not.toBeVisible();
+  await page.evaluate(()=>window.__startupSyncInit);
+  await expect(page.locator('#syncStatusTitle')).toHaveText('同期済み');
+  await expect(page.locator('#syncStatusDetail')).toHaveText('クラウドのデータを読み込みました');
 });
