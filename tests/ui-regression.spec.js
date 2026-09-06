@@ -323,11 +323,11 @@ test('desktop expense weekly total row matches item row height and shows week su
 
 
 
-test('release assets use v2.6.32 cache-busting URLs', async ({ page }) => {
+test('release assets use v2.6.33 cache-busting URLs', async ({ page }) => {
   await openApp(page);
-  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.32');
+  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.33');
   const appSrc = await page.locator('script[src*="app.js"]').getAttribute('src');
-  expect(appSrc).toBe('app.js?v=2.6.32');
+  expect(appSrc).toBe('app.js?v=2.6.33');
 });
 
 
@@ -378,4 +378,30 @@ test('existing signed-in session can use sync choice dialog during startup', asy
   await page.evaluate(()=>window.__startupSyncInit);
   await expect(page.locator('#syncStatusTitle')).toHaveText('同期済み');
   await expect(page.locator('#syncStatusDetail')).toHaveText('クラウドのデータを読み込みました');
+});
+
+
+
+test('light mode daily-history delete button is red', async ({ page }) => {
+  const date=currentDateKey();
+  await openApp(page, { transactions: [
+    {id:'delete-red-test',date,type:'variable',category:'セブンイレブン',item:'test',amount:213,amountExpression:'213',memo:''}
+  ]});
+  await page.evaluate(({date})=>{
+    const [y,m,d]=date.split('-').map(Number);
+    mobileDailyDate=new Date(y,m-1,d);
+    dailyHistoryType='variable';
+    dailyHistoryCategory='セブンイレブン';
+    renderDailyHistory();
+    dailyHistoryDialog.showModal();
+  },{date});
+  const button=page.locator('#dailyHistoryDialog .history-delete');
+  await expect(button).toBeVisible();
+  const styles=await button.evaluate(el=>{
+    const s=getComputedStyle(el);
+    return {color:s.color,borderColor:s.borderColor,background:s.backgroundColor};
+  });
+  expect(styles.color).toBe('rgb(220, 38, 38)');
+  expect(styles.borderColor).toBe('rgb(254, 202, 202)');
+  expect(styles.background).toBe('rgb(255, 241, 242)');
 });

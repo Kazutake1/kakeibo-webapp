@@ -593,9 +593,9 @@
       font-weight:750;
     }
     .daily-history-buttons .history-delete{
-      color:var(--danger);
-      border-color:rgba(223,90,103,.32);
-      background:rgba(223,90,103,.05);
+      color:#dc2626;
+      border-color:#fecaca;
+      background:#fff1f2;
     }
     .daily-history-empty{text-align:center;color:var(--muted);padding:22px 8px;font-size:13px}
     body.dark-mode .daily-history-row{background:#101c29;border-color:#26384c}
@@ -954,4 +954,12 @@ body.dark-mode .sync-choice-option{background:#152231;border-color:var(--line)}
   .sync-choice-body{padding:15px 16px 17px}
   .sync-choice-options{grid-template-columns:1fr;gap:10px}
   .sync-choice-option{min-height:0;padding:15px}
+}
+
+
+/* v2.6.33: light-mode daily-history delete button */
+body:not(.dark-mode) .daily-history-buttons .history-delete{
+  color:#dc2626!important;
+  border-color:#fecaca!important;
+  background:#fff1f2!important;
 }
