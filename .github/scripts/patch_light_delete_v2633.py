@@ -6,8 +6,12 @@ style = Path('style.css')
 s = style.read_text(encoding='utf-8')
 old = '''    .daily-history-buttons .history-delete{\n      color:var(--danger);\n      border-color:rgba(223,90,103,.32);\n      background:rgba(223,90,103,.05);\n    }'''
 new = '''    .daily-history-buttons .history-delete{\n      color:#dc2626;\n      border-color:#fecaca;\n      background:#fff1f2;\n    }'''
-assert old in s, 'light-mode daily history delete block not found'
+assert old in s, 'daily history delete block not found'
 s = s.replace(old, new, 1)
+# v2.6.9 has a higher-specificity light-mode rule with !important for all history buttons.
+# Add an equally explicit delete-button override after it so the red styling actually wins.
+assert '/* v2.6.33: light-mode daily-history delete button */' not in s, 'v2.6.33 style already exists'
+s += '''\n\n/* v2.6.33: light-mode daily-history delete button */\nbody:not(.dark-mode) .daily-history-buttons .history-delete{\n  color:#dc2626!important;\n  border-color:#fecaca!important;\n  background:#fff1f2!important;\n}\n'''
 style.write_text(s, encoding='utf-8')
 
 index = Path('index.html')
