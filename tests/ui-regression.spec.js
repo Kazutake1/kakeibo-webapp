@@ -323,11 +323,11 @@ test('desktop expense weekly total row matches item row height and shows week su
 
 
 
-test('release assets use v2.6.33 cache-busting URLs', async ({ page }) => {
+test('release assets use v2.6.34 cache-busting URLs', async ({ page }) => {
   await openApp(page);
-  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.33');
+  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.34');
   const appSrc = await page.locator('script[src*="app.js"]').getAttribute('src');
-  expect(appSrc).toBe('app.js?v=2.6.33');
+  expect(appSrc).toBe('app.js?v=2.6.34');
 });
 
 
@@ -404,4 +404,33 @@ test('light mode daily-history delete button is red', async ({ page }) => {
   expect(styles.color).toBe('rgb(220, 38, 38)');
   expect(styles.borderColor).toBe('rgb(254, 202, 202)');
   expect(styles.background).toBe('rgb(255, 241, 242)');
+});
+
+
+
+test('donut legends use ordered blue and green gradients', async ({ page }) => {
+  await openApp(page);
+  const colors=await page.evaluate(()=>({
+    expense:Array.from({length:6},(_,i)=>donutColor('donutChart',i,6)),
+    variable:Array.from({length:10},(_,i)=>donutColor('variableDonut',i,10)),
+    weeklyFirst:chartColor(0),
+    weeklySecond:chartColor(1)
+  }));
+
+  expect(colors.expense[0]).toBe('hsl(216, 82%, 34%)');
+  expect(colors.expense.at(-1)).toBe('hsl(216, 82%, 76%)');
+  expect(new Set(colors.expense).size).toBe(colors.expense.length);
+  expect(colors.variable[0]).toBe('hsl(145, 62%, 28%)');
+  expect(colors.variable.at(-1)).toBe('hsl(145, 62%, 76%)');
+  expect(new Set(colors.variable).size).toBe(colors.variable.length);
+  expect(colors.weeklyFirst).not.toBe(colors.weeklySecond);
+
+  const expenseDots=page.locator('#donutLegend .donut-legend-name .dot');
+  const variableDots=page.locator('#variableLegend .donut-legend-name .dot');
+  await expect(expenseDots).toHaveCount(6);
+  await expect(variableDots).toHaveCount(10);
+  const expenseComputed=await expenseDots.evaluateAll(nodes=>nodes.map(n=>getComputedStyle(n).backgroundColor));
+  const variableComputed=await variableDots.evaluateAll(nodes=>nodes.map(n=>getComputedStyle(n).backgroundColor));
+  expect(new Set(expenseComputed).size).toBe(6);
+  expect(new Set(variableComputed).size).toBe(10);
 });
