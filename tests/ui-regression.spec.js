@@ -323,11 +323,11 @@ test('desktop expense weekly total row matches item row height and shows week su
 
 
 
-test('release assets use v2.6.35 cache-busting URLs', async ({ page }) => {
+test('release assets use v2.6.36 cache-busting URLs', async ({ page }) => {
   await openApp(page);
-  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.35');
+  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.36');
   const appSrc = await page.locator('script[src*="app.js"]').getAttribute('src');
-  expect(appSrc).toBe('app.js?v=2.6.35');
+  expect(appSrc).toBe('app.js?v=2.6.36');
 });
 
 
@@ -471,4 +471,62 @@ test('desktop expense daily and weekly totals turn red only above limits', async
   const secondWeekTotal = rows.nth(1).locator('td').last().locator('b');
   await expect(secondWeekTotal).toHaveText('¥14,000');
   await expect(secondWeekTotal).not.toHaveClass(/expense-limit-over/);
+});
+
+
+
+test('weekly chart keeps stable canvas size after hidden-panel redraws on iPad and PC', async ({ page }) => {
+  for (const viewport of [
+    { width: 900, height: 768, expectedHeight: 350 },
+    { width: 1024, height: 768, expectedHeight: 400 },
+    { width: 1440, height: 900, expectedHeight: 400 }
+  ]) {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    await openApp(page);
+    await page.waitForTimeout(250);
+
+    const before = await page.locator('#weeklyChart').evaluate(el => {
+      const rect = el.getBoundingClientRect();
+      return { cssWidth: rect.width, cssHeight: rect.height, backingWidth: el.width, backingHeight: el.height, dpr: devicePixelRatio || 1 };
+    });
+    expect(Math.abs(before.cssHeight - viewport.expectedHeight)).toBeLessThanOrEqual(1);
+    expect(Math.abs(before.backingWidth - Math.round(before.cssWidth * before.dpr))).toBeLessThanOrEqual(1);
+    expect(Math.abs(before.backingHeight - Math.round(before.cssHeight * before.dpr))).toBeLessThanOrEqual(1);
+
+    await page.locator('#tabs [data-tab="expense"]').click();
+    const hiddenDrawResult = await page.evaluate(() => drawCharts());
+    expect(hiddenDrawResult).toBe(false);
+    const hiddenBacking = await page.locator('#weeklyChart').evaluate(el => ({ width: el.width, height: el.height }));
+    expect(hiddenBacking.width).toBe(before.backingWidth);
+    expect(hiddenBacking.height).toBe(before.backingHeight);
+
+    await page.evaluate(() => render());
+    await page.waitForTimeout(180);
+    const afterHiddenRender = await page.locator('#weeklyChart').evaluate(el => ({ width: el.width, height: el.height }));
+    expect(afterHiddenRender.width).toBe(before.backingWidth);
+    expect(afterHiddenRender.height).toBe(before.backingHeight);
+
+    await page.locator('#tabs [data-tab="dashboard"]').click();
+    await page.waitForTimeout(250);
+    const after = await page.locator('#weeklyChart').evaluate(el => {
+      const rect = el.getBoundingClientRect();
+      return { cssWidth: rect.width, cssHeight: rect.height, backingWidth: el.width, backingHeight: el.height, dpr: devicePixelRatio || 1 };
+    });
+    expect(Math.abs(after.cssHeight - viewport.expectedHeight)).toBeLessThanOrEqual(1);
+    expect(Math.abs(after.backingWidth - Math.round(after.cssWidth * after.dpr))).toBeLessThanOrEqual(1);
+    expect(Math.abs(after.backingHeight - Math.round(after.cssHeight * after.dpr))).toBeLessThanOrEqual(1);
+
+    await page.evaluate(() => { scheduleChartDraw(); scheduleChartDraw(); scheduleChartDraw(); });
+    await page.waitForTimeout(250);
+    const repeated = await page.locator('#weeklyChart').evaluate(el => ({
+      cssWidth: el.getBoundingClientRect().width,
+      cssHeight: el.getBoundingClientRect().height,
+      backingWidth: el.width,
+      backingHeight: el.height
+    }));
+    expect(Math.abs(repeated.cssWidth - after.cssWidth)).toBeLessThanOrEqual(1);
+    expect(Math.abs(repeated.cssHeight - after.cssHeight)).toBeLessThanOrEqual(1);
+    expect(repeated.backingWidth).toBe(after.backingWidth);
+    expect(repeated.backingHeight).toBe(after.backingHeight);
+  }
 });

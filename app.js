@@ -116,8 +116,9 @@ function showPanel(k){
   document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===k));
   if(k==='expense'||k==='income'){renderCalendar();renderMobileDaily()}
   if(k==='budget'){renderBudgetEditor();renderItemManager()}
+  if(k==='dashboard')scheduleChartDraw();
 }
-function renderCurrentMonthViews(){renderMobileRecent();document.querySelector('#monthLabel').textContent=`${current.getFullYear()}年${current.getMonth()+1}月`;renderSummary();renderBudgetOverview();renderVariableStatus();renderCalendar();renderBudgetEditor();renderItemManager();renderExpenseHistory();requestAnimationFrame(()=>requestAnimationFrame(drawCharts))}
+function renderCurrentMonthViews(){renderMobileRecent();document.querySelector('#monthLabel').textContent=`${current.getFullYear()}年${current.getMonth()+1}月`;renderSummary();renderBudgetOverview();renderVariableStatus();renderCalendar();renderBudgetEditor();renderItemManager();renderExpenseHistory();scheduleChartDraw()}
 function render(){refreshQuickEntry();renderCurrentMonthViews();renderMobileDaily()}
 function renderMobileRecent(){const wrap=document.getElementById('mobileRecentList');if(!wrap)return;const rows=[...monthTx()].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,5);if(!rows.length){wrap.innerHTML='<div class="recent-empty">まだ入力はありません</div>';return}wrap.innerHTML=rows.map(t=>{const d=(t.date||'').slice(5).replace('-','/');const sign=t.type==='income'?'+':'−';return `<div class="recent-row"><div class="recent-icon">${escapeHtml((t.category||'?').slice(0,1))}</div><div class="recent-main"><strong>${escapeHtml(t.item||t.category||'')}</strong><span>${d} ・ ${escapeHtml(t.category||'')}</span></div><div class="recent-amt ${t.type==='income'?'pos':''}">${sign}${money(t.amount).replace('¥','¥')}</div></div>`}).join('')}
 
@@ -779,17 +780,39 @@ function renderItemList(){if(!document.getElementById('itemList'))return;const t
 function addItem(){const type=itemType.value;const name=newItemName.value.trim();if(!name)return;if(catsFor(type).some(c=>c.toLowerCase()===name.toLowerCase())){alert('同じ名前の項目があります');return}state.categories[type].push(name);const b=getBudget();if(!(name in b[type]))b[type][name]=0;saveState();newItemName.value='';render();itemType.value=type;renderItemList();updateCats()}
 window.editItem=(type,encoded)=>{const oldName=decodeURIComponent(encoded);const input=prompt(`「${oldName}」の新しい項目名を入力してください`,oldName);if(input===null)return;const newName=input.trim();if(!newName||newName===oldName)return;if(catsFor(type).some(c=>c!==oldName&&c.toLowerCase()===newName.toLowerCase())){alert('同じ名前の項目があります');return}if(!confirm(`「${oldName}」を「${newName}」に変更しますか？\n過去の収支データと各月の予算にも反映されます。`))return;state.categories[type]=catsFor(type).map(c=>c===oldName?newName:c);for(const tx of state.transactions){if(tx.type===type&&tx.category===oldName)tx.category=newName}for(const month of Object.values(state.budgets)){if(!month?.[type]||!(oldName in month[type]))continue;const oldValue=month[type][oldName];if(!(newName in month[type]))month[type][newName]=oldValue;delete month[type][oldName]}saveState();render();itemType.value=type;renderItemList();updateCats()};
 window.deleteItem=(type,encoded)=>{const name=decodeURIComponent(encoded);if(!confirm(`「${name}」を削除しますか？\n過去の収支データは削除されません。`))return;state.categories[type]=catsFor(type).filter(c=>c!==name);for(const month of Object.values(state.budgets)){if(month?.[type])delete month[type][name]}saveState();render();itemType.value=type;renderItemList();updateCats()};
+let chartDrawTimer=null;
+let chartDrawSeq=0;
+function chartCanvasVisible(id){
+  const panel=document.querySelector('.panel[data-panel="dashboard"]');
+  const canvas=document.getElementById(id);
+  if(!panel?.classList.contains('active')||!panel.getClientRects().length||!canvas)return false;
+  const rect=canvas.parentElement?.getBoundingClientRect();
+  return !!rect&&rect.width>=2&&rect.height>=2;
+}
+function scheduleChartDraw(delay=80){
+  const seq=++chartDrawSeq;
+  clearTimeout(chartDrawTimer);
+  chartDrawTimer=setTimeout(()=>{
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      if(seq===chartDrawSeq)drawCharts();
+    }));
+  },delay);
+}
 function drawCharts(){
-  drawWeekly();
-  drawDonut('donutChart','donutLegend',TYPES.filter(t=>t.key!=='income').map(t=>[t.label,effectiveTypeSum(t.key)]));
-  drawDonut('variableDonut','variableLegend',catsFor('variable').map(c=>[c,sum(monthTx().filter(t=>t.type==='variable'&&t.category===c).map(t=>t.amount))]))
+  let drawn=false;
+  if(chartCanvasVisible('weeklyChart')){drawWeekly();drawn=true}
+  if(chartCanvasVisible('donutChart')){drawDonut('donutChart','donutLegend',TYPES.filter(t=>t.key!=='income').map(t=>[t.label,effectiveTypeSum(t.key)]));drawn=true}
+  if(chartCanvasVisible('variableDonut')){drawDonut('variableDonut','variableLegend',catsFor('variable').map(c=>[c,sum(monthTx().filter(t=>t.type==='variable'&&t.category===c).map(t=>t.amount))]));drawn=true}
+  return drawn;
 }
 
 function chartTheme(){const dark=document.body.classList.contains('dark-mode');return dark?{grid:'#2b4056',muted:'#9eb0c6',strong:'#cfe5fb',hole:'#162231',empty:'#264866'}:{grid:'#dbe7f7',muted:'#64748b',strong:'#1e3a5f',hole:'#ffffff',empty:'#dbeafe'}}
-function prepCanvas(id){const c=document.getElementById(id);let r=c.getBoundingClientRect();let w=Math.max(1,r.width||c.parentElement?.clientWidth||300);let h=Math.max(id==='weeklyChart'?300:180,r.height||c.parentElement?.clientHeight||250);const dpr=devicePixelRatio||1;c.width=Math.round(w*dpr);c.height=Math.round(h*dpr);let x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);return [x,w,h]}
+function prepCanvas(id){const c=document.getElementById(id);const r=c.getBoundingClientRect();const pr=c.parentElement?.getBoundingClientRect();const w=r.width||pr?.width||0;const h=r.height||pr?.height||0;if(w<2||h<2)return null;const dpr=devicePixelRatio||1;c.width=Math.round(w*dpr);c.height=Math.round(h*dpr);const x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);return [x,w,h]}
 function prepDonutCanvas(id){const c=document.getElementById(id);const wrap=c.parentElement;const r=wrap.getBoundingClientRect();const size=Math.max(1,Math.min(r.width||wrap.clientWidth||300,r.height||wrap.clientHeight||300));const dpr=devicePixelRatio||1;c.style.width='100%';c.style.height='100%';c.width=Math.round(size*dpr);c.height=Math.round(size*dpr);const x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);return [x,size,size]}
 function drawWeekly(){
-  let [ctx,w,h]=prepCanvas('weeklyChart');
+  const prepared=prepCanvas('weeklyChart');
+  if(!prepared)return false;
+  let [ctx,w,h]=prepared;
   ctx.clearRect(0,0,w,h);
 
   const WEEKLY_BUDGET=14000;
@@ -1110,7 +1133,7 @@ function applyTheme(theme){
     btn.title=dark?'ライトモードに切替':'ダークモードに切替';
     btn.setAttribute('aria-label',btn.title);
   }
-  if(typeof drawCharts==='function') requestAnimationFrame(()=>drawCharts());
+  if(typeof scheduleChartDraw==='function') scheduleChartDraw();
 }
 function initTheme(){
   const saved=localStorage.getItem(THEME_KEY);
@@ -1144,9 +1167,8 @@ addTxBtn.onclick=()=>openTx();addBudgetBtn.onclick=()=>openBudget();txCancel.onc
 exportBtn.onclick=()=>{let blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='kakeibo-backup-'+ym()+'.json';a.click();URL.revokeObjectURL(a.href)};
 importInput.onchange=async e=>{let f=e.target.files[0];if(!f)return;try{if(f.size>10*1024*1024)throw 0;let d=JSON.parse(await f.text());if(!d||typeof d!=='object'||!Array.isArray(d.transactions)||!d.budgets||typeof d.budgets!=='object')throw 0;state=normalizeState(d);if(saveState()){render();alert('読み込みました')}}catch{alert('読み込めないファイルです')}finally{e.target.value=''}};
 resetBtn.onclick=()=>{if(confirm('すべての家計簿データを初期化しますか？')){state=normalizeState({});saveState();render()}};
-window.addEventListener('resize',()=>{clearTimeout(window.__rt);window.__rt=setTimeout(drawCharts,150)});
+window.addEventListener('resize',()=>scheduleChartDraw(140));
 if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
-let chartResizeTimer;window.addEventListener('resize',()=>{clearTimeout(chartResizeTimer);chartResizeTimer=setTimeout(()=>requestAnimationFrame(drawCharts),120)});
 initNav();populateType();initQuickEntry();initTheme();initMobileDaily();
 render();
 initCloudSync();

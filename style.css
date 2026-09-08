@@ -968,3 +968,7 @@ body:not(.dark-mode) .daily-history-buttons .history-delete{
 /* v2.6.35: PC/iPad expense daily and weekly limit highlighting */
 .expense-week-total-cell .expense-limit-over{color:#dc2626!important}
 body.dark-mode .expense-week-total-cell .expense-limit-over{color:#ff6b6b!important}
+
+
+/* v2.6.36: stabilize weekly comparison canvas */
+.weekly-canvas canvas{display:block}
