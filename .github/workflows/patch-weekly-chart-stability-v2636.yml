@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - '.github/scripts/patch_weekly_chart_stability_v2636.py'
+      - '.github/scripts/patch_weekly_chart_stability_v2636_retry.py'
       - '.github/workflows/patch-weekly-chart-stability-v2636.yml'
 
 permissions:
@@ -23,7 +23,7 @@ jobs:
           node-version: 20
           cache: npm
       - name: Apply requested fix
-        run: python3 .github/scripts/patch_weekly_chart_stability_v2636.py
+        run: python3 .github/scripts/patch_weekly_chart_stability_v2636_retry.py
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
       - name: Install Chromium
@@ -35,7 +35,8 @@ jobs:
       - name: Verify stabilization and release refs
         run: |
           grep -F "if(k==='dashboard')scheduleChartDraw();" app.js
-          grep -F "if(!dashboardChartsVisible())return false;" app.js
+          grep -F "function chartCanvasVisible(id)" app.js
+          grep -F "if(chartCanvasVisible('weeklyChart'))" app.js
           grep -F "window.addEventListener('resize',()=>scheduleChartDraw(140));" app.js
           grep -F 'style.css?v=2.6.36' index.html
           grep -F 'app.js?v=2.6.36' index.html
