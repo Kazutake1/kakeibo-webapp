@@ -741,8 +741,8 @@ function renderTypeCalendar(wrapId,type,cats,label){
         if(!d)return '<td class="cal-cell expense-week-total-cell"></td>';
         const date=ym()+'-'+String(d).padStart(2,'0');
         const a=sum(tx.filter(t=>t.date===date).map(t=>t.amount));
-        return `<td class="cal-cell expense-week-total-cell"><b>${a?money(a):''}</b></td>`
-      }).join('')}<td class="cal-cell expense-week-total-cell"><b>${money(weekTotal)}</b></td></tr>`;
+        return `<td class="cal-cell expense-week-total-cell"><b class="${a>2000?'expense-limit-over':''}">${a?money(a):''}</b></td>`
+      }).join('')}<td class="cal-cell expense-week-total-cell"><b class="${weekTotal>14000?'expense-limit-over':''}">${money(weekTotal)}</b></td></tr>`;
     }else{
       html+=`<tr><td class="cal-cat"><b>${label}合計</b></td>${ds.map(d=>{
         if(!d)return '<td></td>';

@@ -323,11 +323,11 @@ test('desktop expense weekly total row matches item row height and shows week su
 
 
 
-test('release assets use v2.6.34 cache-busting URLs', async ({ page }) => {
+test('release assets use v2.6.35 cache-busting URLs', async ({ page }) => {
   await openApp(page);
-  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.34');
+  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.35');
   const appSrc = await page.locator('script[src*="app.js"]').getAttribute('src');
-  expect(appSrc).toBe('app.js?v=2.6.34');
+  expect(appSrc).toBe('app.js?v=2.6.35');
 });
 
 
@@ -433,4 +433,42 @@ test('donut legends use ordered blue and green gradients', async ({ page }) => {
   const variableComputed=await variableDots.evaluateAll(nodes=>nodes.map(n=>getComputedStyle(n).backgroundColor));
   expect(new Set(expenseComputed).size).toBe(6);
   expect(new Set(variableComputed).size).toBe(10);
+});
+
+
+
+test('desktop expense daily and weekly totals turn red only above limits', async ({ page }) => {
+  await openApp(page);
+  await page.evaluate(() => {
+    current = new Date(2026, 8, 1);
+    state.transactions = [
+      {id:'limit-2000',date:'2026-09-01',type:'variable',category:'セブンイレブン',item:'boundary',amount:2000,amountExpression:'2000',memo:''},
+      {id:'limit-2001',date:'2026-09-02',type:'variable',category:'セブンイレブン',item:'over',amount:2001,amountExpression:'2001',memo:''},
+      {id:'week-over',date:'2026-09-03',type:'variable',category:'セブンイレブン',item:'week over',amount:10000,amountExpression:'10000',memo:''},
+      {id:'week-boundary',date:'2026-09-07',type:'variable',category:'セブンイレブン',item:'week boundary',amount:14000,amountExpression:'14000',memo:''}
+    ];
+    renderCalendar();
+  });
+
+  const rows = page.locator('#expenseCalendarWrap .expense-week-total-row');
+  await expect(rows).toHaveCount(5);
+
+  const firstWeek = rows.nth(0);
+  const dayAt2000 = firstWeek.locator('td').nth(2).locator('b');
+  const dayAt2001 = firstWeek.locator('td').nth(3).locator('b');
+  const firstWeekTotal = firstWeek.locator('td').last().locator('b');
+
+  await expect(dayAt2000).toHaveText('¥2,000');
+  await expect(dayAt2000).not.toHaveClass(/expense-limit-over/);
+  await expect(dayAt2001).toHaveText('¥2,001');
+  await expect(dayAt2001).toHaveClass(/expense-limit-over/);
+  await expect(firstWeekTotal).toHaveText('¥14,001');
+  await expect(firstWeekTotal).toHaveClass(/expense-limit-over/);
+
+  const red = await dayAt2001.evaluate(el => getComputedStyle(el).color);
+  expect(red).toBe('rgb(220, 38, 38)');
+
+  const secondWeekTotal = rows.nth(1).locator('td').last().locator('b');
+  await expect(secondWeekTotal).toHaveText('¥14,000');
+  await expect(secondWeekTotal).not.toHaveClass(/expense-limit-over/);
 });
