@@ -329,11 +329,11 @@ test('desktop expense weekly total row matches item row height and shows week su
 
 
 
-test('release assets use v2.6.37 cache-busting URLs', async ({ page }) => {
+test('release assets use v2.6.38 cache-busting URLs', async ({ page }) => {
   await openApp(page);
-  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.37');
+  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.38');
   const appSrc = await page.locator('script[src*="app.js"]').getAttribute('src');
-  expect(appSrc).toBe('app.js?v=2.6.37');
+  expect(appSrc).toBe('app.js?v=2.6.38');
 });
 
 
@@ -566,4 +566,41 @@ test('smartphone separates variable quick entry from full entry', async ({ page 
   await page.locator('#txCancel').click();
   await page.setViewportSize({ width: 1024, height: 768 });
   await expect(full).toBeHidden();
+});
+
+
+
+test('smartphone overview hides explanatory copy behind info sheets', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openApp(page);
+
+  const cards=page.locator('#summaryCards .metric');
+  await expect(cards).toHaveCount(5);
+  await expect(page.locator('#summaryCards .summary-info-btn')).toHaveCount(5);
+  for (const index of [0,1,3]) {
+    await expect(cards.nth(index).locator('.summary-explainer')).toBeHidden();
+  }
+  await expect(cards.nth(2).locator('.summary-status')).toBeVisible();
+  await expect(cards.nth(4).locator('.summary-status')).toBeVisible();
+
+  await cards.nth(0).locator('.summary-info-btn').click();
+  const dialog=page.locator('#overviewInfoDialog');
+  await expect(dialog).toBeVisible();
+  await expect(page.locator('#overviewInfoTitle')).toHaveText('収入');
+  await expect(page.locator('#overviewInfoText')).toContainText('当月に登録された収入の実績');
+  await page.locator('#overviewInfoClose').click();
+  await expect(dialog).not.toBeVisible();
+
+  const full=page.locator('#mobileFullEntry');
+  await expect(full.locator('.mobile-full-note')).toBeHidden();
+  await expect(full.locator('#mobileFullInfoBtn')).toBeVisible();
+  await full.locator('#mobileFullInfoBtn').click();
+  await expect(dialog).toBeVisible();
+  await expect(page.locator('#overviewInfoTitle')).toHaveText('詳細入力');
+  await expect(page.locator('#overviewInfoText')).toContainText('すべての項目を入力できます');
+  await page.locator('#overviewInfoClose').click();
+
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await expect(page.locator('#summaryCards .summary-info-btn').first()).toBeHidden();
+  await expect(cards.nth(0).locator('.summary-explainer')).toBeVisible();
 });

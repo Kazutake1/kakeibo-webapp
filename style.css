@@ -1018,3 +1018,55 @@ body.dark-mode .expense-week-total-cell .expense-limit-over{color:#ff6b6b!import
 body.dark-mode .mobile-full-entry{background:var(--card)!important}
 body.dark-mode .mobile-full-badge{background:#183753;color:#8ec8ff}
 body.dark-mode .mobile-full-note{color:var(--muted)}
+
+
+
+/* v2.6.38: smartphone overview info sheets */
+.metric-label-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.overview-info-btn{
+  display:none;
+  width:24px;height:24px;
+  align-items:center;justify-content:center;
+  flex:0 0 24px;
+  padding:0;
+  border:1px solid var(--line);
+  border-radius:50%;
+  background:var(--paper);
+  color:var(--accent);
+  font-size:13px;
+  font-weight:850;
+  line-height:1;
+}
+.overview-info-dialog{width:min(92vw,520px);max-width:520px;padding:0;overflow:hidden}
+.overview-info-handle{display:none}
+.overview-info-head{padding:17px 19px 13px;border-bottom:1px solid var(--line-soft);background:var(--header2)}
+.overview-info-kicker{display:block;margin-bottom:4px;font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--muted)}
+.overview-info-dialog .dialog-head{padding:0;background:transparent;color:var(--text);font-size:20px}
+.overview-info-body{padding:18px 19px 19px}
+.overview-info-body p{margin:0;color:var(--text);font-size:14px;line-height:1.75}
+.overview-info-close{width:100%;margin-top:18px;min-height:46px}
+body.dark-mode .overview-info-dialog .dialog-head{background:transparent!important;color:var(--text)!important}
+body.dark-mode .overview-info-btn{background:#172638;border-color:#30465d;color:#8ec8ff}
+
+@media(max-width:700px){
+  .summary-info-btn,.mobile-full-info-btn{display:inline-flex}
+  .metric .sub.summary-explainer{display:none}
+  .mobile-full-note{display:none}
+  .mobile-full-title-row{display:flex;align-items:center;gap:8px;min-width:0}
+  .mobile-full-info-btn{width:26px;height:26px;flex-basis:26px}
+  .mobile-full-body{padding-top:4px}
+  .overview-info-dialog{
+    width:100vw;max-width:none;
+    margin:0;
+    position:fixed;left:0;right:0;bottom:0;top:auto;
+    border:0;
+    border-radius:24px 24px 0 0;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .overview-info-handle{display:block;width:40px;height:5px;border-radius:999px;background:#cbd8e8;margin:9px auto 1px}
+  .overview-info-head{padding:10px 18px 10px;background:transparent;border-bottom:0}
+  .overview-info-dialog .dialog-head{font-size:19px}
+  .overview-info-body{padding:2px 18px 18px}
+  .overview-info-body p{font-size:14px;line-height:1.8}
+  body.dark-mode .overview-info-handle{background:#496079}
+}

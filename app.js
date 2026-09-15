@@ -181,6 +181,28 @@ window.deleteExpenseHistoryTx=encoded=>{
 };
 window.openFixedBudgetSettings=()=>showPanel('budget');
 
+const OVERVIEW_INFO={
+  income:{title:'収入',text:'当月に登録された収入の実績です。'},
+  expense:{title:'支出',text:'社会保険・税金、貯蓄、自己投資、固定費、特別費、変動費の合計です。固定費は予算額を当月支出として自動計上します。'},
+  balance:{title:'収支',text:'収入から当月の支出を差し引いた金額です。プラスは黒字、マイナスは赤字として表示します。'},
+  fixed:{title:'固定費',text:'設定した固定費予算を当月支出として自動計上しています。'},
+  variable:{title:'変動費',text:'当月に入力した変動費の合計です。予算残りは、変動費予算から使用額を差し引いた金額です。'},
+  detail:{title:'詳細入力',text:'収入・社会保険／税金・貯蓄・自己投資・固定費・特別費・変動費のすべての項目を入力できます。'}
+};
+function openOverviewInfo(key){
+  const info=OVERVIEW_INFO[key],dialog=document.getElementById('overviewInfoDialog');
+  if(!info||!dialog)return;
+  document.getElementById('overviewInfoTitle').textContent=info.title;
+  document.getElementById('overviewInfoText').textContent=info.text;
+  if(!dialog.open)dialog.showModal();
+}
+function initOverviewInfo(){
+  const dialog=document.getElementById('overviewInfoDialog');
+  const close=document.getElementById('overviewInfoClose');
+  const detail=document.getElementById('mobileFullInfoBtn');
+  if(close)close.onclick=()=>dialog?.close();
+  if(detail)detail.onclick=()=>openOverviewInfo('detail');
+}
 function renderSummary(){
   const income=typeSum('income');
   const expense=sum(['tax','saving','self','fixed','special','variable'].map(effectiveTypeSum));
@@ -189,13 +211,15 @@ function renderSummary(){
   const budgetVar=budgetTypeSum('variable');
   const balance=income-expense;
   const data=[
-    ['収入',income,'当月の実績'],
-    ['支出',expense,'固定費は予算額を自動計上'],
-    ['収支',balance,balance>=0?'黒字':'赤字'],
-    ['固定費',fixedBudget,'予算＝当月支出'],
-    ['変動費',variable,`予算残り ${money(budgetVar-variable)}`]
+    ['income','収入',income,'当月の実績','explainer'],
+    ['expense','支出',expense,'固定費は予算額を自動計上','explainer'],
+    ['balance','収支',balance,balance>=0?'黒字':'赤字','status'],
+    ['fixed','固定費',fixedBudget,'予算＝当月支出','explainer'],
+    ['variable','変動費',variable,`予算残り ${money(budgetVar-variable)}`,'status']
   ];
-  document.querySelector('#summaryCards').innerHTML=data.map(([l,v,s])=>`<div class="metric"><div class="label">${l}</div><div class="value ${l==='収支'?(v>=0?'pos':'neg'):(l==='変動費'&&budgetVar>0&&v>budgetVar?'neg':'')}">${money(v)}</div><div class="sub">${s}</div></div>`).join('')
+  const root=document.querySelector('#summaryCards');
+  root.innerHTML=data.map(([key,l,v,s,subKind])=>`<div class="metric"><div class="metric-label-row"><div class="label">${l}</div><button type="button" class="summary-info-btn overview-info-btn" data-info-key="${key}" aria-label="${l}の説明を表示">i</button></div><div class="value ${l==='収支'?(v>=0?'pos':'neg'):(l==='変動費'&&budgetVar>0&&v>budgetVar?'neg':'')}">${money(v)}</div><div class="sub summary-${subKind}">${s}</div></div>`).join('');
+  root.querySelectorAll('.summary-info-btn').forEach(btn=>btn.onclick=()=>openOverviewInfo(btn.dataset.infoKey));
 }
 function renderBudgetOverview(){
   const root=document.querySelector('#budgetOverview');
@@ -1169,6 +1193,6 @@ importInput.onchange=async e=>{let f=e.target.files[0];if(!f)return;try{if(f.siz
 resetBtn.onclick=()=>{if(confirm('すべての家計簿データを初期化しますか？')){state=normalizeState({});saveState();render()}};
 window.addEventListener('resize',()=>scheduleChartDraw(140));
 if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
-initNav();populateType();initQuickEntry();initTheme();initMobileDaily();
+initNav();populateType();initQuickEntry();initTheme();initMobileDaily();initOverviewInfo();
 render();
 initCloudSync();
