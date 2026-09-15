@@ -287,6 +287,12 @@ test('donut canvases stay perfectly square on smartphone and iPad', async ({ pag
   for (const viewport of [{ width: 390, height: 844 }, { width: 1024, height: 768 }]) {
     await page.setViewportSize(viewport);
     await openApp(page);
+    await page.waitForFunction(() => ['donutChart','variableDonut'].every(id => {
+      const el=document.getElementById(id);
+      if(!el)return false;
+      const rect=el.getBoundingClientRect();
+      return Math.abs(rect.width-rect.height)<=1 && el.width>0 && el.height>0 && el.width===el.height;
+    }));
     for (const id of ['donutChart','variableDonut']) {
       const dims = await page.locator(`#${id}`).evaluate(el => {
         const rect = el.getBoundingClientRect();
