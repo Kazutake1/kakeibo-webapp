@@ -129,6 +129,9 @@ s = test.read_text(encoding='utf-8')
 s = s.replace('release assets use v2.6.38 cache-busting URLs', 'release assets use v2.6.39 cache-busting URLs')
 s = s.replace('style.css?v=2.6.38', 'style.css?v=2.6.39')
 s = s.replace('app.js?v=2.6.38', 'app.js?v=2.6.39')
+legacy_explanations = '''  await expect(full).toContainText('収入');\n  await expect(full).toContainText('固定費');\n  await expect(full).toContainText('変動費');\n'''
+assert legacy_explanations in s, 'v2.6.37 detailed-entry explanation expectations not found'
+s = s.replace(legacy_explanations, '', 1)
 old_test = r'''test('smartphone overview hides explanatory copy behind info sheets', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openApp(page);
