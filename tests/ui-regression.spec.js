@@ -323,11 +323,11 @@ test('desktop expense weekly total row matches item row height and shows week su
 
 
 
-test('release assets use v2.6.36 cache-busting URLs', async ({ page }) => {
+test('release assets use v2.6.37 cache-busting URLs', async ({ page }) => {
   await openApp(page);
-  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.36');
+  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.37');
   const appSrc = await page.locator('script[src*="app.js"]').getAttribute('src');
-  expect(appSrc).toBe('app.js?v=2.6.36');
+  expect(appSrc).toBe('app.js?v=2.6.37');
 });
 
 
@@ -529,4 +529,35 @@ test('weekly chart keeps stable canvas size after hidden-panel redraws on iPad a
     expect(repeated.backingWidth).toBe(after.backingWidth);
     expect(repeated.backingHeight).toBe(after.backingHeight);
   }
+});
+
+
+
+test('smartphone separates variable quick entry from full entry', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openApp(page);
+
+  const quick=page.locator('#mobileQuickEntry');
+  const full=page.locator('#mobileFullEntry');
+  await expect(quick).toBeVisible();
+  await expect(full).toBeVisible();
+  await expect(quick).toContainText('今日の変動費を入力');
+  await expect(quick.locator('#quickSaveBtn')).toHaveText('今日の変動費を保存');
+  await expect(quick.locator('#quickFullBtn')).toHaveCount(0);
+  await expect(full).toContainText('詳細入力');
+  await expect(full).toContainText('全項目');
+  await expect(full).toContainText('収入');
+  await expect(full).toContainText('固定費');
+  await expect(full).toContainText('変動費');
+
+  await full.locator('#quickFullBtn').click();
+  await expect(page.locator('#txDialog')).toBeVisible();
+  const typeLabels=await page.locator('#txType option').allTextContents();
+  expect(typeLabels).toContain('収入');
+  expect(typeLabels).toContain('固定費');
+  expect(typeLabels).toContain('変動費');
+
+  await page.locator('#txCancel').click();
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await expect(full).toBeHidden();
 });

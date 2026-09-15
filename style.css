@@ -972,3 +972,49 @@ body.dark-mode .expense-week-total-cell .expense-limit-over{color:#ff6b6b!import
 
 /* v2.6.36: stabilize weekly comparison canvas */
 .weekly-canvas canvas{display:block}
+
+
+/* v2.6.37: separate smartphone variable quick input and full entry */
+.mobile-full-entry{display:none}
+@media(max-width:700px){
+  .mobile-full-entry{
+    display:block;
+    margin-bottom:14px;
+    overflow:hidden;
+    border:0;
+    border-radius:26px;
+    background:var(--card);
+    box-shadow:0 14px 32px rgba(41,108,187,.12)
+  }
+  .mobile-full-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:18px 18px 10px
+  }
+  .mobile-full-head strong{font-size:18px;color:var(--text)}
+  .mobile-full-badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:6px 10px;
+    border-radius:999px;
+    background:var(--accent-soft);
+    color:var(--accent);
+    font-size:12px;
+    font-weight:800
+  }
+  .mobile-full-body{padding:0 18px 18px}
+  .mobile-full-note{
+    margin:0 0 12px;
+    color:var(--muted);
+    font-size:13px;
+    line-height:1.65
+  }
+  .full-entry-btn{width:100%;min-height:54px;font-size:16px;font-weight:750}
+  .mobile-quick-entry .quick-actions{grid-template-columns:1fr}
+}
+body.dark-mode .mobile-full-entry{background:var(--card)!important}
+body.dark-mode .mobile-full-badge{background:#183753;color:#8ec8ff}
+body.dark-mode .mobile-full-note{color:var(--muted)}
