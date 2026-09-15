@@ -48,3 +48,4 @@ jobs:
           git add index.html style.css sw.js README.md tests/ui-regression.spec.js
           git commit -m "Release v2.6.37 stable"
           git push origin main
+# retry after an intermittent existing donut-canvas timing failure
