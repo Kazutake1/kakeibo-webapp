@@ -329,11 +329,11 @@ test('desktop expense weekly total row matches item row height and shows week su
 
 
 
-test('release assets use v2.6.38 cache-busting URLs', async ({ page }) => {
+test('release assets use v2.6.39 cache-busting URLs', async ({ page }) => {
   await openApp(page);
-  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.38');
+  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.39');
   const appSrc = await page.locator('script[src*="app.js"]').getAttribute('src');
-  expect(appSrc).toBe('app.js?v=2.6.38');
+  expect(appSrc).toBe('app.js?v=2.6.39');
 });
 
 
@@ -552,9 +552,6 @@ test('smartphone separates variable quick entry from full entry', async ({ page 
   await expect(quick.locator('#quickFullBtn')).toHaveCount(0);
   await expect(full).toContainText('詳細入力');
   await expect(full).toContainText('全項目');
-  await expect(full).toContainText('収入');
-  await expect(full).toContainText('固定費');
-  await expect(full).toContainText('変動費');
 
   await full.locator('#quickFullBtn').click();
   await expect(page.locator('#txDialog')).toBeVisible();
@@ -570,37 +567,29 @@ test('smartphone separates variable quick entry from full entry', async ({ page 
 
 
 
-test('smartphone overview hides explanatory copy behind info sheets', async ({ page }) => {
+test('overview keeps explanations removed and shows only total variable budget usage bar', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await openApp(page);
+  const date=currentDateKey();
+  await openApp(page,{transactions:[
+    {id:'variable-budget-bar-test',date,type:'variable',category:'セブンイレブン',item:'test',amount:25000,amountExpression:'25000',memo:''}
+  ]});
 
   const cards=page.locator('#summaryCards .metric');
   await expect(cards).toHaveCount(5);
-  await expect(page.locator('#summaryCards .summary-info-btn')).toHaveCount(5);
-  for (const index of [0,1,3]) {
-    await expect(cards.nth(index).locator('.summary-explainer')).toBeHidden();
-  }
-  await expect(cards.nth(2).locator('.summary-status')).toBeVisible();
-  await expect(cards.nth(4).locator('.summary-status')).toBeVisible();
+  await expect(page.locator('.overview-info-btn')).toHaveCount(0);
+  await expect(page.locator('#overviewInfoDialog')).toHaveCount(0);
+  await expect(page.locator('#mobileFullEntry .mobile-full-note')).toHaveCount(0);
 
-  await cards.nth(0).locator('.summary-info-btn').click();
-  const dialog=page.locator('#overviewInfoDialog');
-  await expect(dialog).toBeVisible();
-  await expect(page.locator('#overviewInfoTitle')).toHaveText('収入');
-  await expect(page.locator('#overviewInfoText')).toContainText('当月に登録された収入の実績');
-  await page.locator('#overviewInfoClose').click();
-  await expect(dialog).not.toBeVisible();
+  await expect(cards.nth(0).locator('.sub')).toHaveCount(0);
+  await expect(cards.nth(1).locator('.sub')).toHaveCount(0);
+  await expect(cards.nth(3).locator('.sub')).toHaveCount(0);
+  await expect(cards.nth(2).locator('.sub')).toBeVisible();
+  await expect(cards.nth(4).locator('.sub')).toBeVisible();
 
-  const full=page.locator('#mobileFullEntry');
-  await expect(full.locator('.mobile-full-note')).toBeHidden();
-  await expect(full.locator('#mobileFullInfoBtn')).toBeVisible();
-  await full.locator('#mobileFullInfoBtn').click();
-  await expect(dialog).toBeVisible();
-  await expect(page.locator('#overviewInfoTitle')).toHaveText('詳細入力');
-  await expect(page.locator('#overviewInfoText')).toContainText('すべての項目を入力できます');
-  await page.locator('#overviewInfoClose').click();
-
-  await page.setViewportSize({ width: 1024, height: 768 });
-  await expect(page.locator('#summaryCards .summary-info-btn').first()).toBeHidden();
-  await expect(cards.nth(0).locator('.summary-explainer')).toBeVisible();
+  await expect(page.locator('#summaryCards .variable-budget-bar')).toHaveCount(1);
+  const bar=cards.nth(4).locator('.variable-budget-bar');
+  await expect(bar).toHaveAttribute('aria-label','変動費の予算消化 50%');
+  const width=await bar.locator('span').evaluate(el=>parseFloat(getComputedStyle(el).width));
+  const total=await bar.evaluate(el=>parseFloat(getComputedStyle(el).width));
+  expect(Math.abs(width/total-0.5)).toBeLessThan(0.03);
 });
