@@ -1,0 +1,39 @@
+name: Stabilize donut regression timing
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/scripts/stabilize_donut_regression.py'
+      - '.github/workflows/stabilize-donut-regression.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  stabilize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Apply test timing fix
+        run: python3 .github/scripts/stabilize_donut_regression.py
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run regression tests
+        run: npm test
+      - name: Commit test-only stabilization
+        run: |
+          git config user.name "Kazutake1"
+          git config user.email "i8ayxda1tonezzo@yahoo.co.jp"
+          git add tests/ui-regression.spec.js
+          git commit -m "Stabilize donut canvas regression timing"
+          git push origin main
