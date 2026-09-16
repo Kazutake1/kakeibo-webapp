@@ -1,0 +1,42 @@
+name: Verify iPhone expense calendar alignment
+on:
+  push:
+    paths:
+      - '.github/workflows/patch-expense-calendar-v2650.yml'
+permissions:
+  contents: write
+jobs:
+  verify-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Apply only iPhone expense calendar date alignment
+        run: python3 .github/scripts/patch_expense_calendar_dates_v2650.py
+      - name: Verify limited diff and syntax
+        run: |
+          git diff --check
+          node --check app.js
+          node --check sw.js
+          node --check tests/ui-regression.spec.js
+          test "$(git diff --name-only | sort | paste -sd ' ' -)" = 'README.md index.html style.css sw.js tests/ui-regression.spec.js'
+          grep -q 'style.css?v=2.6.50' index.html
+          grep -q 'app.js?v=2.6.50' index.html
+          grep -q 'kakeibo-v2.6.50-stable' sw.js
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run complete regression suite and date geometry test
+        run: npm test
+      - name: Publish tested changes to main
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add README.md index.html style.css sw.js tests/ui-regression.spec.js
+          git commit -m 'Release v2.6.50 align iPhone expense calendar dates'
+          git push origin main
