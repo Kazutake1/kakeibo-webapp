@@ -17,6 +17,11 @@ jobs:
           node-version: '20'
       - name: Apply only selected icon change
         run: python3 .github/scripts/patch_variable_bag_v2647.py
+      - name: Correct cache-busting test expected values
+        run: |
+          sed -i 's/2\.6\.46/2.6.47/g' tests/ui-regression.spec.js
+          grep -q "'style.css?v=2.6.47'" tests/ui-regression.spec.js
+          grep -q "'app.js?v=2.6.47'" tests/ui-regression.spec.js
       - name: Verify file scope and syntax
         run: |
           git diff --check
