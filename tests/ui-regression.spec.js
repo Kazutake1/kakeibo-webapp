@@ -29,7 +29,7 @@ test('light mode: balance card uses normal card background and red negative amou
   expect(styles.borderWidth).toBe('2px');
   expect(styles.valueColor).toBe('rgb(220, 38, 38)');
   await expect(value).toHaveClass(/neg/);
-  await expect(balance.locator('.sub')).toHaveText('赤字');
+  await expect(balance.locator('.sub')).toHaveCount(0);
 });
 
 test('dark mode: balance card stays neutral and negative amount is red', async ({ page }) => {
@@ -45,7 +45,7 @@ test('dark mode: balance card stays neutral and negative amount is red', async (
   expect(styles.balanceBg).toBe(styles.firstBg);
   expect(styles.borderWidth).toBe('2px');
   expect(styles.valueColor).toBe('rgb(255, 107, 107)');
-  await expect(page.locator('#summaryCards .metric').nth(2).locator('.sub')).toHaveText('赤字');
+  await expect(page.locator('#summaryCards .metric').nth(2).locator('.sub')).toHaveCount(0);
 });
 
 test('positive balance is recognized as positive', async ({ page }) => {
@@ -329,11 +329,11 @@ test('desktop expense weekly total row matches item row height and shows week su
 
 
 
-test('release assets use v2.6.41 cache-busting URLs', async ({ page }) => {
+test('release assets use v2.6.43 cache-busting URLs', async ({ page }) => {
   await openApp(page);
-  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.41');
+  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.43');
   const appSrc = await page.locator('script[src*="app.js"]').getAttribute('src');
-  expect(appSrc).toBe('app.js?v=2.6.41');
+  expect(appSrc).toBe('app.js?v=2.6.43');
 });
 
 
@@ -584,7 +584,7 @@ test('overview keeps explanations removed and shows only total variable budget u
   await expect(cards.nth(0).locator('.sub')).toHaveCount(0);
   await expect(cards.nth(1).locator('.sub')).toHaveCount(0);
   await expect(cards.nth(3).locator('.sub')).toHaveCount(0);
-  await expect(cards.nth(2).locator('.sub')).toBeVisible();
+  await expect(cards.nth(2).locator('.sub')).toHaveCount(0);
   await expect(cards.nth(4).locator('.sub')).toBeVisible();
 
   await expect(page.locator('#summaryCards .variable-budget-bar')).toHaveCount(1);
@@ -630,4 +630,38 @@ test('reference visual theme preserves dark mode and red deficit', async ({ page
   expect(look.card).toBe('rgb(23, 40, 62)');
   expect(look.balance).toBe(look.card);
   expect(look.deficit).toBe('rgb(255, 107, 107)');
+});
+
+
+test('approved summary design: four cards have equal heights and no bar-chart decorations', async ({ page }) => {
+  for(const width of [390,430,820,1440]){
+    await page.setViewportSize({width,height:900});
+    await openApp(page);
+    const cards=page.locator('#summaryCards .metric');
+    const heights=await cards.evaluateAll(items=>items.slice(0,4).map(el=>el.getBoundingClientRect().height));
+    expect(Math.max(...heights)-Math.min(...heights)).toBeLessThanOrEqual(1);
+    await expect(cards.locator('.metric-icon')).toHaveCount(4);
+    await expect(cards.locator('.metric-icon svg')).toHaveCount(4);
+    await expect(page.locator('#summaryCards .metric-heading .three-bars')).toHaveCount(0);
+    await expect(cards.nth(2).locator('.sub')).toHaveCount(0);
+    await expect(cards.nth(4).locator('.variable-budget-bar')).toHaveCount(1);
+  }
+});
+
+test('approved summary design: deficit has red border and amount but neutral background', async ({page})=>{
+  for(const theme of ['light','dark']){
+    await page.setViewportSize({width:390,height:844});
+    await openApp(page,{theme});
+    const visual=await page.locator('#summaryCards .metric').nth(2).evaluate(el=>({
+      background:getComputedStyle(el).backgroundColor,
+      comparison:getComputedStyle(el.previousElementSibling).backgroundColor,
+      border:getComputedStyle(el).borderTopColor,
+      amount:getComputedStyle(el.querySelector('.value')).color,
+      text:el.textContent
+    }));
+    expect(visual.background).toBe(visual.comparison);
+    expect(visual.border).toBe(theme==='light'?'rgb(220, 38, 38)':'rgb(255, 107, 107)');
+    expect(visual.amount).toBe(visual.border);
+    expect(visual.text).not.toContain('赤字');
+  }
 });

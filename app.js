@@ -194,7 +194,7 @@ function renderSummary(){
   const data=[
     ['income','収入',income,''],
     ['expense','支出',expense,''],
-    ['balance','収支',balance,balance>=0?'黒字':'赤字'],
+    ['balance','収支',balance,balance>=0?'黒字':''],
     ['fixed','固定費',fixedBudget,''],
     ['variable','変動費',variable,`予算残り ${money(budgetVar-variable)}`]
   ];
@@ -203,8 +203,19 @@ function renderSummary(){
     const valueClass=l==='収支'?(v>=0?'pos':'neg'):(l==='変動費'&&budgetVar>0&&v>budgetVar?'neg':'');
     const sub=s?`<div class="sub">${s}</div>`:'';
     const budgetBar=key==='variable'&&budgetVar>0?`<div class="variable-budget-bar ${variableLevel}" role="img" aria-label="変動費の予算消化 ${variablePct}%"><span style="width:${variableWidth}%"></span></div>`:'';
-    return `<div class="metric"><div class="label">${l}</div><div class="value ${valueClass}">${money(v)}</div>${sub}${budgetBar}</div>`
+    const icon=key==='variable'?'':`<span class="metric-icon" aria-hidden="true">${summaryCardIcon(key)}</span>`;
+    return `<div class="metric"><div class="metric-heading">${icon}<div class="label">${l}</div></div><div class="value ${valueClass}">${money(v)}</div>${sub}${budgetBar}</div>`
   }).join('');
+}
+// Decorative summary icons only. No chart-style three-bar icon is included.
+function summaryCardIcon(key){
+  const icons={
+    income:'<ellipse cx="12" cy="5" rx="7" ry="3"/><path d="M5 5v13c0 1.7 3.1 3 7 3s7-1.3 7-3V5M5 9c0 1.7 3.1 3 7 3s7-1.3 7-3M5 14c0 1.7 3.1 3 7 3s7-1.3 7-3"/>',
+    expense:'<path d="M6 18 18 6M9 6h9v9"/>',
+    balance:'<rect x="3" y="6" width="18" height="15" rx="2"/><path d="M3 10h18M16 15h5M6 6V4a1 1 0 0 1 1-1h11"/>',
+    fixed:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18"/>'
+  };
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false">${icons[key]||''}</svg>`;
 }
 function renderBudgetOverview(){
   const root=document.querySelector('#budgetOverview');
