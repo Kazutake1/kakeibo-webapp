@@ -329,11 +329,11 @@ test('desktop expense weekly total row matches item row height and shows week su
 
 
 
-test('release assets use v2.6.46 cache-busting URLs', async ({ page }) => {
+test('release assets use v2.6.47 cache-busting URLs', async ({ page }) => {
   await openApp(page);
-  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.46');
+  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.47');
   const appSrc = await page.locator('script[src*="app.js"]').getAttribute('src');
-  expect(appSrc).toBe('app.js?v=2.6.46');
+  expect(appSrc).toBe('app.js?v=2.6.47');
 });
 
 
@@ -640,8 +640,8 @@ test('approved summary design: four cards have equal heights and no bar-chart de
     const cards=page.locator('#summaryCards .metric');
     const heights=await cards.evaluateAll(items=>items.slice(0,4).map(el=>el.getBoundingClientRect().height));
     expect(Math.max(...heights)-Math.min(...heights)).toBeLessThanOrEqual(1);
-    await expect(cards.locator('.metric-icon')).toHaveCount(4);
-    await expect(cards.locator('.metric-icon svg')).toHaveCount(4);
+    await expect(cards.locator('.metric-icon')).toHaveCount(5);
+    await expect(cards.locator('.metric-icon svg')).toHaveCount(5);
     await expect(page.locator('#summaryCards .metric-heading .three-bars')).toHaveCount(0);
     await expect(cards.nth(2).locator('.sub')).toHaveCount(0);
     await expect(cards.nth(4).locator('.variable-budget-bar')).toHaveCount(1);
@@ -749,5 +749,41 @@ test('iPhone four compact summary cards have breathing room between title and am
     await openApp(page);
     const card=page.locator('#summaryCards .metric').first();
     expect(await card.locator('.value').evaluate(el=>getComputedStyle(el).marginTop)).toBe('9px');
+  }
+});
+
+
+test('selected shopping bag icon appears only as the fifth new icon without disrupting cards', async ({page})=>{
+  for(const theme of ['light','dark']){
+    for(const width of [320,390,430,820,1440]){
+      await page.setViewportSize({width,height:900});
+      await openApp(page,{theme});
+      const cards=page.locator('#summaryCards .metric');
+      await expect(cards.locator('.metric-icon')).toHaveCount(5);
+      const variable=cards.nth(4);
+      const icon=variable.locator('.metric-icon');
+      const bag=icon.locator('svg path');
+      await expect(icon).toBeVisible();
+      await expect(bag).toHaveAttribute('d','M5 9h14l1 12H4L5 9ZM9 10V7a3 3 0 0 1 6 0v3');
+      const geometry=await variable.evaluate(el=>{
+        const card=el.getBoundingClientRect();
+        const heading=el.querySelector('.metric-heading').getBoundingClientRect();
+        const icon=el.querySelector('.metric-icon').getBoundingClientRect();
+        const amount=el.querySelector('.value').getBoundingClientRect();
+        const remainder=el.querySelector('.sub').getBoundingClientRect();
+        const progress=el.querySelector('.variable-budget-bar').getBoundingClientRect();
+        return {height:card.height,iconTop:icon.top,iconBottom:icon.bottom,headingTop:heading.top,headingBottom:heading.bottom,barTop:progress.top,barBottom:progress.bottom,amountBottom:amount.bottom,remainderBottom:remainder.bottom,rightGap:progress.right-remainder.right,cardBottom:card.bottom};
+      });
+      expect(geometry.iconTop).toBeGreaterThanOrEqual(geometry.headingTop-1);
+      expect(geometry.iconBottom).toBeLessThanOrEqual(geometry.headingBottom+1);
+      if(width<=700){
+        expect(Math.abs(geometry.height-80)).toBeLessThanOrEqual(1);
+        expect(geometry.barTop).toBeGreaterThan(geometry.amountBottom);
+        expect(geometry.barTop).toBeGreaterThan(geometry.remainderBottom);
+        expect(geometry.barBottom).toBeLessThanOrEqual(geometry.cardBottom-4);
+        expect(Math.abs(geometry.rightGap)).toBeLessThanOrEqual(1);
+      }
+      await expect(variable.locator('.variable-budget-bar')).toHaveCount(1);
+    }
   }
 });
