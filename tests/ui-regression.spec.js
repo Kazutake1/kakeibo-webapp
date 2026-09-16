@@ -329,11 +329,11 @@ test('desktop expense weekly total row matches item row height and shows week su
 
 
 
-test('release assets use v2.6.39 cache-busting URLs', async ({ page }) => {
+test('release assets use v2.6.40 cache-busting URLs', async ({ page }) => {
   await openApp(page);
-  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.39');
+  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.40');
   const appSrc = await page.locator('script[src*="app.js"]').getAttribute('src');
-  expect(appSrc).toBe('app.js?v=2.6.39');
+  expect(appSrc).toBe('app.js?v=2.6.40');
 });
 
 
@@ -550,8 +550,9 @@ test('smartphone separates variable quick entry from full entry', async ({ page 
   await expect(quick).toContainText('今日の変動費を入力');
   await expect(quick.locator('#quickSaveBtn')).toHaveText('今日の変動費を保存');
   await expect(quick.locator('#quickFullBtn')).toHaveCount(0);
-  await expect(full).toContainText('詳細入力');
-  await expect(full).toContainText('全項目');
+  await expect(full.locator('.mobile-full-head strong')).toHaveText('全項目を入力');
+  await expect(full.locator('.mobile-full-badge')).toHaveCount(0);
+  await expect(full.locator('#quickFullBtn')).toHaveText('入力画面を開く');
 
   await full.locator('#quickFullBtn').click();
   await expect(page.locator('#txDialog')).toBeVisible();
