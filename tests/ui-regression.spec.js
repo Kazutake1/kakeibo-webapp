@@ -147,6 +147,9 @@ test('Design1 donut styling is shared by mobile, iPad and desktop', async ({ pag
     await page.setViewportSize(viewport);
     await openApp(page);
     const card=page.locator('.card').filter({has:page.locator('#donutChart')}).first();
+    await expect(card.locator('.donut-mode-toggle')).toHaveCount(1);
+    await expect(card.locator('.donut-legend-row')).not.toHaveCount(0);
+    await expect(card.locator('.donut-legend-name .dot').first()).toBeVisible();
     const styles=await card.evaluate(el=>{
       const toggle=el.querySelector('.donut-mode-toggle');
       const row=el.querySelector('.donut-legend-row');
