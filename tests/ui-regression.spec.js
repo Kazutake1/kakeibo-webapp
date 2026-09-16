@@ -138,6 +138,36 @@ test('donut legends switch between percentage and amount', async ({ page }) => {
   expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth+1);
 });
 
+test('Design1 donut styling is shared by mobile, iPad and desktop', async ({ page }) => {
+  for (const viewport of [
+    { width: 390, height: 844 },
+    { width: 1024, height: 768 },
+    { width: 1440, height: 900 }
+  ]) {
+    await page.setViewportSize(viewport);
+    await openApp(page);
+    const card=page.locator('.card').filter({has:page.locator('#donutChart')}).first();
+    const styles=await card.evaluate(el=>{
+      const toggle=el.querySelector('.donut-mode-toggle');
+      const row=el.querySelector('.donut-legend-row');
+      const dot=el.querySelector('.donut-legend-name .dot');
+      return {
+        toggleRadius:getComputedStyle(toggle).borderRadius,
+        toggleBorder:getComputedStyle(toggle).borderTopWidth,
+        rowBorder:getComputedStyle(row).borderBottomWidth,
+        dotRadius:getComputedStyle(dot).borderRadius,
+        clientWidth:el.clientWidth,
+        scrollWidth:el.scrollWidth
+      };
+    });
+    expect(styles.toggleRadius).toBe('999px');
+    expect(styles.toggleBorder).toBe('0px');
+    expect(styles.rowBorder).toBe('1px');
+    expect(styles.dotRadius).toBe('50%');
+    expect(styles.scrollWidth).toBeLessThanOrEqual(styles.clientWidth+1);
+  }
+});
+
 
 test('iPad donut cards use full width with side-by-side legend', async ({ page }) => {
   await page.setViewportSize({ width: 1024, height: 768 });
@@ -329,11 +359,11 @@ test('desktop expense weekly total row matches item row height and shows week su
 
 
 
-test('release assets use v2.6.50 cache-busting URLs', async ({ page }) => {
+test('release assets use v2.6.51 cache-busting URLs', async ({ page }) => {
   await openApp(page);
-  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.50');
+  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.51');
   const appSrc = await page.locator('script[src*="app.js"]').getAttribute('src');
-  expect(appSrc).toBe('app.js?v=2.6.50');
+  expect(appSrc).toBe('app.js?v=2.6.51');
 });
 
 
