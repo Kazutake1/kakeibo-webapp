@@ -1,0 +1,12 @@
+name: Summary card visual check
+on:
+  push:
+    paths:
+      - '.github/workflows/patch-summary-visual-v2643.yml'
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 .github/scripts/patch_summary_visual_v2643.py
+      - run: git diff --check
