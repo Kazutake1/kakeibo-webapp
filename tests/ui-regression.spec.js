@@ -329,11 +329,11 @@ test('desktop expense weekly total row matches item row height and shows week su
 
 
 
-test('release assets use v2.6.45 cache-busting URLs', async ({ page }) => {
+test('release assets use v2.6.46 cache-busting URLs', async ({ page }) => {
   await openApp(page);
-  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.45');
+  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.46');
   const appSrc = await page.locator('script[src*="app.js"]').getAttribute('src');
-  expect(appSrc).toBe('app.js?v=2.6.45');
+  expect(appSrc).toBe('app.js?v=2.6.46');
 });
 
 
@@ -716,5 +716,38 @@ test('iPad and desktop overview card dimensions remain at the previous 160px des
     for(const height of heights)expect(Math.abs(height-160)).toBeLessThanOrEqual(1);
     const remaining=page.locator('#summaryCards .metric').nth(4).locator('.sub');
     await expect(remaining).toContainText('予算残り');
+  }
+});
+
+
+test('iPhone four compact summary cards have breathing room between title and amount', async ({page})=>{
+  for(const theme of ['light','dark']){
+    for(const width of [320,375,390,430]){
+      await page.setViewportSize({width,height:844});
+      await openApp(page,{theme});
+      const geometry=await page.locator('#summaryCards .metric').evaluateAll(cards=>cards.map(card=>{
+        const rect=card.getBoundingClientRect();
+        const heading=card.querySelector('.metric-heading').getBoundingClientRect();
+        const amount=card.querySelector('.value').getBoundingClientRect();
+        const sub=card.querySelector('.sub')?.getBoundingClientRect();
+        const style=getComputedStyle(card);
+        return {height:rect.height,paddingTop:style.paddingTop,amountMargin:getComputedStyle(card.querySelector('.value')).marginTop,headingGap:amount.top-heading.bottom,amountBottom:amount.bottom,subBottom:sub?.bottom??0,cardBottom:rect.bottom};
+      }));
+      for(const card of geometry.slice(0,4)){
+        expect(Math.abs(card.height-80)).toBeLessThanOrEqual(1);
+        expect(card.paddingTop).toBe('6px');
+        expect(card.amountMargin).toBe('6px');
+        expect(card.headingGap).toBeGreaterThanOrEqual(5);
+        expect(card.amountBottom).toBeLessThanOrEqual(card.cardBottom-2);
+        if(card.subBottom)expect(card.subBottom).toBeLessThanOrEqual(card.cardBottom-2);
+      }
+      expect(Math.abs(geometry[4].height-80)).toBeLessThanOrEqual(1);
+    }
+  }
+  for(const width of [820,1440]){
+    await page.setViewportSize({width,height:900});
+    await openApp(page);
+    const card=page.locator('#summaryCards .metric').first();
+    expect(await card.locator('.value').evaluate(el=>getComputedStyle(el).marginTop)).toBe('9px');
   }
 });

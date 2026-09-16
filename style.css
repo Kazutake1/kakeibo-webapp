@@ -1364,7 +1364,7 @@ body.dark-mode .summary>.metric:nth-child(3) .value.neg{color:#ff6b6b!important;
     height:80px;
     min-height:80px;
     max-height:80px;
-    padding:8px 12px!important;
+    padding:6px 12px!important;
     gap:0;
   }
   .summary>.metric:nth-child(-n+4) .metric-heading{
@@ -1381,7 +1381,7 @@ body.dark-mode .summary>.metric:nth-child(3) .value.neg{color:#ff6b6b!important;
   .summary>.metric:nth-child(-n+4) .metric-icon svg{width:17px;height:17px}
   .summary>.metric:nth-child(-n+4) .metric-heading .label{font-size:12px;line-height:1.15}
   .summary>.metric:nth-child(-n+4) .value{
-    margin-top:1px;
+    margin-top:6px;
     font-size:clamp(15px,4.2vw,20px);
     line-height:1.12;
     white-space:nowrap;
