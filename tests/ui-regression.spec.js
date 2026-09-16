@@ -329,11 +329,11 @@ test('desktop expense weekly total row matches item row height and shows week su
 
 
 
-test('release assets use v2.6.44 cache-busting URLs', async ({ page }) => {
+test('release assets use v2.6.45 cache-busting URLs', async ({ page }) => {
   await openApp(page);
-  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.44');
+  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.45');
   const appSrc = await page.locator('script[src*="app.js"]').getAttribute('src');
-  expect(appSrc).toBe('app.js?v=2.6.44');
+  expect(appSrc).toBe('app.js?v=2.6.45');
 });
 
 
@@ -667,7 +667,7 @@ test('approved summary design: deficit has red border and amount but neutral bac
 });
 
 
-test('iPhone overview cards are exactly 80px and variable card is 160px with aligned remaining budget', async ({page})=>{
+test('iPhone overview cards are all exactly 80px with aligned variable remaining budget', async ({page})=>{
   for(const width of [320,375,390,430]){
     await page.setViewportSize({width,height:844});
     await openApp(page);
@@ -684,16 +684,27 @@ test('iPhone overview cards are exactly 80px and variable card is 160px with ali
         cardRight:fifth.getBoundingClientRect().right,
         barRight:bar.right,
         valueBottoms:cards.slice(0,4).map(el=>({bottom:el.querySelector('.value').getBoundingClientRect().bottom,card:el.getBoundingClientRect().bottom})),
-        summaryOverflow:root.scrollWidth-root.clientWidth
+        summaryOverflow:root.scrollWidth-root.clientWidth,
+        variableTop:fifth.getBoundingClientRect().top,
+        variableBottom:fifth.getBoundingClientRect().bottom,
+        titleTop:fifth.querySelector('.metric-heading').getBoundingClientRect().top,
+        barTop:bar.top,
+        barBottom:bar.bottom,
+        amountBottom:amount.bottom,
+        remainingBottom:remaining.bottom
       };
     });
     for(const h of geometry.heights.slice(0,4))expect(Math.abs(h-80)).toBeLessThanOrEqual(1);
-    expect(Math.abs(geometry.heights[4]-160)).toBeLessThanOrEqual(1);
+    expect(Math.abs(geometry.heights[4]-80)).toBeLessThanOrEqual(1);
     expect(Math.abs(geometry.rightGap)).toBeLessThanOrEqual(1);
     expect(geometry.rowGap).toBeLessThanOrEqual(3);
     expect(geometry.summaryOverflow).toBeLessThanOrEqual(1);
     for(const entry of geometry.valueBottoms)expect(entry.bottom).toBeLessThanOrEqual(entry.card-4);
     expect(geometry.barRight).toBeLessThan(geometry.cardRight);
+    expect(geometry.titleTop).toBeGreaterThanOrEqual(geometry.variableTop);
+    expect(geometry.barTop).toBeGreaterThan(geometry.amountBottom);
+    expect(geometry.barTop).toBeGreaterThan(geometry.remainingBottom);
+    expect(geometry.barBottom).toBeLessThanOrEqual(geometry.variableBottom-4);
   }
 });
 

@@ -1392,18 +1392,20 @@ body.dark-mode .summary>.metric:nth-child(3) .value.neg{color:#ff6b6b!important;
     font-size:10px;
     line-height:10px;
   }
+  /* v2.6.45: match the four 80px cards; retain amount, right-aligned remainder and bar. */
   .summary>.metric:nth-child(5){
     box-sizing:border-box;
-    height:160px;
-    min-height:160px;
-    max-height:160px;
-    padding:16px!important;
+    height:80px;
+    min-height:80px;
+    max-height:80px;
+    padding:8px 12px!important;
     display:grid;
     grid-template-columns:minmax(0,1fr) auto;
-    grid-template-rows:auto minmax(0,1fr) auto;
-    gap:8px;
+    grid-template-rows:16px minmax(0,1fr) 8px;
+    gap:4px;
   }
-  .summary>.metric:nth-child(5) .metric-heading{grid-column:1/-1;grid-row:1}
+  .summary>.metric:nth-child(5) .metric-heading{grid-column:1/-1;grid-row:1;min-height:0;height:16px;align-self:center}
+  .summary>.metric:nth-child(5) .metric-heading .label{font-size:12px;line-height:16px}
   .summary>.metric:nth-child(5) .value{
     grid-column:1;
     grid-row:2;
