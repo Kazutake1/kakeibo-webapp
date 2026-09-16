@@ -978,7 +978,7 @@ function drawCharts(){
   return drawn;
 }
 
-function chartTheme(){const dark=document.body.classList.contains('dark-mode');return dark?{grid:'#2b4056',muted:'#9eb0c6',strong:'#cfe5fb',hole:'#162231',empty:'#264866'}:{grid:'#dbe7f7',muted:'#64748b',strong:'#1e3a5f',hole:'#ffffff',empty:'#dbeafe'}}
+function chartTheme(){const dark=document.body.classList.contains('dark-mode');return dark?{grid:'#2b4056',muted:'#9eb0c6',strong:'#cfe5fb',hole:'#17212c',empty:'#2a425c'}:{grid:'#dbe7f7',muted:'#64748b',strong:'#1e3a5f',hole:'#ffffff',empty:'#dbeafe'}}
 function prepCanvas(id){const c=document.getElementById(id);const r=c.getBoundingClientRect();const pr=c.parentElement?.getBoundingClientRect();const w=r.width||pr?.width||0;const h=r.height||pr?.height||0;if(w<2||h<2)return null;const dpr=devicePixelRatio||1;c.width=Math.round(w*dpr);c.height=Math.round(h*dpr);const x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);return [x,w,h]}
 function prepDonutCanvas(id){const c=document.getElementById(id);const wrap=c.parentElement;const r=wrap.getBoundingClientRect();const size=Math.max(1,Math.min(r.width||wrap.clientWidth||300,r.height||wrap.clientHeight||300));const dpr=devicePixelRatio||1;c.style.width='100%';c.style.height='100%';c.width=Math.round(size*dpr);c.height=Math.round(size*dpr);const x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);return [x,size,size]}
 function drawWeekly(){
@@ -1110,9 +1110,10 @@ function drawDonut(canvasId,legendId,data){
   const allData=data.slice();
   const drawableData=allData.map((entry,index)=>[...entry,index]).filter(x=>x[1]>0);
   let total=sum(allData.map(x=>x[1]));
-  let cx=w/2,cy=h/2-2,r=Math.min(w,h)*.34,inner=r*.58,start=-Math.PI/2;
+  const ct=chartTheme();
+  let cx=w/2,cy=h/2,r=Math.min(w,h)*.34,inner=r*.72,start=-Math.PI/2;
   if(!total){
-    const ct=chartTheme();ctx.fillStyle=ct.empty;
+    ctx.fillStyle=ct.empty;
     ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.arc(cx,cy,inner,0,Math.PI*2,true);ctx.fill('evenodd');
   }else{
     drawableData.forEach(([l,v,i])=>{
@@ -1122,10 +1123,23 @@ function drawDonut(canvasId,legendId,data){
       start+=a
     });
     ctx.globalCompositeOperation='destination-out';ctx.beginPath();ctx.arc(cx,cy,inner,0,Math.PI*2);ctx.fill();ctx.globalCompositeOperation='source-over';
+    if(drawableData.length>1){
+      let divider=-Math.PI/2;
+      ctx.save();
+      ctx.strokeStyle=ct.hole;ctx.lineWidth=Math.max(2,Math.min(3,w*.009));ctx.lineCap='round';
+      drawableData.forEach(([,v])=>{
+        ctx.beginPath();
+        ctx.moveTo(cx+Math.cos(divider)*(inner-1),cy+Math.sin(divider)*(inner-1));
+        ctx.lineTo(cx+Math.cos(divider)*(r+1),cy+Math.sin(divider)*(r+1));
+        ctx.stroke();
+        divider+=v/total*Math.PI*2;
+      });
+      ctx.restore();
+    }
   }
-  const ct=chartTheme();
-  ctx.fillStyle=ct.strong;ctx.textAlign='center';ctx.font='700 22px sans-serif';ctx.fillText(money(total),cx,cy-1);
-  ctx.fillStyle=ct.muted;ctx.font='12px sans-serif';ctx.fillText('合計',cx,cy+20);
+  ctx.textAlign='center';
+  ctx.fillStyle=ct.muted;ctx.font='700 11px sans-serif';ctx.fillText('合計',cx,cy-10);
+  ctx.fillStyle=ct.strong;ctx.font='750 20px sans-serif';ctx.fillText(money(total),cx,cy+14);
   const mode=donutLegendModes[legendId]||'percent';
   const root=document.getElementById(legendId);
   root.dataset.mode=mode;

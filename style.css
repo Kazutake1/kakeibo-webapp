@@ -1545,3 +1545,57 @@ body.dark-mode .summary>.metric:nth-child(3) .value.neg{color:#ff6b6b!important;
     justify-content:flex-start;
   }
 }
+
+/* v2.6.51: Design1 — clean, slim donut charts on every viewport. */
+.donut-card .donut-layout{gap:28px}
+.donut-card .donut-side-legend{gap:0}
+.donut-card .donut-mode-toggle{
+  grid-template-columns:1fr 1fr;
+  gap:2px;
+  margin:0 0 8px;
+  padding:3px;
+  border:0;
+  border-radius:999px;
+  background:#edf5ff;
+}
+.donut-card .donut-mode-btn{
+  padding:7px 12px;
+  border-radius:999px;
+  color:#71839c;
+  font-size:11px;
+  font-weight:750;
+}
+.donut-card .donut-mode-btn.active{
+  background:#fff;
+  color:#2577dd;
+  box-shadow:0 1px 5px rgba(37,119,221,.12);
+}
+.donut-card .donut-legend-list{gap:0}
+.donut-card .donut-legend-row{
+  min-height:38px;
+  padding:8px 2px;
+  border-bottom:1px solid var(--line-soft);
+  font-size:12px;
+}
+.donut-card .donut-legend-row:last-child{border-bottom:0}
+.donut-card .donut-legend-name{font-weight:650;color:#334b6a}
+.donut-card .donut-legend-name .dot{width:8px;height:8px;margin-right:9px;border-radius:50%}
+.donut-card .donut-legend-value{font-size:12px;font-weight:750;color:#49617f}
+body.dark-mode .donut-card .donut-mode-toggle{background:#1e2e40}
+body.dark-mode .donut-card .donut-mode-btn{color:#9db0c7}
+body.dark-mode .donut-card .donut-mode-btn.active{background:#29415c;color:#8fc4ff;box-shadow:none}
+body.dark-mode .donut-card .donut-legend-name{color:#dbe9f8}
+body.dark-mode .donut-card .donut-legend-value{color:#b9c9dc}
+
+@media(max-width:700px){
+  .donut-card .donut-layout{gap:8px}
+  .donut-card .donut-canvas-wrap{width:min(220px,100%)}
+  .donut-card .donut-side-legend{padding:0 2px 2px}
+}
+@media(min-width:701px) and (max-width:1366px){
+  .donut-card .donut-layout{gap:24px}
+  .donut-card .donut-canvas-wrap{width:min(270px,100%)}
+}
+@media(min-width:1367px){
+  .donut-card .donut-canvas-wrap{width:min(300px,100%)}
+}
