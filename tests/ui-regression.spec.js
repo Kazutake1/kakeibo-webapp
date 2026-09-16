@@ -329,11 +329,11 @@ test('desktop expense weekly total row matches item row height and shows week su
 
 
 
-test('release assets use v2.6.40 cache-busting URLs', async ({ page }) => {
+test('release assets use v2.6.41 cache-busting URLs', async ({ page }) => {
   await openApp(page);
-  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.40');
+  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.41');
   const appSrc = await page.locator('script[src*="app.js"]').getAttribute('src');
-  expect(appSrc).toBe('app.js?v=2.6.40');
+  expect(appSrc).toBe('app.js?v=2.6.41');
 });
 
 
@@ -593,4 +593,41 @@ test('overview keeps explanations removed and shows only total variable budget u
   const width=await bar.locator('span').evaluate(el=>parseFloat(getComputedStyle(el).width));
   const total=await bar.evaluate(el=>parseFloat(getComputedStyle(el).width));
   expect(Math.abs(width/total-0.5)).toBeLessThan(0.03);
+});
+
+
+test('reference visual theme applies on phone, tablet and PC', async ({ page }) => {
+  for (const width of [390, 820, 1440]) {
+    await page.setViewportSize({width,height:900});
+    await openApp(page);
+    const look=await page.evaluate(() => ({
+      cardBg:getComputedStyle(document.querySelector('#summaryCards .metric')).backgroundColor,
+      accent:getComputedStyle(document.body).getPropertyValue('--accent').trim(),
+      cardBgAll:getComputedStyle(document.querySelector('.grid>.card')).backgroundColor,
+      buttonBg:getComputedStyle(document.querySelector('#addTxBtn')).backgroundImage,
+      bodyBg:getComputedStyle(document.body).backgroundImage,
+      theme:getComputedStyle(document.body).getPropertyValue('--card').trim()
+    }));
+    expect(look.cardBg).toBe('rgb(255, 255, 255)');
+    expect(look.cardBgAll).toBe('rgb(255, 255, 255)');
+    expect(look.theme).toBe('#ffffff');
+    expect(look.accent).toBe('#277be8');
+    expect(look.buttonBg).toContain('linear-gradient');
+    expect(look.bodyBg).toContain('linear-gradient');
+    await expect(page.locator('#summaryCards .metric')).toHaveCount(5);
+    await expect(page.locator('#mobileFullEntry #quickFullBtn')).toHaveText('入力画面を開く');
+  }
+});
+
+test('reference visual theme preserves dark mode and red deficit', async ({ page }) => {
+  await page.setViewportSize({width:1024,height:900});
+  await openApp(page,{theme:'dark'});
+  const look=await page.evaluate(() => ({
+    card:getComputedStyle(document.querySelector('#summaryCards .metric')).backgroundColor,
+    balance:getComputedStyle(document.querySelector('#summaryCards .metric:nth-child(3)')).backgroundColor,
+    deficit:getComputedStyle(document.querySelector('#summaryCards .metric:nth-child(3) .value')).color
+  }));
+  expect(look.card).toBe('rgb(23, 40, 62)');
+  expect(look.balance).toBe(look.card);
+  expect(look.deficit).toBe('rgb(255, 107, 107)');
 });
