@@ -11,7 +11,7 @@
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <title>家計簿アプリ</title>
-    <link rel="stylesheet" href="style.css?v=2.6.47" />
+    <link rel="stylesheet" href="style.css?v=2.6.48" />
 </head>
 <body>
 <div class="app">
@@ -92,8 +92,25 @@
         <h2 class="page-calendar-title"><span>収入 日別入力表</span><small>給与・ボーナス・配当など</small></h2>
         <div class="card-body calendar" id="incomeCalendarWrap"></div>
       </div>
+      <div class="income-mobile-overview" id="incomeMobileOverview">
+        <section class="income-graph-card" aria-label="収入の推移">
+          <div class="income-graph-head">
+            <div class="income-graph-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="7" ry="3"/><path d="M5 5v13c0 1.7 3.1 3 7 3s7-1.3 7-3V5M5 9c0 1.7 3.1 3 7 3s7-1.3 7-3M5 14c0 1.7 3.1 3 7 3s7-1.3 7-3"/></svg></div>
+            <div class="income-graph-summary"><span id="incomeGraphTitle">今月の収入</span><strong id="incomeGraphTotal">¥0</strong><small id="incomeGraphCompare">前月比 ― ―</small></div>
+            <label class="income-period-wrap"><span class="sr-only">グラフの集計期間</span><select id="incomeGraphPeriod" aria-label="グラフの集計期間"><option value="month">月間</option><option value="year">年間</option></select></label>
+          </div>
+          <div class="income-chart-bars" id="incomeGraphBars" role="group" aria-label="収入推移のグラフ"></div>
+        </section>
+        <div class="income-mini-cards">
+          <button class="income-add-card" id="incomeAddCard" type="button"><span class="income-add-symbol" aria-hidden="true">＋</span><span class="income-add-copy"><strong>収入を追加</strong><small>給与・ボーナス・その他の収入を記録</small></span><span class="income-add-arrow" aria-hidden="true">›</span></button>
+          <section class="income-total-card" aria-label="収入合計"><span class="income-total-symbol" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="15" rx="2"/><path d="M3 10h18M16 15h5M6 6V4a1 1 0 0 1 1-1h11"/></svg></span><span class="income-total-copy"><span>収入合計</span><strong id="incomeMiniTotal">¥0</strong><small id="incomeMiniCount">0件の入金</small></span></section>
+        </div>
+        <section class="income-categories-card" aria-label="収入のカテゴリ">
+          <div class="income-categories-head"><h2>収入のカテゴリ</h2><button id="incomeViewAll" type="button">すべて見る <span aria-hidden="true">›</span></button></div>
+          <div class="income-categories-list" id="incomeMonthCategories"></div>
+        </section>
+      </div>
       <div class="mobile-daily" id="mobileIncome">
-        <div class="mobile-month-calendar" id="incomeMonthCalendar" aria-label="収入カレンダー"></div>
         <div class="mobile-day-card">
           <div class="mobile-day-head">
             <button type="button" class="day-nav-btn" id="incomePrevBtn" aria-label="前の日">‹</button>
@@ -159,7 +176,7 @@
           </div>
         </div></div>
         <div class="card"><h2>データ管理</h2><div class="card-body"><p class="hint">データは端末内にも保存され、ログイン中はSupabaseへ自動同期します。実データはGitHubへ送信されません。万一に備えてJSONバックアップも定期的に保存してください。</p><div class="toolbar"><button class="secondary" id="exportBtn">JSONを書き出す</button><label class="secondary" style="cursor:pointer">JSONを読み込む<input id="importInput" type="file" accept="application/json" hidden></label><button class="danger" id="resetBtn">データ初期化</button></div></div></div>
-        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span> <span class="pill">v2.6.47 Stable</span></div></div>
+        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span> <span class="pill">v2.6.48 Stable</span></div></div>
       </div>
     </section>
   </main>
@@ -204,6 +221,15 @@
 </dialog>
 
 
+<dialog id="incomeMonthDialog" class="income-month-dialog" aria-labelledby="incomeMonthTitle">
+  <div class="dialog-head" id="incomeMonthTitle">収入明細</div>
+  <div class="dialog-body">
+    <p id="incomeMonthMeta" class="income-month-meta"></p>
+    <div id="incomeMonthRows" class="income-month-rows"></div>
+    <div class="dialog-actions"><button type="button" class="secondary" id="incomeMonthClose">閉じる</button><button type="button" class="primary" id="incomeMonthAdd">＋ 追加</button></div>
+  </div>
+</dialog>
+
 <dialog id="syncChoiceDialog" class="sync-choice-dialog" aria-labelledby="syncChoiceTitle" aria-describedby="syncChoiceMessage">
   <div class="sync-choice-shell">
     <div class="sync-choice-head">
@@ -229,6 +255,6 @@
 
 <dialog id="budgetDialog"><div class="dialog-head">予算を編集</div><div class="dialog-body"><div id="budgetDialogBody"></div><div class="dialog-actions"><button class="secondary" id="budgetCancel">キャンセル</button><button class="primary" id="budgetSave">保存</button></div></div></dialog>
 
-<script src="app.js?v=2.6.47"></script>
+<script src="app.js?v=2.6.48"></script>
 </body>
 </html>

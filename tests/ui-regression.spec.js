@@ -329,11 +329,11 @@ test('desktop expense weekly total row matches item row height and shows week su
 
 
 
-test('release assets use v2.6.47 cache-busting URLs', async ({ page }) => {
+test('release assets use v2.6.48 cache-busting URLs', async ({ page }) => {
   await openApp(page);
-  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.47');
+  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.48');
   const appSrc = await page.locator('script[src*="app.js"]').getAttribute('src');
-  expect(appSrc).toBe('app.js?v=2.6.47');
+  expect(appSrc).toBe('app.js?v=2.6.48');
 });
 
 
@@ -785,5 +785,123 @@ test('selected shopping bag icon appears only as the fifth new icon without disr
       }
       await expect(variable.locator('.variable-budget-bar')).toHaveCount(1);
     }
+  }
+});
+
+
+test('iPhone income redesign shows graph, action, total, exactly four default categories and keeps day editor',async({page})=>{
+  for(const width of [320,375,390,430]){
+    await page.setViewportSize({width,height:844});
+    await openApp(page);
+    await page.locator('#mobileNav [data-tab="income"]').click();
+    await expect(page.locator('#incomeMonthCalendar')).toHaveCount(0);
+    await expect(page.locator('#incomeMobileOverview')).toBeVisible();
+    await expect(page.locator('#incomeGraphBars .income-chart-column')).toHaveCount(9);
+    await expect(page.locator('#incomeAddCard')).toBeVisible();
+    await expect(page.locator('#incomeMiniTotal')).toHaveText('¥0');
+    await expect(page.locator('#incomeMonthCategories .income-category-row')).toHaveCount(4);
+    const names=await page.locator('#incomeMonthCategories .income-category-name strong').allTextContents();
+    expect(names).toEqual(['給与','ボーナス','配当収入','その他の収入']);
+    await expect(page.locator('#incomeDayTotal')).toBeVisible();
+    await expect(page.locator('#incomeDatePicker')).toBeAttached();
+    await expect(page.locator('#incomeCategoryList .day-cat-row')).toHaveCount(4);
+    await expect(page.locator('.income-panel')).not.toContainText('1件あたりの平均収入');
+    await expect(page.locator('.income-panel')).not.toContainText('収入履歴');
+    const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);
+    expect(overflow).toBeLessThanOrEqual(1);
+  }
+});
+
+test('income chart uses actual amounts and updates selected period and month',async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  const now=new Date();
+  const monthKey=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const previous=new Date(now.getFullYear(),now.getMonth()-1,1);
+  const previousKey=`${previous.getFullYear()}-${String(previous.getMonth()+1).padStart(2,'0')}`;
+  await openApp(page,{transactions:[
+    {id:'income-this',date:monthKey+'-05',type:'income',category:'給与',item:'salary',amount:120000,amountExpression:'120000',memo:''},
+    {id:'income-prev',date:previousKey+'-02',type:'income',category:'ボーナス',item:'bonus',amount:80000,amountExpression:'80000',memo:''}
+  ]});
+  await page.locator('#mobileNav [data-tab="income"]').click();
+  await expect(page.locator('#incomeMiniTotal')).toHaveText('¥120,000');
+  await expect(page.locator('#incomeMiniCount')).toHaveText('1件の入金');
+  await expect(page.locator('#incomeGraphTotal')).toHaveText('¥120,000');
+  await expect(page.locator('#incomeGraphCompare')).toHaveText('前月比 +50%');
+  await expect(page.locator('#incomeGraphBars .selected')).toHaveAttribute('aria-label',new RegExp('120,000'));
+  const columns=page.locator('#incomeGraphBars .income-chart-column');
+  const index=await columns.evaluateAll(items=>items.findIndex(el=>el.classList.contains('selected')));
+  expect(index).toBe(5);
+  const zeros=await columns.evaluateAll(items=>items.filter(el=>el.getAttribute('aria-label').includes('¥0')).every(el=>el.querySelector('.income-chart-bar').style.height==='0%'));
+  expect(zeros).toBe(true);
+  await page.locator('#incomeGraphPeriod').selectOption('year');
+  await expect(page.locator('#incomeGraphTotal')).toHaveText('¥200,000');
+  await page.locator('#incomeGraphPeriod').selectOption('month');
+  await columns.nth(4).click();
+  await expect(page.locator('#incomeMiniTotal')).toHaveText('¥80,000');
+  await expect(page.locator('#monthLabel')).toContainText(`${previous.getFullYear()}年${previous.getMonth()+1}月`);
+});
+
+test('income add button saves to income; category detail edits and deletes only selected income',async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await openApp(page);
+  await page.locator('#mobileNav [data-tab="income"]').click();
+  await page.locator('#incomeAddCard').click();
+  await expect(page.locator('#txDialog')).toBeVisible();
+  await expect(page.locator('#txType')).toHaveValue('income');
+  await page.locator('#txCategory').selectOption({label:'給与'});
+  await page.locator('#txAmount').fill('10000+2000');
+  await page.locator('#txForm button[type="submit"],#txForm .dialog-actions .primary').click();
+  await expect(page.locator('#incomeMiniTotal')).toHaveText('¥12,000');
+  await expect(page.locator('#incomeMonthCategories .income-category-row').first()).toContainText('¥12,000');
+  await page.locator('#incomeMonthCategories .income-category-row').first().click();
+  await expect(page.locator('#incomeMonthDialog')).toBeVisible();
+  await expect(page.locator('#incomeMonthRows .income-month-row')).toHaveCount(1);
+  await page.locator('#incomeMonthRows .income-month-actions button').first().click();
+  await expect(page.locator('#txDialog')).toBeVisible();
+  await page.locator('#txAmount').fill('15000');
+  await page.locator('#txForm .dialog-actions .primary').click();
+  await expect(page.locator('#incomeMiniTotal')).toHaveText('¥15,000');
+  await page.locator('#incomeMonthCategories .income-category-row').first().click();
+  page.once('dialog',dialog=>dialog.accept());
+  await page.locator('#incomeMonthRows .income-month-delete').click();
+  await expect(page.locator('#incomeMiniTotal')).toHaveText('¥0');
+  await expect(page.locator('#incomeMonthRows .income-month-row')).toHaveCount(0);
+  await page.locator('#incomeMonthClose').click();
+  await expect(page.locator('#incomeMonthDialog')).toBeHidden();
+});
+
+test('existing mobile income daily editing remains available and legacy category names survive normalization',async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  const now=currentDateKey();
+  await openApp(page,{transactions:[{id:'old-income',date:now,type:'income',category:'ボーナス',item:'old',amount:23000,amountExpression:'23000',memo:''}]});
+  await page.locator('#mobileNav [data-tab="income"]').click();
+  const day=page.locator('#incomeCategoryList .day-cat-row').filter({hasText:'ボーナス'});
+  await day.click();
+  await expect(page.locator('#dailyHistoryDialog')).toBeVisible();
+  await expect(page.locator('#dailyHistoryList .daily-history-row')).toHaveCount(1);
+  await expect(page.locator('#dailyHistoryList .daily-history-row button')).toHaveCount(2);
+  await page.locator('#dailyHistoryList button').first().click();
+  await expect(page.locator('#dailyEntryDialog')).toBeVisible();
+  await page.locator('#dailyEntryAmount').fill('25000');
+  await page.locator('#dailyEntrySave').click();
+  await expect(page.locator('#incomeMiniTotal')).toHaveText('¥25,000');
+  await expect(page.locator('#dailyHistoryDialog')).toBeVisible();
+  page.once('dialog',dialog=>dialog.accept());
+  await page.locator('#dailyHistoryList .history-delete').click();
+  await expect(page.locator('#incomeMiniTotal')).toHaveText('¥0');
+  await page.evaluate(()=>{
+    state=normalizeState({transactions:[],budgets:{},categories:{income:['給与','ボーナス','配当収入']}});
+  });
+  expect(await page.evaluate(()=>catsFor('income'))).toEqual(['給与','ボーナス','配当収入','その他の収入']);
+});
+
+test('iPad and PC retain income daily calendar while mobile-only redesign remains hidden',async({page})=>{
+  for(const width of [820,1440]){
+    await page.setViewportSize({width,height:900});
+    await openApp(page);
+    await page.locator('#tabs [data-tab="income"]').click();
+    await expect(page.locator('#incomeCalendarWrap .cal-table')).toBeVisible();
+    await expect(page.locator('#incomeMobileOverview')).toBeHidden();
+    await expect(page.locator('#mobileIncome')).toBeHidden();
   }
 });
