@@ -329,11 +329,11 @@ test('desktop expense weekly total row matches item row height and shows week su
 
 
 
-test('release assets use v2.6.49 cache-busting URLs', async ({ page }) => {
+test('release assets use v2.6.50 cache-busting URLs', async ({ page }) => {
   await openApp(page);
-  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.49');
+  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.50');
   const appSrc = await page.locator('script[src*="app.js"]').getAttribute('src');
-  expect(appSrc).toBe('app.js?v=2.6.49');
+  expect(appSrc).toBe('app.js?v=2.6.50');
 });
 
 
@@ -1030,4 +1030,53 @@ test('iPhone graph selection survives data redraw and day changes inside the mon
   await expect(bars.nth(5)).toHaveAttribute('data-income-period','2026-06');
   await expect(bars.nth(5)).toHaveClass(/selected/);
   await expect(page.locator('#incomeGraphBars .selected')).toHaveCount(1);
+});
+
+
+test('iPhone expense calendar aligns dates regardless of whether an expense amount exists', async ({page})=>{
+  const month=currentDateKey().slice(0,7);
+  const spentDate=`${month}-05`;
+  const emptyDate=`${month}-06`;
+  const transactions=[{
+    id:'expense-date-alignment',date:spentDate,type:'variable',category:'セブンイレブン',
+    item:'calendar test',amount:850,amountExpression:'850',memo:''
+  }];
+  for(const theme of ['light','dark']){
+    for(const width of [320,375,390,430]){
+      await page.setViewportSize({width,height:844});
+      await openApp(page,{theme,transactions});
+      await page.locator('#mobileNav [data-tab="expense"]').click();
+      const spent=page.locator(`#expenseMonthCalendar [data-expense-date="${spentDate}"]`);
+      const empty=page.locator(`#expenseMonthCalendar [data-expense-date="${emptyDate}"]`);
+      await expect(spent.locator('.mobile-cal-money')).toHaveText('¥850');
+      await expect(empty.locator('.mobile-cal-money')).toHaveCount(0);
+      const positions=await page.locator(`#expenseMonthCalendar [data-expense-date="${spentDate}"], #expenseMonthCalendar [data-expense-date="${emptyDate}"]`).evaluateAll(cells=>cells.map(cell=>{
+        const cellRect=cell.getBoundingClientRect();
+        const dateRect=cell.querySelector('.mobile-cal-date').getBoundingClientRect();
+        const amount=cell.querySelector('.mobile-cal-money');
+        const amountRect=amount?.getBoundingClientRect();
+        return {dateTop:dateRect.top-cellRect.top,dateBottom:dateRect.bottom,amountTop:amountRect?.top??null,cellHeight:cellRect.height,display:getComputedStyle(cell).display};
+      }));
+      expect(positions).toHaveLength(2);
+      expect(positions[0].display).toBe('flex');
+      expect(positions[1].display).toBe('flex');
+      expect(Math.abs(positions[0].dateTop-positions[1].dateTop)).toBeLessThanOrEqual(1);
+      expect(Math.abs(positions[0].dateTop-7)).toBeLessThanOrEqual(1);
+      expect(positions[0].amountTop).toBeGreaterThan(positions[0].dateBottom);
+      expect(positions[0].cellHeight).toBeGreaterThanOrEqual(64);
+      expect(positions[1].cellHeight).toBeGreaterThanOrEqual(64);
+      await empty.click();
+      await expect(page.locator('#expenseDateLabel')).toContainText('6日');
+      await expect(page.locator('#expenseDayTotal')).toHaveText('¥0');
+      await expect(spent.locator('.mobile-cal-money')).toHaveText('¥850');
+    }
+  }
+  // No desktop/tablet layout rules were altered by the phone-only selector.
+  for(const width of [820,1440]){
+    await page.setViewportSize({width,height:900});
+    await openApp(page,{transactions});
+    await page.locator('#tabs [data-tab="expense"]').click();
+    await expect(page.locator('#expenseMonthCalendar')).toBeHidden();
+    await expect(page.locator('#expenseCalendarWrap .cal-table')).toBeVisible();
+  }
 });
