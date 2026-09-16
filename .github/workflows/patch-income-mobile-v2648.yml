@@ -33,6 +33,16 @@ jobs:
           assert data.count(old)==1
           css.write_text(data.replace(old,'.income-chart-column.selected .income-chart-tag{font-variant-numeric:tabular-nums}',1),encoding='utf-8')
           PY
+      - name: Assert retained date picker exists without altering its existing hidden styling
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('tests/ui-regression.spec.js')
+          s=p.read_text(encoding='utf-8')
+          old="await expect(page.locator('#incomeDatePicker')).toBeVisible();"
+          assert s.count(old)==1
+          p.write_text(s.replace(old,"await expect(page.locator('#incomeDatePicker')).toBeAttached();",1),encoding='utf-8')
+          PY
       - name: Verify patch file scope and syntax
         run: |
           git diff --check
