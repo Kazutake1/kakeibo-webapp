@@ -1,0 +1,63 @@
+name: Apply reference visual skin v2.6.41
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/patch-reference-visual-v2641.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Record original layout, apply visual skin and compare geometry
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4174 --bind 127.0.0.1 >/tmp/kakeibo-v2641-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          sleep 2
+          node .github/scripts/check_visual_geometry_v2641.cjs
+          python3 .github/scripts/patch_reference_visual_v2641.py
+          node .github/scripts/check_visual_geometry_v2641.cjs --compare
+      - name: Syntax and stylesheet checks
+        run: |
+          node --check app.js
+          node --check sw.js
+          node --check tests/ui-regression.spec.js
+          git diff --check
+          python3 - <<'PY'
+          from pathlib import Path
+          css=Path('style.css').read_text(encoding='utf-8')
+          tail=css.split('/* v2.6.41: reference-inspired visual skin only */',1)[1]
+          assert tail.count('{')==tail.count('}'), 'Unbalanced CSS blocks'
+          assert 'display:' not in tail and 'grid-template' not in tail and 'padding:' not in tail and 'margin:' not in tail and 'position:' not in tail, 'Layout-altering declaration introduced'
+          assert 'v2.6.41 Stable' in Path('index.html').read_text(encoding='utf-8')
+          assert 'kakeibo-v2.6.41-stable' in Path('sw.js').read_text(encoding='utf-8')
+          print('PASS: CSS syntax balance and visual-only property guard')
+          PY
+      - name: Run all Playwright regression tests
+        run: npm test
+      - name: Commit validated visual-only release
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add style.css index.html sw.js README.md tests/ui-regression.spec.js
+          git commit -m 'Release v2.6.41: reference-inspired visual skin only'
+          git push origin main
