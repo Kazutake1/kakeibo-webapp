@@ -1,0 +1,53 @@
+name: Patch mobile full-entry label v2.6.40
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/scripts/patch_full_entry_label_v2640.py'
+      - '.github/workflows/patch-full-entry-label-v2640.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Apply scoped change
+        run: python3 .github/scripts/patch_full_entry_label_v2640.py
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Syntax checks
+        run: |
+          node --check app.js
+          node --check sw.js
+          node --check tests/ui-regression.spec.js
+      - name: Run regression tests
+        run: npm test
+      - name: Verify version, labels and redundant badge removal
+        run: |
+          grep -F '<div class="mobile-full-head"><strong>全項目を入力</strong></div>' index.html
+          grep -F 'id="quickFullBtn" type="button">入力画面を開く</button>' index.html
+          ! grep -F 'class="mobile-full-badge"' index.html
+          grep -F 'style.css?v=2.6.40' index.html
+          grep -F 'app.js?v=2.6.40' index.html
+          grep -F 'kakeibo-v2.6.40-stable' sw.js
+          grep -F 'v2.6.40 Stable' README.md
+      - name: Commit validated release
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html sw.js README.md tests/ui-regression.spec.js
+          git commit -m 'Release v2.6.40 stable: simplify mobile full-entry label'
+          git push origin main
