@@ -45,7 +45,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           css=Path('style.css').read_text(encoding='utf-8')
-          tail=css.split('/* v2.6.41: reference-inspired visual skin only */',1)[1]
+          tail=css.split('/* v2.6.41: reference-inspired visual skin only.',1)[1]
           assert tail.count('{')==tail.count('}'), 'Unbalanced CSS blocks'
           assert 'display:' not in tail and 'grid-template' not in tail and 'padding:' not in tail and 'margin:' not in tail and 'position:' not in tail, 'Layout-altering declaration introduced'
           assert 'v2.6.41 Stable' in Path('index.html').read_text(encoding='utf-8')
