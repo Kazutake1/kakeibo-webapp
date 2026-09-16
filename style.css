@@ -1355,3 +1355,76 @@ body.dark-mode .summary>.metric:nth-child(3) .value.neg{color:#ff6b6b!important;
   .summary .metric-heading .label{font-size:12px}
   .summary>.metric:nth-child(-n+4) .value{font-size:clamp(17px,4.6vw,21px)}
 }
+
+
+/* v2.6.44: compact iPhone summary cards only. Tablet and desktop untouched. */
+@media (max-width:700px){
+  .summary>.metric:nth-child(-n+4){
+    box-sizing:border-box;
+    height:80px;
+    min-height:80px;
+    max-height:80px;
+    padding:8px 12px!important;
+    gap:0;
+  }
+  .summary>.metric:nth-child(-n+4) .metric-heading{
+    min-height:28px;
+    height:28px;
+    gap:6px;
+    flex:0 0 28px;
+  }
+  .summary>.metric:nth-child(-n+4) .metric-icon{
+    width:28px;
+    height:28px;
+    flex:0 0 28px;
+  }
+  .summary>.metric:nth-child(-n+4) .metric-icon svg{width:17px;height:17px}
+  .summary>.metric:nth-child(-n+4) .metric-heading .label{font-size:12px;line-height:1.15}
+  .summary>.metric:nth-child(-n+4) .value{
+    margin-top:1px;
+    font-size:clamp(15px,4.2vw,20px);
+    line-height:1.12;
+    white-space:nowrap;
+    overflow-wrap:normal;
+  }
+  .summary>.metric:nth-child(-n+4) .sub{
+    margin-top:0;
+    font-size:10px;
+    line-height:10px;
+  }
+  .summary>.metric:nth-child(5){
+    box-sizing:border-box;
+    height:160px;
+    min-height:160px;
+    max-height:160px;
+    padding:16px!important;
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    grid-template-rows:auto minmax(0,1fr) auto;
+    gap:8px;
+  }
+  .summary>.metric:nth-child(5) .metric-heading{grid-column:1/-1;grid-row:1}
+  .summary>.metric:nth-child(5) .value{
+    grid-column:1;
+    grid-row:2;
+    align-self:center;
+    min-width:0;
+    margin-top:0;
+  }
+  .summary>.metric:nth-child(5) .sub{
+    grid-column:2;
+    grid-row:2;
+    align-self:center;
+    justify-self:end;
+    margin:0;
+    font-size:clamp(9px,2.75vw,12px);
+    white-space:nowrap;
+    text-align:right;
+  }
+  .summary>.metric:nth-child(5) .variable-budget-bar{
+    grid-column:1/-1;
+    grid-row:3;
+    width:100%;
+    margin-top:0;
+  }
+}

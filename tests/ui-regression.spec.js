@@ -329,11 +329,11 @@ test('desktop expense weekly total row matches item row height and shows week su
 
 
 
-test('release assets use v2.6.43 cache-busting URLs', async ({ page }) => {
+test('release assets use v2.6.44 cache-busting URLs', async ({ page }) => {
   await openApp(page);
-  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.43');
+  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.44');
   const appSrc = await page.locator('script[src*="app.js"]').getAttribute('src');
-  expect(appSrc).toBe('app.js?v=2.6.43');
+  expect(appSrc).toBe('app.js?v=2.6.44');
 });
 
 
@@ -663,5 +663,47 @@ test('approved summary design: deficit has red border and amount but neutral bac
     expect(visual.border).toBe(theme==='light'?'rgb(220, 38, 38)':'rgb(255, 107, 107)');
     expect(visual.amount).toBe(visual.border);
     expect(visual.text).not.toContain('赤字');
+  }
+});
+
+
+test('iPhone overview cards are exactly 80px and variable card is 160px with aligned remaining budget', async ({page})=>{
+  for(const width of [320,375,390,430]){
+    await page.setViewportSize({width,height:844});
+    await openApp(page);
+    const geometry=await page.locator('#summaryCards').evaluate(root=>{
+      const cards=[...root.querySelectorAll('.metric')];
+      const fifth=cards[4];
+      const amount=fifth.querySelector('.value').getBoundingClientRect();
+      const remaining=fifth.querySelector('.sub').getBoundingClientRect();
+      const bar=fifth.querySelector('.variable-budget-bar').getBoundingClientRect();
+      return {
+        heights:cards.map(el=>el.getBoundingClientRect().height),
+        rightGap:bar.right-remaining.right,
+        rowGap:Math.abs((amount.top+amount.bottom)/2-(remaining.top+remaining.bottom)/2),
+        cardRight:fifth.getBoundingClientRect().right,
+        barRight:bar.right,
+        valueBottoms:cards.slice(0,4).map(el=>({bottom:el.querySelector('.value').getBoundingClientRect().bottom,card:el.getBoundingClientRect().bottom})),
+        summaryOverflow:root.scrollWidth-root.clientWidth
+      };
+    });
+    for(const h of geometry.heights.slice(0,4))expect(Math.abs(h-80)).toBeLessThanOrEqual(1);
+    expect(Math.abs(geometry.heights[4]-160)).toBeLessThanOrEqual(1);
+    expect(Math.abs(geometry.rightGap)).toBeLessThanOrEqual(1);
+    expect(geometry.rowGap).toBeLessThanOrEqual(3);
+    expect(geometry.summaryOverflow).toBeLessThanOrEqual(1);
+    for(const entry of geometry.valueBottoms)expect(entry.bottom).toBeLessThanOrEqual(entry.card-4);
+    expect(geometry.barRight).toBeLessThan(geometry.cardRight);
+  }
+});
+
+test('iPad and desktop overview card dimensions remain at the previous 160px design',async ({page})=>{
+  for(const width of [820,1024,1440]){
+    await page.setViewportSize({width,height:900});
+    await openApp(page);
+    const heights=await page.locator('#summaryCards .metric').evaluateAll(items=>items.slice(0,4).map(el=>el.getBoundingClientRect().height));
+    for(const height of heights)expect(Math.abs(height-160)).toBeLessThanOrEqual(1);
+    const remaining=page.locator('#summaryCards .metric').nth(4).locator('.sub');
+    await expect(remaining).toContainText('予算残り');
   }
 });
