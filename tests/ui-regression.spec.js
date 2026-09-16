@@ -329,11 +329,11 @@ test('desktop expense weekly total row matches item row height and shows week su
 
 
 
-test('release assets use v2.6.48 cache-busting URLs', async ({ page }) => {
+test('release assets use v2.6.49 cache-busting URLs', async ({ page }) => {
   await openApp(page);
-  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.48');
+  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.49');
   const appSrc = await page.locator('script[src*="app.js"]').getAttribute('src');
-  expect(appSrc).toBe('app.js?v=2.6.48');
+  expect(appSrc).toBe('app.js?v=2.6.49');
 });
 
 
@@ -836,9 +836,22 @@ test('income chart uses actual amounts and updates selected period and month',as
   await page.locator('#incomeGraphPeriod').selectOption('year');
   await expect(page.locator('#incomeGraphTotal')).toHaveText('¥200,000');
   await page.locator('#incomeGraphPeriod').selectOption('month');
+  const keysBefore=await columns.evaluateAll(items=>items.map(el=>el.dataset.incomePeriod));
+  const barHeightsBefore=await columns.evaluateAll(items=>items.map(el=>el.querySelector('.income-chart-bar').style.height));
+  const dateBefore=await page.locator('#incomeDatePicker').inputValue();
+  const headerBefore=await page.locator('#monthLabel').innerText();
   await columns.nth(4).click();
+  await expect(columns.nth(4)).toHaveClass(/selected/);
+  await expect(page.locator('#incomeGraphBars .selected')).toHaveCount(1);
+  expect(await columns.evaluateAll(items=>items.map(el=>el.dataset.incomePeriod))).toEqual(keysBefore);
+  expect(await columns.evaluateAll(items=>items.map(el=>el.querySelector('.income-chart-bar').style.height))).toEqual(barHeightsBefore);
+  await expect(page.locator('#incomeGraphTotal')).toHaveText('¥80,000');
   await expect(page.locator('#incomeMiniTotal')).toHaveText('¥80,000');
-  await expect(page.locator('#monthLabel')).toContainText(`${previous.getFullYear()}年${previous.getMonth()+1}月`);
+  await expect(page.locator('#incomeMonthCategories .income-category-row').nth(1)).toContainText('¥80,000');
+  await expect(page.locator('#monthLabel')).toHaveText(headerBefore);
+  await expect(page.locator('#incomeDatePicker')).toHaveValue(dateBefore);
+  await expect(page.locator('#expenseDatePicker')).toHaveValue(dateBefore);
+  await expect(page.locator('#incomeGraphTitle')).toHaveText(`${previous.getFullYear()}年${previous.getMonth()+1}月の収入`);
 });
 
 test('income add button saves to income; category detail edits and deletes only selected income',async({page})=>{
@@ -904,4 +917,117 @@ test('iPad and PC retain income daily calendar while mobile-only redesign remain
     await expect(page.locator('#incomeMobileOverview')).toBeHidden();
     await expect(page.locator('#mobileIncome')).toBeHidden();
   }
+});
+
+
+test('iPhone graph taps keep the daily editor on January 31 and clamp new-entry dates to selected months',async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await openApp(page,{transactions:[
+    {id:'jan',date:'2026-01-02',type:'income',category:'給与',item:'salary',amount:10000,amountExpression:'10000',memo:''},
+    {id:'dec',date:'2025-12-05',type:'income',category:'ボーナス',item:'bonus',amount:23000,amountExpression:'23000',memo:''},
+    {id:'feb',date:'2026-02-01',type:'income',category:'配当収入',item:'dividend',amount:50000,amountExpression:'50000',memo:''}
+  ]});
+  await page.locator('#mobileNav [data-tab="income"]').click();
+  await page.evaluate(()=>setMobileDailyDate(new Date(2026,0,31)));
+  const bars=page.locator('#incomeGraphBars .income-chart-column');
+  const originalKeys=await bars.evaluateAll(items=>items.map(el=>el.dataset.incomePeriod));
+  await expect(page.locator('#incomeDatePicker')).toHaveValue('2026-01-31');
+  await bars.nth(4).click();
+  await expect(bars.nth(4)).toHaveClass(/selected/);
+  await expect(page.locator('#incomeGraphTotal')).toHaveText('¥23,000');
+  await expect(page.locator('#incomeMiniTotal')).toHaveText('¥23,000');
+  await expect(page.locator('#monthLabel')).toHaveText('2026年1月');
+  await expect(page.locator('#incomeDatePicker')).toHaveValue('2026-01-31');
+  expect(await bars.evaluateAll(items=>items.map(el=>el.dataset.incomePeriod))).toEqual(originalKeys);
+  await page.locator('#incomeAddCard').click();
+  await expect(page.locator('#txDate')).toHaveValue('2025-12-31');
+  await page.locator('#txCancel').click();
+  await bars.nth(6).click();
+  await expect(page.locator('#incomeMiniTotal')).toHaveText('¥50,000');
+  await expect(page.locator('#incomeDatePicker')).toHaveValue('2026-01-31');
+  await page.locator('#incomeAddCard').click();
+  await expect(page.locator('#txDate')).toHaveValue('2026-02-28');
+  await page.locator('#txCategory').selectOption({label:'その他の収入'});
+  await page.locator('#txAmount').fill('5000');
+  await page.locator('#txForm .dialog-actions .primary').click();
+  await expect(page.locator('#incomeMiniTotal')).toHaveText('¥55,000');
+  await expect(page.locator('#incomeDatePicker')).toHaveValue('2026-01-31');
+  expect(await page.evaluate(()=>state.transactions.find(t=>t.type==='income'&&t.category==='その他の収入')?.date)).toBe('2026-02-28');
+  await page.locator('#incomeNextBtn').click();
+  await expect(page.locator('#incomeDatePicker')).toHaveValue('2026-02-01');
+  await expect(page.locator('#monthLabel')).toHaveText('2026年2月');
+  await expect(page.locator('#incomeGraphBars .income-chart-column').nth(5)).toHaveClass(/selected/);
+});
+
+test('iPhone annual selection keeps day fixed and aligns graph, total, categories and edit/delete detail to the same year',async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  const year=new Date().getFullYear();
+  const last=year-1;
+  await openApp(page,{transactions:[
+    {id:'year-salary',date:`${year}-01-05`,type:'income',category:'給与',item:'salary',amount:100000,amountExpression:'100000',memo:''},
+    {id:'year-bonus',date:`${year}-06-03`,type:'income',category:'ボーナス',item:'bonus',amount:30000,amountExpression:'30000',memo:''},
+    {id:'prior-dividend',date:`${last}-12-03`,type:'income',category:'配当収入',item:'dividend',amount:70000,amountExpression:'70000',memo:''},
+    {id:'not-income',date:`${last}-12-04`,type:'variable',category:'セブンイレブン',item:'expense',amount:1000,amountExpression:'1000',memo:''}
+  ]});
+  await page.locator('#mobileNav [data-tab="income"]').click();
+  const originalDate=await page.locator('#incomeDatePicker').inputValue();
+  const originalMonth=await page.locator('#monthLabel').innerText();
+  await page.locator('#incomeGraphPeriod').selectOption('year');
+  await expect(page.locator('#incomeGraphTotal')).toHaveText('¥130,000');
+  await expect(page.locator('#incomeMiniTotal')).toHaveText('¥130,000');
+  await expect(page.locator('#incomeMiniCount')).toHaveText('2件の入金');
+  const bars=page.locator('#incomeGraphBars .income-chart-column');
+  const axisBefore=await bars.evaluateAll(items=>items.map(el=>el.dataset.incomePeriod));
+  await bars.nth(4).click();
+  expect(await bars.evaluateAll(items=>items.map(el=>el.dataset.incomePeriod))).toEqual(axisBefore);
+  await expect(bars.nth(4)).toHaveClass(/selected/);
+  await expect(page.locator('#incomeGraphTitle')).toHaveText(`${last}年の収入`);
+  await expect(page.locator('#incomeGraphTotal')).toHaveText('¥70,000');
+  await expect(page.locator('#incomeMiniTotal')).toHaveText('¥70,000');
+  await expect(page.locator('#incomeMiniCount')).toHaveText('1件の入金');
+  await expect(page.locator('#incomeMonthCategories .income-category-row').nth(2)).toContainText(`${last}年の合計 ¥70,000`);
+  await expect(page.locator('#incomeDatePicker')).toHaveValue(originalDate);
+  await expect(page.locator('#monthLabel')).toHaveText(originalMonth);
+  await page.locator('#incomeMonthCategories .income-category-row').nth(2).click();
+  await expect(page.locator('#incomeMonthMeta')).toContainText(`${last}年 ・ 1件`);
+  await expect(page.locator('#incomeMonthRows .income-month-row')).toHaveCount(1);
+  await page.locator('#incomeMonthRows .income-month-actions button').first().click();
+  await expect(page.locator('#txDialog')).toBeVisible();
+  await expect(page.locator('#txDate')).toHaveValue(`${last}-12-03`);
+  await page.locator('#txAmount').fill('75000');
+  await page.locator('#txForm .dialog-actions .primary').click();
+  await expect(page.locator('#incomeMiniTotal')).toHaveText('¥75,000');
+  await page.locator('#incomeMonthCategories .income-category-row').nth(2).click();
+  page.once('dialog',dialog=>dialog.accept());
+  await page.locator('#incomeMonthRows .income-month-delete').click();
+  await expect(page.locator('#incomeMiniTotal')).toHaveText('¥0');
+  await expect(page.locator('#incomeMonthRows .income-month-row')).toHaveCount(0);
+  await page.locator('#incomeMonthClose').click();
+  expect(await page.evaluate(()=>state.transactions.map(t=>t.id).sort())).toEqual(['not-income','year-bonus','year-salary']);
+  await expect(page.locator('#incomeDatePicker')).toHaveValue(originalDate);
+  await page.locator('#incomeGraphPeriod').selectOption('month');
+  await expect(page.locator('#incomeGraphBars .income-chart-column').nth(5)).toHaveClass(/selected/);
+  await expect(page.locator('#incomeDatePicker')).toHaveValue(originalDate);
+});
+
+test('iPhone graph selection survives data redraw and day changes inside the month, but month navigation resets its anchor',async({page})=>{
+  await page.setViewportSize({width:375,height:812});
+  await openApp(page);
+  await page.locator('#mobileNav [data-tab="income"]').click();
+  await page.evaluate(()=>setMobileDailyDate(new Date(2026,4,15)));
+  const bars=page.locator('#incomeGraphBars .income-chart-column');
+  await bars.nth(4).click();
+  await expect(bars.nth(4)).toHaveClass(/selected/);
+  const selectedKey=await bars.nth(4).getAttribute('data-income-period');
+  await page.evaluate(()=>render());
+  await expect(bars.nth(4)).toHaveAttribute('data-income-period',selectedKey);
+  await expect(bars.nth(4)).toHaveClass(/selected/);
+  await page.locator('#incomeNextBtn').click();
+  await expect(page.locator('#incomeDatePicker')).toHaveValue('2026-05-16');
+  await expect(bars.nth(4)).toHaveClass(/selected/);
+  await page.evaluate(()=>setMobileDailyDate(new Date(2026,5,1)));
+  await expect(page.locator('#incomeDatePicker')).toHaveValue('2026-06-01');
+  await expect(bars.nth(5)).toHaveAttribute('data-income-period','2026-06');
+  await expect(bars.nth(5)).toHaveClass(/selected/);
+  await expect(page.locator('#incomeGraphBars .selected')).toHaveCount(1);
 });

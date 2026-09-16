@@ -524,28 +524,54 @@ function renderMobilePage(kind){
 }
 // iPhone income dashboard: real transactions only; zero months never receive fabricated bars.
 let incomeGraphPeriod='month';
+let incomeGraphAnchor=null;
+let incomeGraphSelected=null;
 let incomeDetailCategory=null;
 function incomePeriodTotal(date,period){
   const key=period==='year'?String(date.getFullYear()):ym(date);
   return sum(state.transactions.filter(t=>t.type==='income'&&t.date.startsWith(key)).map(t=>t.amount));
 }
+// Keep the nine graph positions anchored to the daily view's month. Selecting a bar
+// changes only the graph/summary scope, not the app month or the daily-entry date.
+function selectedIncomePeriod(){
+  const anchor=ym();
+  if(incomeGraphAnchor!==anchor){
+    incomeGraphAnchor=anchor;
+    incomeGraphSelected=incomeGraphPeriod==='year'?String(current.getFullYear()):anchor;
+  }
+  return incomeGraphSelected;
+}
+function selectedIncomePeriodLabel(){
+  const key=selectedIncomePeriod();
+  return incomeGraphPeriod==='year'?`${key}年`:`${Number(key.slice(0,4))}年${Number(key.slice(5,7))}月`;
+}
+function selectedIncomeTransactions(){
+  const key=selectedIncomePeriod();
+  return state.transactions.filter(t=>t.type==='income'&&t.date.startsWith(key));
+}
 function renderMobileIncomeOverview(){
   const root=document.getElementById('incomeMobileOverview');
   if(!root)return;
   const year=current.getFullYear(),month=current.getMonth();
-  const selected=new Date(year,month,1);
   const annual=incomeGraphPeriod==='year';
-  const total=incomePeriodTotal(selected,incomeGraphPeriod);
-  const previous=incomePeriodTotal(annual?new Date(year-1,month,1):new Date(year,month-1,1),incomeGraphPeriod);
-  document.getElementById('incomeGraphTitle').textContent=annual?`${year}年の収入`:(ym()===ym(new Date())?'今月の収入':`${month+1}月の収入`);
+  const selectedKey=selectedIncomePeriod();
+  const selectedDate=annual?new Date(Number(selectedKey),0,1):dateFromPickerValue(selectedKey+'-01');
+  const selectedLabel=selectedIncomePeriodLabel();
+  const total=incomePeriodTotal(selectedDate,incomeGraphPeriod);
+  const previousDate=annual?new Date(selectedDate.getFullYear()-1,0,1):new Date(selectedDate.getFullYear(),selectedDate.getMonth()-1,1);
+  const previous=incomePeriodTotal(previousDate,incomeGraphPeriod);
+  document.getElementById('incomeGraphTitle').textContent=annual?`${selectedKey}年の収入`:(selectedKey===ym(new Date())?'今月の収入':`${selectedLabel}の収入`);
   document.getElementById('incomeGraphTotal').textContent=money(total);
   const difference=previous?`${total>=previous?'+':''}${Math.round((total-previous)/previous*100)}%`:'― ―';
   document.getElementById('incomeGraphCompare').textContent=`${annual?'前年比':'前月比'} ${difference}`;
   document.getElementById('incomeGraphPeriod').value=incomeGraphPeriod;
+  // Always build the same axis around the daily view's month. The selected bar
+  // remains in its original position after a tap instead of recentering.
   const periods=Array.from({length:9},(_,index)=>{
     const offset=index-5;
     const date=annual?new Date(year+offset,month,1):new Date(year,month+offset,1);
-    return {date,amount:incomePeriodTotal(date,incomeGraphPeriod),selected:offset===0};
+    const key=annual?String(date.getFullYear()):ym(date);
+    return {date,key,amount:incomePeriodTotal(date,incomeGraphPeriod),selected:key===selectedKey};
   });
   const max=Math.max(1,...periods.map(p=>p.amount));
   document.getElementById('incomeGraphBars').innerHTML=periods.map(p=>{
@@ -553,11 +579,12 @@ function renderMobileIncomeOverview(){
     const height=p.amount?Math.max(4,Math.round(82*fraction)):0;
     const caption=annual?`${p.date.getFullYear()}年`:`${p.date.getMonth()+1}月`;
     const value=p.amount?money(p.amount):'¥0';
-    return `<button type="button" class="income-chart-column${p.selected?' selected':''}" data-income-period="${annual?p.date.getFullYear():ym(p.date)}" aria-label="${caption}の収入 ${value}${p.selected?'、選択中':''}"><span class="income-chart-track"><span class="income-chart-bar" style="height:${height}%"></span>${p.selected?`<span class="income-chart-tag" style="bottom:calc(${height}% + 6px)">${value}</span>`:''}</span><span class="income-chart-label">${caption}</span></button>`;
+    return `<button type="button" class="income-chart-column${p.selected?' selected':''}" data-income-period="${p.key}" aria-label="${caption}の収入 ${value}${p.selected?'、選択中':''}"><span class="income-chart-track"><span class="income-chart-bar" style="height:${height}%"></span>${p.selected?`<span class="income-chart-tag" style="bottom:calc(${height}% + 6px)">${value}</span>`:''}</span><span class="income-chart-label">${caption}</span></button>`;
   }).join('');
-  const monthItems=monthTx().filter(t=>t.type==='income');
-  document.getElementById('incomeMiniTotal').textContent=money(sum(monthItems.map(t=>t.amount)));
-  document.getElementById('incomeMiniCount').textContent=`${monthItems.length}件の入金`;
+  // The total, category amounts and drill-down use the SAME period as the graph.
+  const periodItems=selectedIncomeTransactions();
+  document.getElementById('incomeMiniTotal').textContent=money(sum(periodItems.map(t=>t.amount)));
+  document.getElementById('incomeMiniCount').textContent=`${periodItems.length}件の入金`;
   const categories=catsFor('income');
   const icons=[
     '<rect x="4" y="7" width="16" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M4 12h16M10 12v2h4v-2"/>',
@@ -566,11 +593,11 @@ function renderMobileIncomeOverview(){
     '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>'
   ];
   document.getElementById('incomeMonthCategories').innerHTML=categories.map((category,index)=>{
-    const rows=monthItems.filter(t=>t.category===category);
+    const rows=periodItems.filter(t=>t.category===category);
     const amount=sum(rows.map(t=>t.amount));
     const icon=icons[Math.min(index,3)];
     const encoded=encodeArg(category);
-    return `<button type="button" class="income-category-row" onclick="openIncomeMonthDetail('${encoded}')"><span class="income-category-symbol color-${index%4}" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${icon}</svg></span><span class="income-category-name"><strong>${escapeHtml(category)}</strong><small>今月の合計 ${money(amount)}</small></span><span class="income-category-count">${rows.length}件</span><span class="income-category-arrow" aria-hidden="true">›</span></button>`;
+    return `<button type="button" class="income-category-row" onclick="openIncomeMonthDetail('${encoded}')"><span class="income-category-symbol color-${index%4}" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${icon}</svg></span><span class="income-category-name"><strong>${escapeHtml(category)}</strong><small>${selectedLabel}の合計 ${money(amount)}</small></span><span class="income-category-count">${rows.length}件</span><span class="income-category-arrow" aria-hidden="true">›</span></button>`;
   }).join('');
 }
 function openIncomeFromCard(category=''){
@@ -578,21 +605,28 @@ function openIncomeFromCard(category=''){
   txDialogTitle.textContent='収入を追加';
   txType.value='income';
   updateCats();
-  txDate.value=localDateKey(mobileDailyDate);
+  // Default the new entry to the selected graph period without moving the
+  // existing day editor. Clamp the day for shorter months (e.g. January 31).
+  const key=selectedIncomePeriod();
+  const first=incomeGraphPeriod==='year'?new Date(Number(key),mobileDailyDate.getMonth(),1):dateFromPickerValue(key+'-01');
+  if(first){
+    const day=Math.min(mobileDailyDate.getDate(),new Date(first.getFullYear(),first.getMonth()+1,0).getDate());
+    txDate.value=localDateKey(new Date(first.getFullYear(),first.getMonth(),day));
+  }
   if(category&&catsFor('income').includes(category))txCategory.value=category;
 }
 function renderIncomeMonthDetail(){
   const dialog=document.getElementById('incomeMonthDialog');
   if(!dialog)return;
   const category=incomeDetailCategory;
-  const rows=monthTx().filter(t=>t.type==='income'&&(category===null||t.category===category))
+  const rows=selectedIncomeTransactions().filter(t=>category===null||t.category===category)
     .sort((a,b)=>b.date.localeCompare(a.date));
   document.getElementById('incomeMonthTitle').textContent=category?`${category}の明細`:'収入明細';
-  document.getElementById('incomeMonthMeta').textContent=`${current.getFullYear()}年${current.getMonth()+1}月 ・ ${rows.length}件 ・ 合計 ${money(sum(rows.map(t=>t.amount)))}`;
+  document.getElementById('incomeMonthMeta').textContent=`${selectedIncomePeriodLabel()} ・ ${rows.length}件 ・ 合計 ${money(sum(rows.map(t=>t.amount)))}`;
   document.getElementById('incomeMonthRows').innerHTML=rows.length?rows.map(t=>{
     const detail=[t.item,t.memo].filter(Boolean).map(x=>escapeHtml(x)).join(' ・ ');
     return `<div class="income-month-row"><span class="income-month-entry"><strong>${money(t.amount)}</strong><small>${escapeHtml(t.date.slice(5).replace('-','/'))} ・ ${escapeHtml(t.category)}${detail?' ・ '+detail:''}</small></span><span class="income-month-actions"><button type="button" onclick="editIncomeMonthTx('${encodeArg(t.id)}')">編集</button><button type="button" class="income-month-delete" onclick="deleteIncomeMonthTx('${encodeArg(t.id)}')">削除</button></span></div>`;
-  }).join(''):'<div class="daily-history-empty">この月の収入はありません</div>';
+  }).join(''):`<div class="daily-history-empty">${incomeGraphPeriod==='year'?'この年':'この月'}の収入はありません</div>`;
 }
 window.openIncomeMonthDetail=(encoded=null)=>{
   incomeDetailCategory=encoded===null?null:decodeURIComponent(encoded);
@@ -602,13 +636,13 @@ window.openIncomeMonthDetail=(encoded=null)=>{
 };
 window.editIncomeMonthTx=encoded=>{
   const id=decodeURIComponent(encoded);
-  if(!monthTx().some(t=>t.type==='income'&&t.id===id))return;
+  if(!selectedIncomeTransactions().some(t=>t.id===id))return;
   document.getElementById('incomeMonthDialog').close();
   openTx(id);
 };
 window.deleteIncomeMonthTx=encoded=>{
   const id=decodeURIComponent(encoded);
-  const index=state.transactions.findIndex(t=>t.id===id&&t.type==='income'&&t.date.startsWith(ym()));
+  const index=state.transactions.findIndex(t=>t.id===id&&t.type==='income'&&t.date.startsWith(selectedIncomePeriod()));
   if(index<0)return;
   const tx=state.transactions[index];
   if(!confirm(`${tx.date} の「${tx.category}」 ${money(tx.amount)} を削除しますか？`))return;
@@ -620,13 +654,12 @@ window.deleteIncomeMonthTx=encoded=>{
 function initIncomeMobileOverview(){
   const period=document.getElementById('incomeGraphPeriod');
   if(!period)return;
-  period.onchange=()=>{incomeGraphPeriod=period.value==='year'?'year':'month';renderMobileIncomeOverview()};
+  period.onchange=()=>{incomeGraphPeriod=period.value==='year'?'year':'month';incomeGraphSelected=incomeGraphPeriod==='year'?String(current.getFullYear()):ym();renderMobileIncomeOverview()};
   document.getElementById('incomeGraphBars').onclick=e=>{
     const button=e.target.closest('[data-income-period]');
     if(!button)return;
-    const value=button.dataset.incomePeriod;
-    const date=incomeGraphPeriod==='year'?new Date(Number(value),current.getMonth(),Math.min(mobileDailyDate.getDate(),28)):dateFromPickerValue(value+'-01');
-    if(date)setMobileDailyDate(date);
+    incomeGraphSelected=button.dataset.incomePeriod;
+    renderMobileIncomeOverview();
   };
   document.getElementById('incomeAddCard').onclick=()=>openIncomeFromCard();
   document.getElementById('incomeViewAll').onclick=()=>window.openIncomeMonthDetail();
