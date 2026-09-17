@@ -479,11 +479,11 @@ test('desktop expense weekly total row matches item row height and shows week su
 
 
 
-test('release assets use v2.6.59 cache-busting URLs', async ({ page }) => {
+test('release assets use v2.6.60 cache-busting URLs', async ({ page }) => {
   await openApp(page);
-  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.59');
+  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.60');
   const appSrc = await page.locator('script[src*="app.js"]').getAttribute('src');
-  expect(appSrc).toBe('app.js?v=2.6.59');
+  expect(appSrc).toBe('app.js?v=2.6.60');
 });
 
 
@@ -911,8 +911,17 @@ test('iPad and desktop show four equal overview cards and hide the variable card
   for(const width of [820,1024,1440]){
     await page.setViewportSize({width,height:900});
     await openApp(page);
-    const heights=await page.locator('#summaryCards .metric').evaluateAll(items=>items.slice(0,4).map(el=>el.getBoundingClientRect().height));
-    for(const height of heights)expect(Math.abs(height-160)).toBeLessThanOrEqual(1);
+    const cardGeometry=await page.locator('#summaryCards .metric').evaluateAll(items=>items.slice(0,4).map(el=>{
+      const card=el.getBoundingClientRect();
+      const value=el.querySelector('.value').getBoundingClientRect();
+      return {height:card.height,bottomGap:card.bottom-value.bottom};
+    }));
+    const heights=cardGeometry.map(card=>card.height);
+    for(const card of cardGeometry){
+      expect(card.height).toBeLessThan(130);
+      expect(card.bottomGap).toBeGreaterThanOrEqual(14);
+      expect(card.bottomGap).toBeLessThanOrEqual(22);
+    }
     await expect(page.locator('#summaryCards .metric:visible')).toHaveCount(4);
     await expect(page.locator('#summaryCards .metric[data-summary-key="variable"]')).toBeHidden();
     const geometry=await page.locator('#summaryCards').evaluate(root=>{
