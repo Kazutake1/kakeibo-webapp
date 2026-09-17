@@ -171,6 +171,82 @@ test('Design1 donut styling is shared by mobile, iPad and desktop', async ({ pag
   }
 });
 
+test('iPad and desktop donut cards align with six visible variable legend rows', async ({ page }) => {
+  for (const viewport of [
+    { width: 1024, height: 768 },
+    { width: 1440, height: 900 }
+  ]) {
+    await page.setViewportSize(viewport);
+    await openApp(page);
+
+    const metrics=await page.evaluate(() => {
+      const expenseCard=document.querySelector('.card:has(#donutChart)');
+      const variableCard=document.querySelector('.card:has(#variableDonut)');
+      const expenseCanvas=document.querySelector('#donutChart').getBoundingClientRect();
+      const variableCanvas=document.querySelector('#variableDonut').getBoundingClientRect();
+      const expenseToggle=document.querySelector('#donutLegend .donut-mode-toggle').getBoundingClientRect();
+      const variableToggle=document.querySelector('#variableLegend .donut-mode-toggle').getBoundingClientRect();
+      const expenseList=document.querySelector('#donutLegend .donut-legend-list');
+      const variableList=document.querySelector('#variableLegend .donut-legend-list');
+      const expenseListRect=expenseList.getBoundingClientRect();
+      const variableListRect=variableList.getBoundingClientRect();
+      const visibleVariableRows=[...variableList.children].filter(row=>{
+        const rect=row.getBoundingClientRect();
+        return rect.top>=variableListRect.top-1&&rect.bottom<=variableListRect.bottom+1;
+      }).length;
+      return {
+        expenseCardHeight:expenseCard.getBoundingClientRect().height,
+        variableCardHeight:variableCard.getBoundingClientRect().height,
+        expenseCanvasTop:expenseCanvas.top,
+        variableCanvasTop:variableCanvas.top,
+        expenseCanvasSize:[expenseCanvas.width,expenseCanvas.height],
+        variableCanvasSize:[variableCanvas.width,variableCanvas.height],
+        expenseToggleTop:expenseToggle.top,
+        variableToggleTop:variableToggle.top,
+        expenseListTop:expenseListRect.top,
+        variableListTop:variableListRect.top,
+        expenseListHeight:expenseList.clientHeight,
+        variableListHeight:variableList.clientHeight,
+        variableScrollHeight:variableList.scrollHeight,
+        variableOverflowY:getComputedStyle(variableList).overflowY,
+        variableTabIndex:variableList.tabIndex,
+        visibleVariableRows,
+        expenseBottomGap:expenseCard.getBoundingClientRect().bottom-Math.max(expenseCanvas.bottom,expenseListRect.bottom),
+        variableBottomGap:variableCard.getBoundingClientRect().bottom-Math.max(variableCanvas.bottom,variableListRect.bottom)
+      };
+    });
+
+    expect(Math.abs(metrics.expenseCardHeight-metrics.variableCardHeight)).toBeLessThanOrEqual(1);
+    expect(Math.abs(metrics.expenseCanvasTop-metrics.variableCanvasTop)).toBeLessThanOrEqual(1);
+    expect(Math.abs(metrics.expenseCanvasSize[0]-metrics.variableCanvasSize[0])).toBeLessThanOrEqual(1);
+    expect(Math.abs(metrics.expenseCanvasSize[1]-metrics.variableCanvasSize[1])).toBeLessThanOrEqual(1);
+    expect(Math.abs(metrics.expenseToggleTop-metrics.variableToggleTop)).toBeLessThanOrEqual(1);
+    expect(Math.abs(metrics.expenseListTop-metrics.variableListTop)).toBeLessThanOrEqual(1);
+    expect(metrics.expenseListHeight).toBe(228);
+    expect(metrics.variableListHeight).toBe(228);
+    expect(metrics.variableScrollHeight).toBeGreaterThan(metrics.variableListHeight);
+    expect(metrics.variableOverflowY).toBe('auto');
+    expect(metrics.variableTabIndex).toBe(0);
+    expect(metrics.visibleVariableRows).toBe(6);
+    expect(metrics.expenseBottomGap).toBeLessThanOrEqual(48);
+    expect(metrics.variableBottomGap).toBeLessThanOrEqual(48);
+  }
+});
+
+test('iPhone keeps every variable legend row visible without an inner scroll viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openApp(page);
+  const metrics=await page.locator('#variableLegend .donut-legend-list').evaluate(list=>({
+    clientHeight:list.clientHeight,
+    scrollHeight:list.scrollHeight,
+    overflowY:getComputedStyle(list).overflowY,
+    rows:list.children.length
+  }));
+  expect(metrics.rows).toBe(10);
+  expect(metrics.clientHeight).toBe(metrics.scrollHeight);
+  expect(metrics.overflowY).toBe('visible');
+});
+
 
 test('iPad donut cards use full width with side-by-side legend', async ({ page }) => {
   await page.setViewportSize({ width: 1024, height: 768 });
@@ -362,11 +438,11 @@ test('desktop expense weekly total row matches item row height and shows week su
 
 
 
-test('release assets use v2.6.51 cache-busting URLs', async ({ page }) => {
+test('release assets use v2.6.52 cache-busting URLs', async ({ page }) => {
   await openApp(page);
-  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.51');
+  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.52');
   const appSrc = await page.locator('script[src*="app.js"]').getAttribute('src');
-  expect(appSrc).toBe('app.js?v=2.6.51');
+  expect(appSrc).toBe('app.js?v=2.6.52');
 });
 
 
