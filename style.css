@@ -1449,6 +1449,11 @@ body.dark-mode .summary>.metric:nth-child(3) .value.neg{color:#ff6b6b!important;
   .summary>.metric[data-summary-key="variable"]{display:none}
 }
 
+/* v2.6.60: let the four PC/iPad summary cards fit their content without empty space. */
+@media(min-width:701px){
+  .summary>.metric:nth-child(-n+4){height:auto;min-height:0}
+}
+
 
 /* v2.6.57: PC/iPad income dashboard with summary first and a rolling 12-month chart. */
 .income-desktop-overview{display:none}
