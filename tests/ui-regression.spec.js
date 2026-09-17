@@ -188,6 +188,8 @@ test('iPad and desktop donut cards align with six visible variable legend rows',
       const variableToggle=document.querySelector('#variableLegend .donut-mode-toggle').getBoundingClientRect();
       const expenseList=document.querySelector('#donutLegend .donut-legend-list');
       const variableList=document.querySelector('#variableLegend .donut-legend-list');
+      const expenseCardRect=expenseCard.getBoundingClientRect();
+      const variableCardRect=variableCard.getBoundingClientRect();
       const expenseListRect=expenseList.getBoundingClientRect();
       const variableListRect=variableList.getBoundingClientRect();
       const visibleVariableRows=[...variableList.children].filter(row=>{
@@ -195,24 +197,24 @@ test('iPad and desktop donut cards align with six visible variable legend rows',
         return rect.top>=variableListRect.top-1&&rect.bottom<=variableListRect.bottom+1;
       }).length;
       return {
-        expenseCardHeight:expenseCard.getBoundingClientRect().height,
-        variableCardHeight:variableCard.getBoundingClientRect().height,
-        expenseCanvasTop:expenseCanvas.top,
-        variableCanvasTop:variableCanvas.top,
+        expenseCardHeight:expenseCardRect.height,
+        variableCardHeight:variableCardRect.height,
+        expenseCanvasTop:expenseCanvas.top-expenseCardRect.top,
+        variableCanvasTop:variableCanvas.top-variableCardRect.top,
         expenseCanvasSize:[expenseCanvas.width,expenseCanvas.height],
         variableCanvasSize:[variableCanvas.width,variableCanvas.height],
-        expenseToggleTop:expenseToggle.top,
-        variableToggleTop:variableToggle.top,
-        expenseListTop:expenseListRect.top,
-        variableListTop:variableListRect.top,
+        expenseToggleTop:expenseToggle.top-expenseCardRect.top,
+        variableToggleTop:variableToggle.top-variableCardRect.top,
+        expenseListTop:expenseListRect.top-expenseCardRect.top,
+        variableListTop:variableListRect.top-variableCardRect.top,
         expenseListHeight:expenseList.clientHeight,
         variableListHeight:variableList.clientHeight,
         variableScrollHeight:variableList.scrollHeight,
         variableOverflowY:getComputedStyle(variableList).overflowY,
         variableTabIndex:variableList.tabIndex,
         visibleVariableRows,
-        expenseBottomGap:expenseCard.getBoundingClientRect().bottom-Math.max(expenseCanvas.bottom,expenseListRect.bottom),
-        variableBottomGap:variableCard.getBoundingClientRect().bottom-Math.max(variableCanvas.bottom,variableListRect.bottom)
+        expenseBottomGap:expenseCardRect.bottom-Math.max(expenseCanvas.bottom,expenseListRect.bottom),
+        variableBottomGap:variableCardRect.bottom-Math.max(variableCanvas.bottom,variableListRect.bottom)
       };
     });
 
