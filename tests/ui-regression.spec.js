@@ -178,6 +178,12 @@ test('iPad and desktop donut cards align with six visible variable legend rows',
   ]) {
     await page.setViewportSize(viewport);
     await openApp(page);
+    await expect(page.locator('#donutLegend .donut-mode-toggle')).toHaveCount(1);
+    await expect(page.locator('#variableLegend .donut-mode-toggle')).toHaveCount(1);
+    await expect(page.locator('#donutLegend .donut-legend-row')).toHaveCount(6);
+    await expect(page.locator('#variableLegend .donut-legend-row')).toHaveCount(10);
+    await expect(page.locator('#donutChart')).toBeVisible();
+    await expect(page.locator('#variableDonut')).toBeVisible();
 
     const metrics=await page.evaluate(() => {
       const expenseCard=document.querySelector('.card:has(#donutChart)');
