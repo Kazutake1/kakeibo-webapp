@@ -116,6 +116,39 @@ test('iPad: variable category card does not clip and tabs stay visible while scr
 });
 
 
+test('desktop overview uses equal main columns and keeps the narrow layout stacked', async ({ page }) => {
+  for (const width of [1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await openApp(page);
+    const geometry = await page.locator('section[data-panel="dashboard"] > .grid').evaluate(grid => {
+      const cards = [...grid.children].slice(0, 2);
+      const gridRect = grid.getBoundingClientRect();
+      const leftRect = cards[0].getBoundingClientRect();
+      const rightRect = cards[1].getBoundingClientRect();
+      return {
+        columns: getComputedStyle(grid).gridTemplateColumns.trim().split(/\s+/).length,
+        leftWidth: leftRect.width,
+        rightWidth: rightRect.width,
+        splitCenter: (leftRect.right + rightRect.left) / 2,
+        gridCenter: gridRect.left + gridRect.width / 2,
+        overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
+      };
+    });
+    expect(geometry.columns).toBe(2);
+    expect(Math.abs(geometry.leftWidth - geometry.rightWidth)).toBeLessThanOrEqual(1);
+    expect(Math.abs(geometry.splitCenter - geometry.gridCenter)).toBeLessThanOrEqual(1);
+    expect(geometry.overflow).toBeLessThanOrEqual(1);
+  }
+
+  await page.setViewportSize({ width: 1000, height: 900 });
+  await openApp(page);
+  const narrowColumns = await page.locator('section[data-panel="dashboard"] > .grid').evaluate(
+    grid => getComputedStyle(grid).gridTemplateColumns.trim().split(/\s+/).length
+  );
+  expect(narrowColumns).toBe(1);
+});
+
+
 test('donut legends switch between percentage and amount', async ({ page }) => {
   await page.setViewportSize({ width: 1024, height: 768 });
   await openApp(page);
@@ -446,11 +479,11 @@ test('desktop expense weekly total row matches item row height and shows week su
 
 
 
-test('release assets use v2.6.58 cache-busting URLs', async ({ page }) => {
+test('release assets use v2.6.59 cache-busting URLs', async ({ page }) => {
   await openApp(page);
-  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.58');
+  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.59');
   const appSrc = await page.locator('script[src*="app.js"]').getAttribute('src');
-  expect(appSrc).toBe('app.js?v=2.6.58');
+  expect(appSrc).toBe('app.js?v=2.6.59');
 });
 
 
