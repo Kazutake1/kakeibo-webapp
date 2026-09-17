@@ -446,11 +446,11 @@ test('desktop expense weekly total row matches item row height and shows week su
 
 
 
-test('release assets use v2.6.57 cache-busting URLs', async ({ page }) => {
+test('release assets use v2.6.58 cache-busting URLs', async ({ page }) => {
   await openApp(page);
-  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.57');
+  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.58');
   const appSrc = await page.locator('script[src*="app.js"]').getAttribute('src');
-  expect(appSrc).toBe('app.js?v=2.6.57');
+  expect(appSrc).toBe('app.js?v=2.6.58');
 });
 
 
@@ -780,6 +780,7 @@ test('reference visual theme applies on phone, tablet and PC', async ({ page }) 
     expect(look.buttonBg).toContain('linear-gradient');
     expect(look.bodyBg).toContain('linear-gradient');
     await expect(page.locator('#summaryCards .metric')).toHaveCount(5);
+    await expect(page.locator('#summaryCards .metric:visible')).toHaveCount(width<=700?5:4);
     await expect(page.locator('#mobileFullEntry #quickFullBtn')).toHaveText('入力画面を開く');
   }
 });
@@ -873,14 +874,27 @@ test('iPhone overview cards are all exactly 80px with aligned variable remaining
   }
 });
 
-test('iPad and desktop overview card dimensions remain at the previous 160px design',async ({page})=>{
+test('iPad and desktop show four equal overview cards and hide the variable card',async ({page})=>{
   for(const width of [820,1024,1440]){
     await page.setViewportSize({width,height:900});
     await openApp(page);
     const heights=await page.locator('#summaryCards .metric').evaluateAll(items=>items.slice(0,4).map(el=>el.getBoundingClientRect().height));
     for(const height of heights)expect(Math.abs(height-160)).toBeLessThanOrEqual(1);
-    const remaining=page.locator('#summaryCards .metric').nth(4).locator('.sub');
-    await expect(remaining).toContainText('予算残り');
+    await expect(page.locator('#summaryCards .metric:visible')).toHaveCount(4);
+    await expect(page.locator('#summaryCards .metric[data-summary-key="variable"]')).toBeHidden();
+    const geometry=await page.locator('#summaryCards').evaluate(root=>{
+      const visible=[...root.querySelectorAll('.metric')].filter(card=>getComputedStyle(card).display!=='none');
+      return {
+        columns:getComputedStyle(root).gridTemplateColumns.split(' ').length,
+        widths:visible.map(card=>card.getBoundingClientRect().width),
+        tops:visible.map(card=>card.getBoundingClientRect().top),
+        overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth
+      };
+    });
+    expect(geometry.columns).toBe(4);
+    expect(Math.max(...geometry.widths)-Math.min(...geometry.widths)).toBeLessThanOrEqual(1);
+    expect(Math.max(...geometry.tops)-Math.min(...geometry.tops)).toBeLessThanOrEqual(1);
+    expect(geometry.overflow).toBeLessThanOrEqual(1);
   }
 });
 
@@ -928,7 +942,8 @@ test('selected shopping bag icon appears only as the fifth new icon without disr
       const variable=cards.nth(4);
       const icon=variable.locator('.metric-icon');
       const bag=icon.locator('svg path');
-      await expect(icon).toBeVisible();
+      if(width<=700)await expect(icon).toBeVisible();
+      else await expect(variable).toBeHidden();
       await expect(bag).toHaveAttribute('d','M5 9h14l1 12H4L5 9ZM9 10V7a3 3 0 0 1 6 0v3');
       const geometry=await variable.evaluate(el=>{
         const card=el.getBoundingClientRect();
