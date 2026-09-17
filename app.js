@@ -206,7 +206,7 @@ function renderSummary(){
     const sub=s?`<div class="sub">${s}</div>`:'';
     const budgetBar=key==='variable'&&budgetVar>0?`<div class="variable-budget-bar ${variableLevel}" role="img" aria-label="変動費の予算消化 ${variablePct}%"><span style="width:${variableWidth}%"></span></div>`:'';
     const icon=`<span class="metric-icon" aria-hidden="true">${summaryCardIcon(key)}</span>`;
-    return `<div class="metric"><div class="metric-heading">${icon}<div class="label">${l}</div></div><div class="value ${valueClass}">${money(v)}</div>${sub}${budgetBar}</div>`
+    return `<div class="metric" data-summary-key="${key}"><div class="metric-heading">${icon}<div class="label">${l}</div></div><div class="value ${valueClass}">${money(v)}</div>${sub}${budgetBar}</div>`
   }).join('');
 }
 // Decorative summary icons only. No chart-style three-bar icon is included.
