@@ -1443,6 +1443,13 @@ body.dark-mode .summary>.metric:nth-child(3) .value.neg{color:#ff6b6b!important;
 }
 
 
+/* v2.6.58: PC/iPad summary uses four primary cards; variable details live below. */
+@media(min-width:701px){
+  .summary{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .summary>.metric[data-summary-key="variable"]{display:none}
+}
+
+
 /* v2.6.57: PC/iPad income dashboard with summary first and a rolling 12-month chart. */
 .income-desktop-overview{display:none}
 @media(min-width:701px){
