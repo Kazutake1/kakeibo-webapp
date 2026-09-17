@@ -446,11 +446,11 @@ test('desktop expense weekly total row matches item row height and shows week su
 
 
 
-test('release assets use v2.6.54 cache-busting URLs', async ({ page }) => {
+test('release assets use v2.6.55 cache-busting URLs', async ({ page }) => {
   await openApp(page);
-  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.54');
+  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.55');
   const appSrc = await page.locator('script[src*="app.js"]').getAttribute('src');
-  expect(appSrc).toBe('app.js?v=2.6.54');
+  expect(appSrc).toBe('app.js?v=2.6.55');
 });
 
 
@@ -531,14 +531,20 @@ test('light mode daily-history delete button is red', async ({ page }) => {
 
 
 
-test('donut legends use ordered blue and green gradients', async ({ page }) => {
+test('donut legends use ordered gradients and weekly chart uses the cool page palette', async ({ page }) => {
   await openApp(page);
-  const colors=await page.evaluate(()=>({
-    expense:Array.from({length:6},(_,i)=>donutColor('donutChart',i,6)),
-    variable:Array.from({length:10},(_,i)=>donutColor('variableDonut',i,10)),
-    weeklyFirst:chartColor(0),
-    weeklySecond:chartColor(1)
-  }));
+  const colors=await page.evaluate(()=>{
+    const weeklyLight=Array.from({length:10},(_,i)=>chartColor(i));
+    document.body.classList.add('dark-mode');
+    const weeklyDark=Array.from({length:10},(_,i)=>chartColor(i));
+    document.body.classList.remove('dark-mode');
+    return {
+      expense:Array.from({length:6},(_,i)=>donutColor('donutChart',i,6)),
+      variable:Array.from({length:10},(_,i)=>donutColor('variableDonut',i,10)),
+      weeklyLight,
+      weeklyDark
+    };
+  });
 
   expect(colors.expense[0]).toBe('hsl(216, 82%, 34%)');
   expect(colors.expense.at(-1)).toBe('hsl(216, 82%, 76%)');
@@ -546,7 +552,12 @@ test('donut legends use ordered blue and green gradients', async ({ page }) => {
   expect(colors.variable[0]).toBe('hsl(145, 62%, 28%)');
   expect(colors.variable.at(-1)).toBe('hsl(145, 62%, 76%)');
   expect(new Set(colors.variable).size).toBe(colors.variable.length);
-  expect(colors.weeklyFirst).not.toBe(colors.weeklySecond);
+  expect(colors.weeklyLight).toEqual(['#1769d2','#18a6c9','#438ee8','#2ab7a9','#5aaef2','#557dc5','#45c5d0','#7399df','#7bb9da','#8ed9df']);
+  expect(colors.weeklyDark).toEqual(['#5fa8ff','#45d2ec','#7bb5ff','#55d7c4','#8bc8ff','#91aef4','#75e0e9','#a3baff','#9ed4ed','#b0edf0']);
+  expect(new Set(colors.weeklyLight).size).toBe(10);
+  expect(new Set(colors.weeklyDark).size).toBe(10);
+  expect(colors.weeklyLight).not.toContain('#ef4444');
+  expect(colors.weeklyDark).not.toContain('#ef4444');
 
   const expenseDots=page.locator('#donutLegend .donut-legend-name .dot');
   const variableDots=page.locator('#variableLegend .donut-legend-name .dot');
