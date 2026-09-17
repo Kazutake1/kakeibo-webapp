@@ -1443,11 +1443,11 @@ body.dark-mode .summary>.metric:nth-child(3) .value.neg{color:#ff6b6b!important;
 }
 
 
-/* v2.6.54: approved PC/iPad income dashboard, replacing the daily calendar. */
+/* v2.6.57: PC/iPad income dashboard with summary first and a rolling 12-month chart. */
 .income-desktop-overview{display:none}
 @media(min-width:701px){
   .income-desktop-overview{display:grid;gap:16px;min-width:0}
-  .income-desktop-top{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(250px,.95fr);gap:16px;align-items:stretch;min-width:0}
+  .income-desktop-top{display:grid;grid-template-columns:minmax(250px,.95fr) minmax(0,2.2fr);gap:16px;align-items:stretch;min-width:0}
   .income-desktop-bottom{display:grid;grid-template-columns:minmax(300px,.9fr) minmax(0,1.1fr);gap:16px;align-items:stretch;min-width:0}
   .income-desktop-card{background:var(--card);border:1px solid var(--line-soft);border-radius:22px;box-shadow:var(--shadow);overflow:hidden;min-width:0}
   .income-desktop-card-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:20px 22px 14px}
@@ -1456,10 +1456,10 @@ body.dark-mode .summary>.metric:nth-child(3) .value.neg{color:#ff6b6b!important;
   .income-desktop-period button{border:0;border-radius:999px;background:transparent;color:#7589a5;padding:9px 20px;font-size:13px;font-weight:800}
   .income-desktop-period button.active{background:#fff;color:#1674e5;box-shadow:0 2px 8px rgba(34,113,211,.12)}
   .income-desktop-graph{min-height:440px}
-  .income-desktop-chart{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));align-items:end;gap:18px;margin:4px 24px 22px;padding:0 10px;border-bottom:1px solid #cddff5;background:repeating-linear-gradient(to bottom,transparent 0,transparent 72px,#e4eefb 73px,#e4eefb 74px);min-width:0}
+  .income-desktop-chart{display:grid;grid-template-columns:repeat(var(--income-desktop-column-count,12),minmax(0,1fr));align-items:end;gap:12px;margin:4px 24px 22px;padding:0 10px;border-bottom:1px solid #cddff5;background:repeating-linear-gradient(to bottom,transparent 0,transparent 72px,#e4eefb 73px,#e4eefb 74px);min-width:0}
   .income-desktop-chart-column{display:flex;min-width:0;flex-direction:column;align-items:center;border:0;background:transparent;color:#617995;padding:0;cursor:pointer}
   .income-desktop-chart-track{position:relative;display:flex;width:100%;height:300px;align-items:flex-end;justify-content:center}
-  .income-desktop-chart-bar{display:block;width:min(66%,98px);border-radius:3px 3px 0 0;background:linear-gradient(180deg,#a9d6ff,#83c3fc);box-shadow:0 0 0 1px rgba(58,139,224,.05);transition:height .2s ease}
+  .income-desktop-chart-bar{display:block;width:min(42%,40px);border-radius:3px 3px 0 0;background:linear-gradient(180deg,#a9d6ff,#83c3fc);box-shadow:0 0 0 1px rgba(58,139,224,.05);transition:height .2s ease}
   .income-desktop-chart-column.selected .income-desktop-chart-bar{background:linear-gradient(180deg,#268df2,#0868df)}
   .income-desktop-chart-value{position:absolute;left:50%;bottom:calc(var(--bar-height,0%) + 8px);transform:translateX(-50%);color:#315b91;font-size:12px;font-weight:750;font-variant-numeric:tabular-nums;white-space:nowrap}
   .income-desktop-chart-column.selected .income-desktop-chart-value{color:#0870e7;font-size:13px;font-weight:850}
@@ -1509,7 +1509,7 @@ body.dark-mode .summary>.metric:nth-child(3) .value.neg{color:#ff6b6b!important;
   body.dark-mode .income-desktop-recent-head{background:#1c3046;color:#a8bdd5}
 }
 @media(min-width:701px) and (max-width:1000px){
-  .income-desktop-top{grid-template-columns:minmax(0,1.72fr) minmax(235px,.88fr);gap:12px}
+  .income-desktop-top{grid-template-columns:minmax(235px,.88fr) minmax(0,1.72fr);gap:12px}
   .income-desktop-bottom{grid-template-columns:minmax(280px,.85fr) minmax(0,1.15fr);gap:12px}
   .income-desktop-overview{gap:12px}
   .income-desktop-card-head{padding:17px 17px 12px}
@@ -1517,7 +1517,7 @@ body.dark-mode .summary>.metric:nth-child(3) .value.neg{color:#ff6b6b!important;
   .income-desktop-period{width:min(220px,48%)}
   .income-desktop-period button{padding:8px 11px;font-size:12px}
   .income-desktop-graph{min-height:390px}
-  .income-desktop-chart{gap:8px;margin:3px 15px 18px;padding:0 5px;background:repeating-linear-gradient(to bottom,transparent 0,transparent 62px,#e4eefb 63px,#e4eefb 64px)}
+  .income-desktop-chart{gap:5px;margin:3px 15px 18px;padding:0 5px;background:repeating-linear-gradient(to bottom,transparent 0,transparent 62px,#e4eefb 63px,#e4eefb 64px)}
   .income-desktop-chart-track{height:260px}
   .income-desktop-chart-value{font-size:10px}
   .income-desktop-chart-column.selected .income-desktop-chart-value{font-size:11px}
