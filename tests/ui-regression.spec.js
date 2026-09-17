@@ -446,11 +446,11 @@ test('desktop expense weekly total row matches item row height and shows week su
 
 
 
-test('release assets use v2.6.52 cache-busting URLs', async ({ page }) => {
+test('release assets use v2.6.53 cache-busting URLs', async ({ page }) => {
   await openApp(page);
-  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.52');
+  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.53');
   const appSrc = await page.locator('script[src*="app.js"]').getAttribute('src');
-  expect(appSrc).toBe('app.js?v=2.6.52');
+  expect(appSrc).toBe('app.js?v=2.6.53');
 });
 
 
@@ -594,6 +594,39 @@ test('desktop expense daily and weekly totals turn red only above limits', async
   const secondWeekTotal = rows.nth(1).locator('td').last().locator('b');
   await expect(secondWeekTotal).toHaveText('¥14,000');
   await expect(secondWeekTotal).not.toHaveClass(/expense-limit-over/);
+});
+
+test('PC and iPad expense calendar includes variable, self-investment, and special expenses only', async ({ page }) => {
+  const date='2026-09-17';
+  const transactions=[
+    {id:'calendar-variable',date,type:'variable',category:'セブンイレブン',item:'variable',amount:100,amountExpression:'100',memo:''},
+    {id:'calendar-self',date,type:'self',category:'書籍',item:'self',amount:200,amountExpression:'200',memo:''},
+    {id:'calendar-special',date,type:'special',category:'特別支出',item:'special',amount:300,amountExpression:'300',memo:''},
+    {id:'calendar-fixed',date,type:'fixed',category:'通信費',item:'fixed',amount:400,amountExpression:'400',memo:''},
+    {id:'calendar-tax',date,type:'tax',category:'所得税',item:'tax',amount:500,amountExpression:'500',memo:''}
+  ];
+  for(const viewport of [{width:820,height:900},{width:1440,height:900}]){
+    await page.setViewportSize(viewport);
+    await openApp(page,{transactions});
+    await page.locator('#tabs [data-tab="expense"]').click();
+    await page.evaluate(()=>{current=new Date(2026,8,1);renderCalendar()});
+
+    await expect(page.locator('#expenseCalendarWrap tr[data-calendar-type="variable"]')).toHaveCount(50);
+    await expect(page.locator('#expenseCalendarWrap tr[data-calendar-type="self"]')).toHaveCount(20);
+    await expect(page.locator('#expenseCalendarWrap tr[data-calendar-type="special"]')).toHaveCount(5);
+    await expect(page.locator('#expenseCalendarWrap tr[data-calendar-type="fixed"]')).toHaveCount(0);
+    await expect(page.locator('#expenseCalendarWrap tr[data-calendar-type="tax"]')).toHaveCount(0);
+    await expect(page.locator('#expenseCalendarWrap tr[data-calendar-type="self"]', {hasText:'¥200'})).toHaveCount(1);
+    await expect(page.locator('#expenseCalendarWrap tr[data-calendar-type="special"]', {hasText:'¥300'})).toHaveCount(1);
+    await expect(page.locator('#expenseCalendarWrap .expense-week-total-row', {hasText:'¥600'})).toHaveCount(1);
+
+    const learningRow=page.locator('#expenseCalendarWrap tr[data-calendar-type="self"]',{hasText:'学習'}).filter({has:page.locator('td[onclick*="2026-09-17"]')});
+    await learningRow.locator('td[onclick*="2026-09-17"]').click();
+    await expect(page.locator('#txDialog')).toBeVisible();
+    await expect(page.locator('#txType')).toHaveValue('self');
+    await expect(page.locator('#txCategory')).toHaveValue('学習');
+    await page.locator('#txCancel').click();
+  }
 });
 
 
@@ -1196,4 +1229,33 @@ test('iPhone expense calendar aligns dates regardless of whether an expense amou
     await expect(page.locator('#expenseMonthCalendar')).toBeHidden();
     await expect(page.locator('#expenseCalendarWrap .cal-table')).toBeVisible();
   }
+});
+
+test('iPhone expense calendar and summaries include self-investment and special expenses only', async ({page})=>{
+  const date='2026-09-17';
+  await page.setViewportSize({width:390,height:844});
+  await openApp(page,{transactions:[
+    {id:'iphone-variable',date,type:'variable',category:'セブンイレブン',item:'variable',amount:100,amountExpression:'100',memo:''},
+    {id:'iphone-self',date,type:'self',category:'書籍',item:'self',amount:200,amountExpression:'200',memo:''},
+    {id:'iphone-special',date,type:'special',category:'特別支出',item:'special',amount:300,amountExpression:'300',memo:''},
+    {id:'iphone-fixed',date,type:'fixed',category:'通信費',item:'fixed',amount:400,amountExpression:'400',memo:''},
+    {id:'iphone-tax',date,type:'tax',category:'所得税',item:'tax',amount:500,amountExpression:'500',memo:''}
+  ]});
+  await page.locator('#mobileNav [data-tab="expense"]').click();
+  await page.evaluate(()=>setMobileDailyDate(new Date(2026,8,17)));
+
+  await expect(page.locator('#expenseMonthCalendar [data-expense-date="2026-09-17"] .mobile-cal-money')).toHaveText('¥600');
+  await expect(page.locator('#expenseDayTotal')).toHaveText('¥600');
+  await expect(page.locator('#expenseSummaryDay')).toHaveText('¥600');
+  await expect(page.locator('#expenseSummaryWeek')).toHaveText('¥600');
+  await expect(page.locator('#expenseSummaryMonth')).toHaveText('¥600');
+  await expect(page.locator('#expenseCategoryList [data-category-type="variable"]')).toContainText('変動費');
+  await expect(page.locator('#expenseCategoryList [data-category-type="self"]')).toContainText('自己投資');
+  await expect(page.locator('#expenseCategoryList [data-category-type="special"]')).toContainText('特別費');
+  await expect(page.locator('#expenseCategoryList [data-calendar-type="self"]',{hasText:'書籍'})).toContainText('¥200');
+  await expect(page.locator('#expenseCategoryList [data-calendar-type="special"]',{hasText:'特別支出'})).toContainText('¥300');
+
+  await page.locator('#expenseCategoryList [data-calendar-type="self"]',{hasText:'学習'}).click();
+  await expect(page.locator('#dailyEntryDialog')).toBeVisible();
+  await expect(page.locator('#dailyEntryMeta')).toContainText('自己投資 ・ 学習');
 });
