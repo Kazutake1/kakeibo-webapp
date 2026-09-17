@@ -13,6 +13,7 @@ const DEFAULT_CATS = {
 };
 const DEFAULT_BUDGET = {income:{},tax:{},saving:{NISA:30000},self:{},fixed:{生命保険:25646,住宅ローン:60000,通信費:2181,Youtube:1280,'iCloud+':150,MoneyForward:550},special:{},variable:{セブンイレブン:20000,ローソン:0,ファミリーマート:0,スギ薬局:15000,ゲンキー:15000,その他:0,外食:0,インターネット:0,ネット通販:0,その他2:0}};
 const tabs=[['dashboard','概要'],['expense','支出'],['income','収入'],['budget','予算'],['settings','設定']];
+const EXPENSE_CALENDAR_TYPES=['variable','self','special'];
 let current = new Date(); current.setDate(1);
 let state = loadState();
 let mobileDailyDate = new Date();
@@ -418,10 +419,11 @@ function compactMoney(n){
   return money(v)
 }
 function pageTypeFor(kind){return kind==='income'?'income':'variable'}
+function pageTypesFor(kind){return kind==='income'?['income']:EXPENSE_CALENDAR_TYPES}
 function pageLabelFor(kind){return kind==='income'?'収入':'支出'}
 function pageAmountForDate(kind,dateKey){
-  const type=pageTypeFor(kind);
-  return sum(state.transactions.filter(t=>t.date===dateKey&&t.type===type).map(t=>t.amount))
+  const types=pageTypesFor(kind);
+  return sum(state.transactions.filter(t=>t.date===dateKey&&types.includes(t.type)).map(t=>t.amount))
 }
 function renderPageMonthCalendar(kind){
   const root=document.getElementById(kind==='income'?'incomeMonthCalendar':'expenseMonthCalendar');
@@ -471,7 +473,7 @@ function shiftMobileDailyDate(days){
   setMobileDailyDate(d)
 }
 function renderMobilePage(kind){
-  const type=pageTypeFor(kind);
+  const types=pageTypesFor(kind);
   const prefix=kind==='income'?'income':'expense';
   const d=mobileDailyDate;
   const dateKey=localDateKey(d);
@@ -489,38 +491,44 @@ function renderMobilePage(kind){
   dateSub.className='day-date-sub '+(hname?'holiday':'');
   datePicker.value=dateKey;
 
-  const tx=state.transactions.filter(t=>t.type===type&&t.date===dateKey);
+  const tx=state.transactions.filter(t=>types.includes(t.type)&&t.date===dateKey);
   const dayTotal=sum(tx.map(t=>t.amount));
   document.getElementById(prefix+'DayTotal').textContent=money(dayTotal);
   document.getElementById(prefix+'SummaryDay').textContent=money(dayTotal);
 
   const ws=startOfWeekMonday(d),we=new Date(ws);we.setDate(we.getDate()+6);
-  const weekTotal=sum(state.transactions.filter(t=>t.type===type&&validDateString(t.date)).filter(t=>{
+  const weekTotal=sum(state.transactions.filter(t=>types.includes(t.type)&&validDateString(t.date)).filter(t=>{
     const [y,m,dd]=t.date.split('-').map(Number),x=new Date(y,m-1,dd);
     return x>=ws&&x<=we
   }).map(t=>t.amount));
   document.getElementById(prefix+'SummaryWeek').textContent=money(weekTotal);
 
   const monthKey=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-  const monthTotal=sum(state.transactions.filter(t=>t.type===type&&String(t.date).startsWith(monthKey)).map(t=>t.amount));
+  const monthTotal=sum(state.transactions.filter(t=>types.includes(t.type)&&String(t.date).startsWith(monthKey)).map(t=>t.amount));
   document.getElementById(prefix+'SummaryMonth').textContent=money(monthTotal);
 
   const list=document.getElementById(prefix+'CategoryList');
-  const cats=catsFor(type);
   const palette=kind==='income'
     ?['#347fd6','#438edc','#54a0e6','#69afea','#7dbbea','#5f9ee0']
     :['#df4f5c','#e3646e','#e77982','#ee8d95','#d96675','#c84f63','#ef6f61','#d85c70','#e88770','#ca596a'];
 
-  list.innerHTML=cats.length?cats.map((cat,i)=>{
-    const amount=sum(tx.filter(t=>t.category===cat).map(t=>t.amount));
-    const action=amount
-      ? `openPageDailyHistory('${kind}','${encodeArg(cat)}')`
-      : `openPageDailyEntry('${kind}','${encodeArg(cat)}')`;
-    return `<button type="button" class="day-cat-row" onclick="${action}">
-      <span class="day-cat-main"><i class="day-cat-dot" style="background:${palette[i%palette.length]}"></i><span class="day-cat-name">${escapeHtml(cat)}</span></span>
-      <span class="day-cat-action">${amount?`<strong class="day-cat-amount">${money(amount)}</strong>`:`<span class="day-cat-add">＋追加</span>`}<span class="day-cat-arrow">›</span></span>
-    </button>`
-  }).join(''):`<div class="empty">${kind==='income'?'収入':'変動費'}の項目がありません</div>`;
+  const groups=types.map(type=>({type,label:TYPES.find(t=>t.key===type)?.label||type,cats:catsFor(type)}));
+  let colorIndex=0;
+  list.innerHTML=groups.some(group=>group.cats.length)?groups.map(group=>{
+    const rows=group.cats.map(cat=>{
+      const amount=sum(tx.filter(t=>t.type===group.type&&t.category===cat).map(t=>t.amount));
+      const action=kind==='income'
+        ?(amount?`openPageDailyHistory('income','${encodeArg(cat)}')`:`openPageDailyEntry('income','${encodeArg(cat)}')`)
+        :(amount?`openPageDailyHistoryType('${group.type}','${encodeArg(cat)}')`:`openPageDailyEntryType('${group.type}','${encodeArg(cat)}')`);
+      const color=palette[colorIndex++%palette.length];
+      return `<button type="button" class="day-cat-row" data-calendar-type="${group.type}" onclick="${action}">
+        <span class="day-cat-main"><i class="day-cat-dot" style="background:${color}"></i><span class="day-cat-name">${escapeHtml(cat)}</span></span>
+        <span class="day-cat-action">${amount?`<strong class="day-cat-amount">${money(amount)}</strong>`:`<span class="day-cat-add">＋追加</span>`}<span class="day-cat-arrow">›</span></span>
+      </button>`
+    }).join('');
+    const heading=kind==='expense'?`<div class="day-cat-section-title">${escapeHtml(group.label)}</div>`:'';
+    return `<div class="day-cat-section" data-category-type="${group.type}">${heading}${rows}</div>`
+  }).join(''):`<div class="empty">${kind==='income'?'収入':'支出'}の項目がありません</div>`;
 }
 // iPhone income dashboard: real transactions only; zero months never receive fabricated bars.
 let incomeGraphPeriod='month';
@@ -681,6 +689,14 @@ window.openPageDailyEntry=(kind,encoded)=>{
 };
 window.openPageDailyHistory=(kind,encoded)=>{
   openDailyHistoryFor(pageTypeFor(kind),encoded)
+};
+window.openPageDailyEntryType=(type,encoded)=>{
+  if(!EXPENSE_CALENDAR_TYPES.includes(type))return;
+  openDailyEntryEditor(type,decodeURIComponent(encoded))
+};
+window.openPageDailyHistoryType=(type,encoded)=>{
+  if(!EXPENSE_CALENDAR_TYPES.includes(type))return;
+  openDailyHistoryFor(type,encoded)
 };
 let dailyEntryType='variable';
 let dailyEntryCategory='';
@@ -885,10 +901,15 @@ function initMobileDaily(){
 function renderTypeCalendar(wrapId,type,cats,label){
   const root=document.getElementById(wrapId);
   if(!root)return;
+  const types=Array.isArray(type)?type:[type];
+  const isIncome=types.length===1&&types[0]==='income';
+  const rows=Array.isArray(cats)&&cats.length&&typeof cats[0]==='object'
+    ?cats
+    :(cats||[]).map(cat=>({type:types[0],cat}));
   const y=current.getFullYear(),m=current.getMonth();
   const days=new Date(y,m+1,0).getDate(), offset=(new Date(y,m,1).getDay()+6)%7;
   const weeks=Math.ceil((offset+days)/7);
-  const tx=monthTx().filter(t=>t.type===type);
+  const tx=monthTx().filter(t=>types.includes(t.type));
   let html='<table class="cal-table">';
   for(let w=0;w<weeks;w++){
     const ds=[];
@@ -899,16 +920,18 @@ function renderTypeCalendar(wrapId,type,cats,label){
       return `<th class="${cls}" title="${escapeHtml(hn)}">${d}<span class="weekday-label">${wd}</span></th>`
     }).join('')}<th>合計</th></tr>`;
 
-    for(const cat of cats){
-      html+=`<tr><td class="cal-cat">${escapeHtml(cat)}</td>${ds.map(d=>{
+    for(const row of rows){
+      const rowTx=tx.filter(t=>t.type===row.type);
+      const typeLabel=TYPES.find(t=>t.key===row.type)?.label||row.type;
+      html+=`<tr data-calendar-type="${row.type}"><td class="cal-cat">${!isIncome?`<span class="cal-cat-type">${escapeHtml(typeLabel)}</span>`:''}${escapeHtml(row.cat)}</td>${ds.map(d=>{
         if(!d)return '<td></td>';
         const date=ym()+'-'+String(d).padStart(2,'0');
-        const a=sum(tx.filter(t=>t.category===cat&&t.date===date).map(t=>t.amount));
-        return `<td class="cal-cell ${type==='income'?'income-cell':''}" onclick="quickAddType('${date}','${type}','${encodeArg(cat)}')">${a?`<span class="amt">${money(a)}</span>`:''}</td>`
-      }).join('')}<td class="cal-cell ${type==='income'?'income-cell':''}"><b>${money(sum(tx.filter(t=>t.category===cat&&ds.includes(+t.date.slice(-2))).map(t=>t.amount)))}</b></td></tr>`
+        const a=sum(rowTx.filter(t=>t.category===row.cat&&t.date===date).map(t=>t.amount));
+        return `<td class="cal-cell ${isIncome?'income-cell':''}" onclick="quickAddType('${date}','${row.type}','${encodeArg(row.cat)}')">${a?`<span class="amt">${money(a)}</span>`:''}</td>`
+      }).join('')}<td class="cal-cell ${isIncome?'income-cell':''}"><b>${money(sum(rowTx.filter(t=>t.category===row.cat&&ds.includes(+t.date.slice(-2))).map(t=>t.amount)))}</b></td></tr>`
     }
 
-    if(type==='variable'){
+    if(!isIncome){
       const weekTotal=sum(tx.filter(t=>ds.includes(+t.date.slice(-2))).map(t=>t.amount));
       html+=`<tr class="expense-week-total-row"><td class="cal-cat"><b>${label}合計</b></td>${ds.map(d=>{
         if(!d)return '<td class="cal-cell expense-week-total-cell"></td>';
@@ -921,7 +944,7 @@ function renderTypeCalendar(wrapId,type,cats,label){
         if(!d)return '<td></td>';
         const date=ym()+'-'+String(d).padStart(2,'0');
         const a=sum(tx.filter(t=>t.date===date).map(t=>t.amount));
-        return `<td class="${type==='income'?'income-cell':''}"><b>${a?money(a):''}</b></td>`
+        return `<td class="${isIncome?'income-cell':''}"><b>${a?money(a):''}</b></td>`
       }).join('')}<td></td></tr>`;
     }
   }
@@ -929,7 +952,8 @@ function renderTypeCalendar(wrapId,type,cats,label){
   root.innerHTML=html
 }
 function renderCalendar(){
-  renderTypeCalendar('expenseCalendarWrap','variable',catsFor('variable'),'支出');
+  const expenseRows=EXPENSE_CALENDAR_TYPES.flatMap(type=>catsFor(type).map(cat=>({type,cat})));
+  renderTypeCalendar('expenseCalendarWrap',EXPENSE_CALENDAR_TYPES,expenseRows,'支出');
   renderTypeCalendar('incomeCalendarWrap','income',catsFor('income'),'収入');
 }
 window.quickAddType=(date,type,encoded)=>{
