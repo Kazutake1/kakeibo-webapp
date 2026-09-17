@@ -608,6 +608,61 @@ function renderMobileIncomeOverview(){
     return `<button type="button" class="income-category-row" onclick="openIncomeMonthDetail('${encoded}')"><span class="income-category-symbol color-${index%4}" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${icon}</svg></span><span class="income-category-name"><strong>${escapeHtml(category)}</strong><small>${selectedLabel}の合計 ${money(amount)}</small></span><span class="income-category-count">${rows.length}件</span><span class="income-category-arrow" aria-hidden="true">›</span></button>`;
   }).join('');
 }
+function renderDesktopIncomeOverview(){
+  const root=document.getElementById('incomeDesktopOverview');
+  if(!root)return;
+  const year=current.getFullYear(),month=current.getMonth();
+  const annual=incomeGraphPeriod==='year';
+  const selectedKey=selectedIncomePeriod();
+  const selectedDate=annual?new Date(Number(selectedKey),0,1):dateFromPickerValue(selectedKey+'-01');
+  const selectedLabel=selectedIncomePeriodLabel();
+  const total=incomePeriodTotal(selectedDate,incomeGraphPeriod);
+  const previousDate=annual?new Date(selectedDate.getFullYear()-1,0,1):new Date(selectedDate.getFullYear(),selectedDate.getMonth()-1,1);
+  const previous=incomePeriodTotal(previousDate,incomeGraphPeriod);
+  const difference=previous?`${total>=previous?'+':''}${Math.round((total-previous)/previous*100)}%`:'― ―';
+  const periodItems=selectedIncomeTransactions();
+
+  root.querySelectorAll('[data-income-desktop-period]').forEach(button=>{
+    button.classList.toggle('active',button.dataset.incomeDesktopPeriod===incomeGraphPeriod);
+    button.setAttribute('aria-pressed',String(button.dataset.incomeDesktopPeriod===incomeGraphPeriod));
+  });
+  document.getElementById('incomeDesktopTotalTitle').textContent=annual?`${selectedKey}年の収入`:(selectedKey===ym(new Date())?'今月の収入':`${selectedLabel}の収入`);
+  document.getElementById('incomeDesktopTotal').textContent=money(total);
+  document.getElementById('incomeDesktopCount').textContent=`${periodItems.length}件の入金`;
+  document.getElementById('incomeDesktopCompareLabel').textContent=annual?'前年比':'前月比';
+  document.getElementById('incomeDesktopCompare').textContent=difference;
+
+  const periods=Array.from({length:6},(_,index)=>{
+    const offset=index-5;
+    const date=annual?new Date(year+offset,month,1):new Date(year,month+offset,1);
+    const key=annual?String(date.getFullYear()):ym(date);
+    return {date,key,amount:incomePeriodTotal(date,incomeGraphPeriod),selected:key===selectedKey};
+  });
+  const max=Math.max(1,...periods.map(period=>period.amount));
+  document.getElementById('incomeDesktopGraphBars').innerHTML=periods.map(period=>{
+    const height=period.amount?Math.max(5,Math.round(82*period.amount/max)):0;
+    const caption=annual?`${period.date.getFullYear()}年`:`${period.date.getMonth()+1}月`;
+    const value=money(period.amount);
+    return `<button type="button" class="income-desktop-chart-column${period.selected?' selected':''}" data-income-desktop-key="${period.key}" aria-label="${caption}の収入 ${value}${period.selected?'、選択中':''}"><span class="income-desktop-chart-track" style="--bar-height:${height}%"><span class="income-desktop-chart-value">${period.amount?value:''}</span><span class="income-desktop-chart-bar" style="height:${height}%"></span></span><span class="income-desktop-chart-label">${caption}</span></button>`
+  }).join('');
+
+  const categoryColors=['#237de6','#58adf3','#18bde2','#58d1e5'];
+  document.getElementById('incomeDesktopCategories').innerHTML=catsFor('income').map((category,index)=>{
+    const rows=periodItems.filter(t=>t.category===category);
+    const amount=sum(rows.map(t=>t.amount));
+    return `<button type="button" class="income-desktop-category-row" onclick="openIncomeMonthDetail('${encodeArg(category)}')"><span class="income-desktop-category-name"><i style="background:${categoryColors[index%categoryColors.length]}"></i>${escapeHtml(category)}</span><strong>${money(amount)}</strong></button>`
+  }).join('');
+
+  const recent=[...periodItems].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
+  document.getElementById('incomeDesktopRecentRows').innerHTML=recent.length?recent.map(t=>{
+    const content=t.item||t.memo||t.category;
+    return `<div class="income-desktop-recent-row"><span>${escapeHtml(t.date.slice(5).replace('-','/'))}</span><span class="income-desktop-recent-category">${escapeHtml(t.category)}</span><span class="income-desktop-recent-content">${escapeHtml(content)}</span><strong>${money(t.amount)}</strong><button type="button" onclick="editIncomeMonthTx('${encodeArg(t.id)}')">編集</button></div>`
+  }).join(''):`<div class="income-desktop-empty">${annual?'この年':'この月'}の収入はありません</div>`;
+}
+function renderIncomeOverviews(){
+  renderMobileIncomeOverview();
+  renderDesktopIncomeOverview();
+}
 function openIncomeFromCard(category=''){
   openTx();
   txDialogTitle.textContent='収入を追加';
@@ -662,15 +717,29 @@ window.deleteIncomeMonthTx=encoded=>{
 function initIncomeMobileOverview(){
   const period=document.getElementById('incomeGraphPeriod');
   if(!period)return;
-  period.onchange=()=>{incomeGraphPeriod=period.value==='year'?'year':'month';incomeGraphSelected=incomeGraphPeriod==='year'?String(current.getFullYear()):ym();renderMobileIncomeOverview()};
+  period.onchange=()=>{incomeGraphPeriod=period.value==='year'?'year':'month';incomeGraphSelected=incomeGraphPeriod==='year'?String(current.getFullYear()):ym();renderIncomeOverviews()};
   document.getElementById('incomeGraphBars').onclick=e=>{
     const button=e.target.closest('[data-income-period]');
     if(!button)return;
     incomeGraphSelected=button.dataset.incomePeriod;
-    renderMobileIncomeOverview();
+    renderIncomeOverviews();
   };
   document.getElementById('incomeAddCard').onclick=()=>openIncomeFromCard();
   document.getElementById('incomeViewAll').onclick=()=>window.openIncomeMonthDetail();
+  const desktopRoot=document.getElementById('incomeDesktopOverview');
+  desktopRoot.querySelectorAll('[data-income-desktop-period]').forEach(button=>button.onclick=()=>{
+    incomeGraphPeriod=button.dataset.incomeDesktopPeriod==='year'?'year':'month';
+    incomeGraphSelected=incomeGraphPeriod==='year'?String(current.getFullYear()):ym();
+    renderIncomeOverviews();
+  });
+  document.getElementById('incomeDesktopGraphBars').onclick=e=>{
+    const button=e.target.closest('[data-income-desktop-key]');
+    if(!button)return;
+    incomeGraphSelected=button.dataset.incomeDesktopKey;
+    renderIncomeOverviews();
+  };
+  document.getElementById('incomeDesktopAdd').onclick=()=>openIncomeFromCard();
+  document.getElementById('incomeDesktopViewAll').onclick=()=>window.openIncomeMonthDetail();
   document.getElementById('incomeMonthClose').onclick=()=>document.getElementById('incomeMonthDialog').close();
   document.getElementById('incomeMonthAdd').onclick=()=>{
     const category=incomeDetailCategory;
@@ -682,7 +751,7 @@ function initIncomeMobileOverview(){
 function renderMobileDaily(){
   renderMobilePage('expense');
   renderMobilePage('income');
-  renderMobileIncomeOverview();
+  renderIncomeOverviews();
 }
 window.openPageDailyEntry=(kind,encoded)=>{
   openDailyEntryEditor(pageTypeFor(kind),decodeURIComponent(encoded))
@@ -954,7 +1023,6 @@ function renderTypeCalendar(wrapId,type,cats,label){
 function renderCalendar(){
   const expenseRows=EXPENSE_CALENDAR_TYPES.flatMap(type=>catsFor(type).map(cat=>({type,cat})));
   renderTypeCalendar('expenseCalendarWrap',EXPENSE_CALENDAR_TYPES,expenseRows,'支出');
-  renderTypeCalendar('incomeCalendarWrap','income',catsFor('income'),'収入');
 }
 window.quickAddType=(date,type,encoded)=>{
   const cat=decodeURIComponent(encoded);
