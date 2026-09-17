@@ -446,11 +446,11 @@ test('desktop expense weekly total row matches item row height and shows week su
 
 
 
-test('release assets use v2.6.55 cache-busting URLs', async ({ page }) => {
+test('release assets use v2.6.56 cache-busting URLs', async ({ page }) => {
   await openApp(page);
-  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.55');
+  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.56');
   const appSrc = await page.locator('script[src*="app.js"]').getAttribute('src');
-  expect(appSrc).toBe('app.js?v=2.6.55');
+  expect(appSrc).toBe('app.js?v=2.6.56');
 });
 
 
@@ -627,6 +627,10 @@ test('PC and iPad expense calendar includes variable, self-investment, and speci
     await expect(page.locator('#expenseCalendarWrap tr[data-calendar-type="special"]')).toHaveCount(5);
     await expect(page.locator('#expenseCalendarWrap tr[data-calendar-type="fixed"]')).toHaveCount(0);
     await expect(page.locator('#expenseCalendarWrap tr[data-calendar-type="tax"]')).toHaveCount(0);
+    await expect(page.locator('#expenseCalendarWrap .cal-cat-type')).toHaveCount(0);
+    const selfItemLabels=await page.locator('#expenseCalendarWrap tr[data-calendar-type="self"]',{hasText:'書籍'}).locator('.cal-cat').allTextContents();
+    expect(selfItemLabels).toEqual(Array(5).fill('書籍'));
+    expect(selfItemLabels.join('')).not.toContain('自己投資');
     await expect(page.locator('#expenseCalendarWrap tr[data-calendar-type="self"]', {hasText:'¥200'})).toHaveCount(1);
     await expect(page.locator('#expenseCalendarWrap tr[data-calendar-type="special"]', {hasText:'¥300'})).toHaveCount(1);
     await expect(page.locator('#expenseCalendarWrap .expense-week-total-row', {hasText:'¥600'})).toHaveCount(1);
