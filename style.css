@@ -1444,6 +1444,100 @@ body.dark-mode .summary>.metric:nth-child(3) .value.neg{color:#ff6b6b!important;
 }
 
 
+/* v2.6.54: approved PC/iPad income dashboard, replacing the daily calendar. */
+.income-desktop-overview{display:none}
+@media(min-width:701px){
+  .income-desktop-overview{display:grid;gap:16px;min-width:0}
+  .income-desktop-top{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(250px,.95fr);gap:16px;align-items:stretch;min-width:0}
+  .income-desktop-bottom{display:grid;grid-template-columns:minmax(300px,.9fr) minmax(0,1.1fr);gap:16px;align-items:stretch;min-width:0}
+  .income-desktop-card{background:var(--card);border:1px solid var(--line-soft);border-radius:22px;box-shadow:var(--shadow);overflow:hidden;min-width:0}
+  .income-desktop-card-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:20px 22px 14px}
+  .income-desktop-card-head h2,.income-desktop-total h2{margin:0;color:var(--text);font-size:20px;font-weight:850;letter-spacing:.01em}
+  .income-desktop-period{display:grid;grid-template-columns:1fr 1fr;width:min(290px,42%);padding:4px;border-radius:999px;background:#eaf3ff}
+  .income-desktop-period button{border:0;border-radius:999px;background:transparent;color:#7589a5;padding:9px 20px;font-size:13px;font-weight:800}
+  .income-desktop-period button.active{background:#fff;color:#1674e5;box-shadow:0 2px 8px rgba(34,113,211,.12)}
+  .income-desktop-graph{min-height:440px}
+  .income-desktop-chart{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));align-items:end;gap:18px;margin:4px 24px 22px;padding:0 10px;border-bottom:1px solid #cddff5;background:repeating-linear-gradient(to bottom,transparent 0,transparent 72px,#e4eefb 73px,#e4eefb 74px);min-width:0}
+  .income-desktop-chart-column{display:flex;min-width:0;flex-direction:column;align-items:center;border:0;background:transparent;color:#617995;padding:0;cursor:pointer}
+  .income-desktop-chart-track{position:relative;display:flex;width:100%;height:300px;align-items:flex-end;justify-content:center}
+  .income-desktop-chart-bar{display:block;width:min(66%,98px);border-radius:3px 3px 0 0;background:linear-gradient(180deg,#a9d6ff,#83c3fc);box-shadow:0 0 0 1px rgba(58,139,224,.05);transition:height .2s ease}
+  .income-desktop-chart-column.selected .income-desktop-chart-bar{background:linear-gradient(180deg,#268df2,#0868df)}
+  .income-desktop-chart-value{position:absolute;left:50%;bottom:calc(var(--bar-height,0%) + 8px);transform:translateX(-50%);color:#315b91;font-size:12px;font-weight:750;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .income-desktop-chart-column.selected .income-desktop-chart-value{color:#0870e7;font-size:13px;font-weight:850}
+  .income-desktop-chart-label{padding:10px 2px 12px;color:#315b91;font-size:13px;font-weight:750;white-space:nowrap}
+  .income-desktop-chart-column.selected .income-desktop-chart-label{color:#0870e7;font-weight:850}
+  .income-desktop-side{display:grid;grid-template-rows:112px minmax(0,1fr);gap:16px;min-width:0}
+  .income-desktop-add{display:flex;align-items:center;justify-content:center;gap:17px;border:0;border-radius:22px;background:linear-gradient(135deg,#3299f8 0%,#1972ed 100%);box-shadow:0 12px 25px rgba(28,116,225,.18);color:#fff;font-size:20px;font-weight:850;letter-spacing:.01em}
+  .income-desktop-add span{font-size:42px;font-weight:350;line-height:1}
+  .income-desktop-total{display:flex;flex-direction:column;padding:24px 28px 20px}
+  .income-desktop-total>strong{margin-top:30px;color:#153e73;font-size:44px;line-height:1;font-weight:880;letter-spacing:-.04em;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .income-desktop-total>span{margin-top:14px;color:#35577e;font-size:15px;font-weight:750}
+  .income-desktop-compare{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:auto;padding-top:18px;border-top:1px solid var(--line-soft);color:#315174;font-size:15px;font-weight:750}
+  .income-desktop-compare b{color:#1375e4;font-size:20px;font-weight:880;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .income-desktop-categories,.income-desktop-recent{min-height:310px}
+  .income-desktop-categories>.income-desktop-card-head,.income-desktop-recent>.income-desktop-card-head{padding-bottom:12px}
+  .income-desktop-categories>div:last-child{padding:0 22px 18px}
+  .income-desktop-category-row{display:grid;width:100%;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px;border:0;border-bottom:1px solid var(--line-soft);background:transparent;color:var(--text);padding:15px 8px;text-align:left}
+  .income-desktop-category-row:last-child{border-bottom:0}
+  .income-desktop-category-row:hover{background:#f7fbff}
+  .income-desktop-category-name{display:flex;align-items:center;gap:14px;min-width:0;font-size:15px;font-weight:750}
+  .income-desktop-category-name i{width:20px;height:20px;flex:0 0 20px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(255,255,255,.35)}
+  .income-desktop-category-row strong{color:#183e70;font-size:16px;font-weight:820;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .income-desktop-recent>.income-desktop-card-head button{border:1px solid #cfe1f7;border-radius:999px;background:#fff;color:#1572dc;padding:8px 15px;font-size:12px;font-weight:800;white-space:nowrap}
+  .income-desktop-recent-head,.income-desktop-recent-row{display:grid;grid-template-columns:62px 120px minmax(110px,1fr) 120px 66px;gap:12px;align-items:center}
+  .income-desktop-recent-head{margin:0 22px;padding:9px 12px;border-radius:9px;background:#edf5ff;color:#7188a4;font-size:11px;font-weight:750}
+  #incomeDesktopRecentRows{padding:0 22px 14px}
+  .income-desktop-recent-row{min-height:58px;padding:9px 12px;border-bottom:1px solid var(--line-soft);color:#26466d;font-size:13px}
+  .income-desktop-recent-row>span:first-child{font-variant-numeric:tabular-nums}
+  .income-desktop-recent-category{font-weight:750;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .income-desktop-recent-content{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .income-desktop-recent-row>strong{color:#173d6e;text-align:right;font-size:14px;font-weight:820;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .income-desktop-recent-row>button{border:0;border-radius:999px;background:#edf5ff;color:#1472dc;padding:7px 10px;font-size:11px;font-weight:800}
+  .income-desktop-empty{display:flex;min-height:170px;align-items:center;justify-content:center;color:var(--muted);font-size:13px}
+  body.dark-mode .income-desktop-card{background:var(--card);border-color:var(--line-soft)}
+  body.dark-mode .income-desktop-period{background:#1e334c}
+  body.dark-mode .income-desktop-period button{color:#9bb0c8}
+  body.dark-mode .income-desktop-period button.active{background:#2a4b70;color:#8ec5ff;box-shadow:none}
+  body.dark-mode .income-desktop-chart{border-bottom-color:#38536f;background:repeating-linear-gradient(to bottom,transparent 0,transparent 72px,#273b51 73px,#273b51 74px)}
+  body.dark-mode .income-desktop-chart-bar{background:linear-gradient(180deg,#4e789f,#365f87)}
+  body.dark-mode .income-desktop-chart-column.selected .income-desktop-chart-bar{background:linear-gradient(180deg,#4ca5ff,#2179d9)}
+  body.dark-mode .income-desktop-chart-value,body.dark-mode .income-desktop-chart-label{color:#9db7d4}
+  body.dark-mode .income-desktop-chart-column.selected .income-desktop-chart-value,body.dark-mode .income-desktop-chart-column.selected .income-desktop-chart-label{color:#71b7ff}
+  body.dark-mode .income-desktop-total>strong,body.dark-mode .income-desktop-category-row strong,body.dark-mode .income-desktop-recent-row>strong{color:#e6f2ff}
+  body.dark-mode .income-desktop-total>span,body.dark-mode .income-desktop-compare,body.dark-mode .income-desktop-recent-row{color:#b3c6da}
+  body.dark-mode .income-desktop-category-row:hover{background:#1b2a39}
+  body.dark-mode .income-desktop-recent>.income-desktop-card-head button,body.dark-mode .income-desktop-recent-row>button{background:#203b5a;border-color:#315475;color:#92c7ff}
+  body.dark-mode .income-desktop-recent-head{background:#1c3046;color:#a8bdd5}
+}
+@media(min-width:701px) and (max-width:1000px){
+  .income-desktop-top{grid-template-columns:minmax(0,1.72fr) minmax(235px,.88fr);gap:12px}
+  .income-desktop-bottom{grid-template-columns:minmax(280px,.85fr) minmax(0,1.15fr);gap:12px}
+  .income-desktop-overview{gap:12px}
+  .income-desktop-card-head{padding:17px 17px 12px}
+  .income-desktop-card-head h2,.income-desktop-total h2{font-size:17px}
+  .income-desktop-period{width:min(220px,48%)}
+  .income-desktop-period button{padding:8px 11px;font-size:12px}
+  .income-desktop-graph{min-height:390px}
+  .income-desktop-chart{gap:8px;margin:3px 15px 18px;padding:0 5px;background:repeating-linear-gradient(to bottom,transparent 0,transparent 62px,#e4eefb 63px,#e4eefb 64px)}
+  .income-desktop-chart-track{height:260px}
+  .income-desktop-chart-value{font-size:10px}
+  .income-desktop-chart-column.selected .income-desktop-chart-value{font-size:11px}
+  .income-desktop-chart-label{font-size:11px}
+  .income-desktop-total{padding:21px 18px 17px}
+  .income-desktop-total>strong{font-size:32px;margin-top:27px}
+  .income-desktop-side{grid-template-rows:96px minmax(0,1fr);gap:12px}
+  .income-desktop-add{font-size:17px;gap:10px}
+  .income-desktop-add span{font-size:34px}
+  .income-desktop-categories>div:last-child,#incomeDesktopRecentRows{padding-left:15px;padding-right:15px}
+  .income-desktop-recent-head{margin-left:15px;margin-right:15px}
+  .income-desktop-recent-head,.income-desktop-recent-row{grid-template-columns:47px 84px minmax(72px,1fr) 91px 53px;gap:7px}
+  .income-desktop-recent-head{padding:8px;font-size:10px}
+  .income-desktop-recent-row{padding:8px;font-size:11px}
+  .income-desktop-recent-row>strong{font-size:12px}
+  .income-desktop-recent-row>button{padding:6px 7px;font-size:10px}
+  body.dark-mode .income-desktop-chart{background:repeating-linear-gradient(to bottom,transparent 0,transparent 62px,#273b51 63px,#273b51 64px)}
+}
+
 /* v2.6.48: iPhone income page only. Retain the original daily entry and editing card. */
 .income-mobile-overview{display:none}
 @media(max-width:700px){
