@@ -1168,8 +1168,10 @@ function drawWeekly(){
     .map((c,j)=>`<span><i class="dot" style="background:${chartColor(j)}"></i>${escapeHtml(c)}</span>`)
     .join('');
 }
-const CHART_COLORS_LIGHT=['#2563eb','#f59e0b','#059669','#db2777','#dc2626','#0891b2','#7c3aed','#65a30d','#a16207','#0f766e'];
-const CHART_COLORS_DARK=['#60a5fa','#fbbf24','#34d399','#f472b6','#f87171','#22d3ee','#a78bfa','#a3e635','#f59e0b','#2dd4bf'];
+// Cool blue-based palette aligned with the app's current cards and charts.
+// Red remains reserved for the weekly budget warning line and over-limit totals.
+const CHART_COLORS_LIGHT=['#1769d2','#18a6c9','#438ee8','#2ab7a9','#5aaef2','#557dc5','#45c5d0','#7399df','#7bb9da','#8ed9df'];
+const CHART_COLORS_DARK=['#5fa8ff','#45d2ec','#7bb5ff','#55d7c4','#8bc8ff','#91aef4','#75e0e9','#a3baff','#9ed4ed','#b0edf0'];
 function chartColors(){return document.body.classList.contains('dark-mode')?CHART_COLORS_DARK:CHART_COLORS_LIGHT}
 function chartColor(index){const palette=chartColors();return palette[index%palette.length]}
 function donutColor(canvasId,index,count){
