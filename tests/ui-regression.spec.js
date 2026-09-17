@@ -446,11 +446,11 @@ test('desktop expense weekly total row matches item row height and shows week su
 
 
 
-test('release assets use v2.6.56 cache-busting URLs', async ({ page }) => {
+test('release assets use v2.6.57 cache-busting URLs', async ({ page }) => {
   await openApp(page);
-  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.56');
+  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.57');
   const appSrc = await page.locator('script[src*="app.js"]').getAttribute('src');
-  expect(appSrc).toBe('app.js?v=2.6.56');
+  expect(appSrc).toBe('app.js?v=2.6.57');
 });
 
 
@@ -1093,8 +1093,15 @@ test('iPad and PC use the approved income dashboard instead of the daily calenda
     await expect(page.locator('#incomeDesktopOverview')).toBeVisible();
     await expect(page.locator('#incomeMobileOverview')).toBeHidden();
     await expect(page.locator('#mobileIncome')).toBeHidden();
-    await expect(page.locator('#incomeDesktopGraphBars .income-desktop-chart-column')).toHaveCount(6);
+    const monthBars=page.locator('#incomeDesktopGraphBars .income-desktop-chart-column');
+    await expect(monthBars).toHaveCount(12);
     await expect(page.locator('#incomeDesktopGraphBars .selected')).toHaveAttribute('aria-label',/325,000/);
+    await expect(page.locator('#incomeDesktopGraphBars .income-desktop-chart-value').filter({hasText:'¥325,000'})).toHaveCount(1);
+    await expect(page.locator('#incomeDesktopGraphBars .income-desktop-chart-value').filter({hasText:'¥300,000'})).toHaveCount(0);
+    const monthKeys=await monthBars.evaluateAll(items=>items.map(item=>item.dataset.incomeDesktopKey));
+    expect(monthKeys.at(-1)).toBe(monthKey);
+    const firstMonth=new Date(now.getFullYear(),now.getMonth()-11,1);
+    expect(monthKeys[0]).toBe(`${firstMonth.getFullYear()}-${String(firstMonth.getMonth()+1).padStart(2,'0')}`);
     await expect(page.locator('#incomeDesktopTotal')).toHaveText('¥325,000');
     await expect(page.locator('#incomeDesktopCount')).toHaveText('3件の入金');
     await expect(page.locator('#incomeDesktopCompareLabel')).toHaveText('前月比');
@@ -1111,15 +1118,26 @@ test('iPad and PC use the approved income dashboard instead of the daily calenda
       const side=document.querySelector('.income-desktop-side').getBoundingClientRect();
       const categories=document.querySelector('.income-desktop-categories').getBoundingClientRect();
       const recent=document.querySelector('.income-desktop-recent').getBoundingClientRect();
-      return {topGap:Math.abs(graph.top-side.top),bottomGap:Math.abs(categories.top-recent.top),overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth};
+      const bar=document.querySelector('.income-desktop-chart-bar').getBoundingClientRect();
+      const column=document.querySelector('.income-desktop-chart-column').getBoundingClientRect();
+      return {
+        topGap:Math.abs(graph.top-side.top),
+        bottomGap:Math.abs(categories.top-recent.top),
+        sideBeforeGraph:side.right<=graph.left,
+        barRatio:bar.width/column.width,
+        overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth
+      };
     });
     expect(layout.topGap).toBeLessThanOrEqual(1);
     expect(layout.bottomGap).toBeLessThanOrEqual(1);
+    expect(layout.sideBeforeGraph).toBe(true);
+    expect(layout.barRatio).toBeLessThanOrEqual(.43);
     expect(layout.overflow).toBeLessThanOrEqual(1);
 
     await page.locator('[data-income-desktop-period="year"]').click();
     await expect(page.locator('[data-income-desktop-period="year"]')).toHaveClass(/active/);
     await expect(page.locator('#incomeDesktopCompareLabel')).toHaveText('前年比');
+    await expect(page.locator('#incomeDesktopGraphBars .income-desktop-chart-column')).toHaveCount(6);
     await page.locator('[data-income-desktop-period="month"]').click();
     await page.locator('#incomeDesktopAdd').click();
     await expect(page.locator('#txDialog')).toBeVisible();

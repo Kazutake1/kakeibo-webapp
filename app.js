@@ -632,18 +632,23 @@ function renderDesktopIncomeOverview(){
   document.getElementById('incomeDesktopCompareLabel').textContent=annual?'前年比':'前月比';
   document.getElementById('incomeDesktopCompare').textContent=difference;
 
-  const periods=Array.from({length:6},(_,index)=>{
-    const offset=index-5;
+  // PC/iPad month view shows a rolling year ending at the displayed month.
+  // Annual view keeps the existing six-year comparison.
+  const periodCount=annual?6:12;
+  const periods=Array.from({length:periodCount},(_,index)=>{
+    const offset=index-(periodCount-1);
     const date=annual?new Date(year+offset,month,1):new Date(year,month+offset,1);
     const key=annual?String(date.getFullYear()):ym(date);
     return {date,key,amount:incomePeriodTotal(date,incomeGraphPeriod),selected:key===selectedKey};
   });
   const max=Math.max(1,...periods.map(period=>period.amount));
-  document.getElementById('incomeDesktopGraphBars').innerHTML=periods.map(period=>{
+  const desktopGraph=document.getElementById('incomeDesktopGraphBars');
+  desktopGraph.style.setProperty('--income-desktop-column-count',periodCount);
+  desktopGraph.innerHTML=periods.map(period=>{
     const height=period.amount?Math.max(5,Math.round(82*period.amount/max)):0;
     const caption=annual?`${period.date.getFullYear()}年`:`${period.date.getMonth()+1}月`;
     const value=money(period.amount);
-    return `<button type="button" class="income-desktop-chart-column${period.selected?' selected':''}" data-income-desktop-key="${period.key}" aria-label="${caption}の収入 ${value}${period.selected?'、選択中':''}"><span class="income-desktop-chart-track" style="--bar-height:${height}%"><span class="income-desktop-chart-value">${period.amount?value:''}</span><span class="income-desktop-chart-bar" style="height:${height}%"></span></span><span class="income-desktop-chart-label">${caption}</span></button>`
+    return `<button type="button" class="income-desktop-chart-column${period.selected?' selected':''}" data-income-desktop-key="${period.key}" aria-label="${caption}の収入 ${value}${period.selected?'、選択中':''}"><span class="income-desktop-chart-track" style="--bar-height:${height}%"><span class="income-desktop-chart-value">${period.selected&&period.amount?value:''}</span><span class="income-desktop-chart-bar" style="height:${height}%"></span></span><span class="income-desktop-chart-label">${caption}</span></button>`
   }).join('');
 
   const categoryColors=['#237de6','#58adf3','#18bde2','#58d1e5'];
