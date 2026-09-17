@@ -991,8 +991,7 @@ function renderTypeCalendar(wrapId,type,cats,label){
 
     for(const row of rows){
       const rowTx=tx.filter(t=>t.type===row.type);
-      const typeLabel=TYPES.find(t=>t.key===row.type)?.label||row.type;
-      html+=`<tr data-calendar-type="${row.type}"><td class="cal-cat">${!isIncome?`<span class="cal-cat-type">${escapeHtml(typeLabel)}</span>`:''}${escapeHtml(row.cat)}</td>${ds.map(d=>{
+      html+=`<tr data-calendar-type="${row.type}"><td class="cal-cat">${escapeHtml(row.cat)}</td>${ds.map(d=>{
         if(!d)return '<td></td>';
         const date=ym()+'-'+String(d).padStart(2,'0');
         const a=sum(rowTx.filter(t=>t.category===row.cat&&t.date===date).map(t=>t.amount));
