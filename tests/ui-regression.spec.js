@@ -446,11 +446,11 @@ test('desktop expense weekly total row matches item row height and shows week su
 
 
 
-test('release assets use v2.6.53 cache-busting URLs', async ({ page }) => {
+test('release assets use v2.6.54 cache-busting URLs', async ({ page }) => {
   await openApp(page);
-  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.53');
+  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.54');
   const appSrc = await page.locator('script[src*="app.js"]').getAttribute('src');
-  expect(appSrc).toBe('app.js?v=2.6.53');
+  expect(appSrc).toBe('app.js?v=2.6.54');
 });
 
 
@@ -946,6 +946,7 @@ test('iPhone income redesign shows graph, action, total, exactly four default ca
     await page.locator('#mobileNav [data-tab="income"]').click();
     await expect(page.locator('#incomeMonthCalendar')).toHaveCount(0);
     await expect(page.locator('#incomeMobileOverview')).toBeVisible();
+    await expect(page.locator('#incomeDesktopOverview')).toBeHidden();
     await expect(page.locator('#incomeGraphBars .income-chart-column')).toHaveCount(9);
     await expect(page.locator('#incomeAddCard')).toBeVisible();
     await expect(page.locator('#incomeMiniTotal')).toHaveText('¥0');
@@ -1058,14 +1059,65 @@ test('existing mobile income daily editing remains available and legacy category
   expect(await page.evaluate(()=>catsFor('income'))).toEqual(['給与','ボーナス','配当収入','その他の収入']);
 });
 
-test('iPad and PC retain income daily calendar while mobile-only redesign remains hidden',async({page})=>{
+test('iPad and PC use the approved income dashboard instead of the daily calendar',async({page})=>{
+  const now=new Date();
+  const monthKey=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const previous=new Date(now.getFullYear(),now.getMonth()-1,1);
+  const previousKey=`${previous.getFullYear()}-${String(previous.getMonth()+1).padStart(2,'0')}`;
+  const transactions=[
+    {id:'desktop-salary',date:monthKey+'-15',type:'income',category:'給与',item:'会社給与',amount:280000,amountExpression:'280000',memo:''},
+    {id:'desktop-side',date:monthKey+'-10',type:'income',category:'その他の収入',item:'副業',amount:30000,amountExpression:'30000',memo:''},
+    {id:'desktop-dividend',date:monthKey+'-05',type:'income',category:'配当収入',item:'配当金',amount:15000,amountExpression:'15000',memo:''},
+    {id:'desktop-previous',date:previousKey+'-12',type:'income',category:'給与',item:'前月給与',amount:300000,amountExpression:'300000',memo:''}
+  ];
   for(const width of [820,1440]){
     await page.setViewportSize({width,height:900});
-    await openApp(page);
+    await openApp(page,{transactions});
     await page.locator('#tabs [data-tab="income"]').click();
-    await expect(page.locator('#incomeCalendarWrap .cal-table')).toBeVisible();
+    await expect(page.locator('#incomeCalendarWrap')).toHaveCount(0);
+    await expect(page.locator('#incomeDesktopOverview')).toBeVisible();
     await expect(page.locator('#incomeMobileOverview')).toBeHidden();
     await expect(page.locator('#mobileIncome')).toBeHidden();
+    await expect(page.locator('#incomeDesktopGraphBars .income-desktop-chart-column')).toHaveCount(6);
+    await expect(page.locator('#incomeDesktopGraphBars .selected')).toHaveAttribute('aria-label',/325,000/);
+    await expect(page.locator('#incomeDesktopTotal')).toHaveText('¥325,000');
+    await expect(page.locator('#incomeDesktopCount')).toHaveText('3件の入金');
+    await expect(page.locator('#incomeDesktopCompareLabel')).toHaveText('前月比');
+    await expect(page.locator('#incomeDesktopCompare')).toHaveText('+8%');
+    await expect(page.locator('#incomeDesktopCategories .income-desktop-category-row')).toHaveCount(4);
+    await expect(page.locator('#incomeDesktopCategories .income-desktop-category-row',{hasText:'給与'})).toContainText('¥280,000');
+    await expect(page.locator('#incomeDesktopCategories .income-desktop-category-row',{hasText:'ボーナス'})).toContainText('¥0');
+    await expect(page.locator('#incomeDesktopRecentRows .income-desktop-recent-row')).toHaveCount(3);
+    await expect(page.locator('#incomeDesktopRecentRows')).toContainText('会社給与');
+    await expect(page.locator('[data-income-desktop-period="month"]')).toHaveClass(/active/);
+
+    const layout=await page.evaluate(()=>{
+      const graph=document.querySelector('.income-desktop-graph').getBoundingClientRect();
+      const side=document.querySelector('.income-desktop-side').getBoundingClientRect();
+      const categories=document.querySelector('.income-desktop-categories').getBoundingClientRect();
+      const recent=document.querySelector('.income-desktop-recent').getBoundingClientRect();
+      return {topGap:Math.abs(graph.top-side.top),bottomGap:Math.abs(categories.top-recent.top),overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth};
+    });
+    expect(layout.topGap).toBeLessThanOrEqual(1);
+    expect(layout.bottomGap).toBeLessThanOrEqual(1);
+    expect(layout.overflow).toBeLessThanOrEqual(1);
+
+    await page.locator('[data-income-desktop-period="year"]').click();
+    await expect(page.locator('[data-income-desktop-period="year"]')).toHaveClass(/active/);
+    await expect(page.locator('#incomeDesktopCompareLabel')).toHaveText('前年比');
+    await page.locator('[data-income-desktop-period="month"]').click();
+    await page.locator('#incomeDesktopAdd').click();
+    await expect(page.locator('#txDialog')).toBeVisible();
+    await expect(page.locator('#txType')).toHaveValue('income');
+    await page.locator('#txCancel').click();
+    await page.locator('#incomeDesktopRecentRows .income-desktop-recent-row').first().locator('button').click();
+    await expect(page.locator('#txDialog')).toBeVisible();
+    await expect(page.locator('#txId')).toHaveValue('desktop-salary');
+    await page.locator('#txCancel').click();
+    await page.locator('#incomeDesktopViewAll').click();
+    await expect(page.locator('#incomeMonthDialog')).toBeVisible();
+    await expect(page.locator('#incomeMonthRows .income-month-row')).toHaveCount(3);
+    await page.locator('#incomeMonthClose').click();
   }
 });
 
