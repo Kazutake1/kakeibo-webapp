@@ -1597,5 +1597,38 @@ body.dark-mode .donut-card .donut-legend-value{color:#b9c9dc}
   .donut-card .donut-canvas-wrap{width:min(270px,100%)}
 }
 @media(min-width:1367px){
-  .donut-card .donut-canvas-wrap{width:min(300px,100%)}
+  .card:has(#donutChart) .donut-layout,
+  .card:has(#variableDonut) .donut-layout{
+    grid-template-columns:270px minmax(0,1fr);
+    gap:28px;
+    min-height:0;
+  }
+  .card:has(#donutChart) .donut-canvas-wrap,
+  .card:has(#variableDonut) .donut-canvas-wrap{width:270px;height:auto!important}
+}
+
+/* v2.6.52: align both donut cards with a six-row desktop/tablet legend viewport. */
+@media(min-width:701px){
+  .donut-card .donut-layout{min-height:0}
+  .donut-card .donut-legend-list{height:228px}
+  .donut-card .donut-legend-row{height:38px;min-height:38px}
+  #donutLegend .donut-legend-list{overflow:hidden}
+  #variableLegend .donut-legend-list{
+    overflow-y:auto;
+    overflow-x:hidden;
+    overscroll-behavior:contain;
+    scrollbar-gutter:stable;
+    scrollbar-width:thin;
+    scrollbar-color:#b8cce5 transparent;
+  }
+  #variableLegend .donut-legend-list:focus-visible{
+    outline:2px solid color-mix(in srgb,var(--accent) 35%,transparent);
+    outline-offset:2px;
+    border-radius:8px;
+  }
+  #variableLegend .donut-legend-list::-webkit-scrollbar{width:5px}
+  #variableLegend .donut-legend-list::-webkit-scrollbar-track{background:transparent}
+  #variableLegend .donut-legend-list::-webkit-scrollbar-thumb{background:#b8cce5;border-radius:999px}
+  body.dark-mode #variableLegend .donut-legend-list{scrollbar-color:#526b87 transparent}
+  body.dark-mode #variableLegend .donut-legend-list::-webkit-scrollbar-thumb{background:#526b87}
 }
