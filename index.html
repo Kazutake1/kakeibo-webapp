@@ -11,10 +11,10 @@
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <title>家計簿アプリ</title>
-    <link rel="stylesheet" href="style-base.css?v=2.6.68" />
-    <link rel="stylesheet" href="style-components.css?v=2.6.68" />
-    <link rel="stylesheet" href="style-theme.css?v=2.6.68" />
-    <link rel="stylesheet" href="style-pages.css?v=2.6.68" />
+    <link rel="stylesheet" href="style-base.css?v=2.6.69" />
+    <link rel="stylesheet" href="style-components.css?v=2.6.69" />
+    <link rel="stylesheet" href="style-theme.css?v=2.6.69" />
+    <link rel="stylesheet" href="style-pages.css?v=2.6.69" />
 </head>
 <body>
 <div class="app">
@@ -94,7 +94,7 @@
       <div class="income-desktop-overview" id="incomeDesktopOverview">
         <div class="income-desktop-top">
           <div class="income-desktop-side">
-            <button class="income-desktop-add" id="incomeDesktopAdd" type="button"><span aria-hidden="true">＋</span>収入を追加</button>
+            <button class="primary income-desktop-add" id="incomeDesktopAdd" type="button"><span aria-hidden="true">＋</span>収入を追加</button>
             <section class="income-desktop-card income-desktop-total" aria-label="選択期間の収入合計">
               <h2 id="incomeDesktopTotalTitle">今月の収入</h2>
               <strong id="incomeDesktopTotal">¥0</strong>
@@ -135,7 +135,7 @@
           <div class="income-chart-bars" id="incomeGraphBars" role="group" aria-label="収入推移のグラフ"></div>
         </section>
         <div class="income-mini-cards">
-          <button class="income-add-card" id="incomeAddCard" type="button"><span class="income-add-symbol" aria-hidden="true">＋</span><span class="income-add-copy"><strong>収入を追加</strong><small>給与・ボーナス・その他の収入を記録</small></span><span class="income-add-arrow" aria-hidden="true">›</span></button>
+          <button class="primary income-add-card" id="incomeAddCard" type="button"><span aria-hidden="true">＋</span>収入を追加</button>
           <section class="income-total-card" aria-label="収入合計"><span class="income-total-symbol" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="15" rx="2"/><path d="M3 10h18M16 15h5M6 6V4a1 1 0 0 1 1-1h11"/></svg></span><span class="income-total-copy"><span>収入合計</span><strong id="incomeMiniTotal">¥0</strong><small id="incomeMiniCount">0件の入金</small></span></section>
         </div>
         <section class="income-categories-card" aria-label="収入のカテゴリ">
@@ -209,7 +209,7 @@
           </div>
         </div></div>
         <div class="card"><h2>データ管理</h2><div class="card-body"><p class="hint">データは端末内にも保存され、ログイン中はSupabaseへ自動同期します。実データはGitHubへ送信されません。万一に備えてJSONバックアップも定期的に保存してください。</p><div class="toolbar"><button class="secondary" id="exportBtn">JSONを書き出す</button><label class="secondary" style="cursor:pointer">JSONを読み込む<input id="importInput" type="file" accept="application/json" hidden></label><button class="danger" id="resetBtn">データ初期化</button></div></div></div>
-        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span> <span class="pill">v2.6.68 Stable</span></div></div>
+        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span> <span class="pill">v2.6.69 Stable</span></div></div>
       </div>
     </section>
   </main>
@@ -288,9 +288,9 @@
 
 <dialog id="budgetDialog"><div class="dialog-head">予算を編集</div><div class="dialog-body"><div id="budgetDialogBody"></div><div class="dialog-actions"><button class="secondary" id="budgetCancel">キャンセル</button><button class="primary" id="budgetSave">保存</button></div></div></dialog>
 
-<script src="app-data.js?v=2.6.68"></script>
-<script src="app-sync.js?v=2.6.68"></script>
-<script src="app-charts.js?v=2.6.68"></script>
-<script src="app-ui.js?v=2.6.68"></script>
+<script src="app-data.js?v=2.6.69"></script>
+<script src="app-sync.js?v=2.6.69"></script>
+<script src="app-charts.js?v=2.6.69"></script>
+<script src="app-ui.js?v=2.6.69"></script>
 </body>
 </html>
