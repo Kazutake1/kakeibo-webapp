@@ -1,7 +1,8 @@
-const CACHE_NAME='kakeibo-v2.6.60-stable';
-const APP_SHELL=['./','./index.html','./style.css?v=2.6.60','./app.js?v=2.6.60','./manifest.json','./icon-192.png','./icon-512.png'];
+const CACHE_PREFIX='kakeibo-';
+const CACHE_NAME='kakeibo-v2.6.61-stable';
+const APP_SHELL=['./','./index.html','./style.css?v=2.6.61','./app.js?v=2.6.61','./manifest.json','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)).then(()=>self.skipWaiting()))});
-self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
+self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith(CACHE_PREFIX)&&k!==CACHE_NAME).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',event=>{
   if(event.request.method!=='GET')return;
   const req=event.request;
