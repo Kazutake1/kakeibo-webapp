@@ -993,6 +993,52 @@ test('reference visual theme applies on phone, tablet and PC', async ({ page }) 
   }
 });
 
+test('approved CSS contract stays fixed on phone, tablet and PC', async ({ page }) => {
+  for (const expected of [
+    {width:390,metricRadius:'19px',desktopTabs:'none',tabsPosition:'static',mobileNav:'flex',gridColumns:1,summaryCards:5},
+    {width:1024,metricRadius:'22px',desktopTabs:'flex',tabsPosition:'sticky',mobileNav:'none',gridColumns:2,summaryCards:4},
+    {width:1440,metricRadius:'22px',desktopTabs:'flex',tabsPosition:'sticky',mobileNav:'none',gridColumns:2,summaryCards:4}
+  ]) {
+    await page.setViewportSize({width:expected.width,height:900});
+    await openApp(page);
+    const contract=await page.evaluate(()=>{
+      const metric=document.querySelector('#summaryCards .metric');
+      const card=document.querySelector('.grid>.card');
+      const tabs=document.querySelector('#tabs');
+      const mobileNav=document.querySelector('#mobileNav');
+      const grid=document.querySelector('section[data-panel="dashboard"]>.grid');
+      const summary=document.querySelector('#summaryCards');
+      const visibleSummaryCards=[...summary.querySelectorAll('.metric')].filter(item=>getComputedStyle(item).display!=='none').length;
+      return {
+        accent:getComputedStyle(document.body).getPropertyValue('--accent').trim(),
+        bodyBackground:getComputedStyle(document.body).backgroundImage,
+        metricRadius:getComputedStyle(metric).borderRadius,
+        cardRadius:getComputedStyle(card).borderRadius,
+        desktopTabs:getComputedStyle(tabs).display,
+        tabsPosition:getComputedStyle(tabs).position,
+        mobileNav:getComputedStyle(mobileNav).display,
+        gridColumns:getComputedStyle(grid).gridTemplateColumns.trim().split(/\s+/).length,
+        summaryGap:getComputedStyle(summary).gap,
+        visibleSummaryCards,
+        donutToggleRadius:getComputedStyle(document.querySelector('.donut-mode-toggle')).borderRadius
+      };
+    });
+    expect(contract).toEqual({
+      accent:'#277be8',
+      bodyBackground:expect.stringContaining('linear-gradient'),
+      metricRadius:expected.metricRadius,
+      cardRadius:'24px',
+      desktopTabs:expected.desktopTabs,
+      tabsPosition:expected.tabsPosition,
+      mobileNav:expected.mobileNav,
+      gridColumns:expected.gridColumns,
+      summaryGap:'10px',
+      visibleSummaryCards:expected.summaryCards,
+      donutToggleRadius:'999px'
+    });
+  }
+});
+
 test('reference visual theme preserves dark mode and red deficit', async ({ page }) => {
   await page.setViewportSize({width:1024,height:900});
   await openApp(page,{theme:'dark'});
