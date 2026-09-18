@@ -1,4 +1,4 @@
-# 家計簿Webアプリ v2.6.66 Stable
+# 家計簿Webアプリ v2.6.67 Stable
 
 Excel家計簿をベースにした iPhone / iPad / Mac 対応のレスポンシブPWAです。
 
@@ -7,7 +7,7 @@ Excel家計簿をベースにした iPhone / iPad / Mac 対応のレスポンシ
 バージョン番号の基準は `package.json` です。新しいバージョンへ更新するときは、複数ファイルを個別に編集せず次のコマンドを実行します。
 
 ```bash
-npm run version:set -- 2.6.66
+npm run version:set -- 2.6.68
 ```
 
 `index.html`、`sw.js`、`package-lock.json`、READMEの表示バージョンが自動的に同期されます。同期状態は次のコマンドで確認できます。
@@ -15,6 +15,11 @@ npm run version:set -- 2.6.66
 ```bash
 npm run version:check
 ```
+
+## v2.6.67 Stable
+- 単一の`app.js`を、データ・クラウド同期・グラフ・画面/UIの4ファイルへ分割
+- 読み込み順、Service Workerのオフライン対象、バージョン同期、GitHub Actionsを新しい構成に対応
+- 処理内容は移動のみとし、機能・デザイン・既存データ・クラウド同期の仕様は変更なし
 
 ## v2.6.66 Stable
 - 存在しない旧取引一覧（`#txBody`）専用の描画処理を削除

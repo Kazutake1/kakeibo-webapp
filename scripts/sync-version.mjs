@@ -16,6 +16,7 @@ if (requestedVersion && !versionPattern.test(requestedVersion)) {
 }
 
 const read = file => readFile(path.join(root, file), 'utf8');
+const scriptAssets = ['app-data.js', 'app-sync.js', 'app-charts.js', 'app-ui.js'];
 const packageJson = JSON.parse(await read('package.json'));
 if (requestedVersion) packageJson.version = requestedVersion;
 const version = packageJson.version;
@@ -36,13 +37,19 @@ packageLock.packages[''].version = version;
 
 let indexHtml = await read('index.html');
 indexHtml = replaceRequired(indexHtml, /style\.css\?v=\d+\.\d+\.\d+/, `style.css?v=${version}`, 'index stylesheet');
-indexHtml = replaceRequired(indexHtml, /app\.js\?v=\d+\.\d+\.\d+/, `app.js?v=${version}`, 'index script');
+for (const asset of scriptAssets) {
+  const escaped = asset.replaceAll('.', '\\.');
+  indexHtml = replaceRequired(indexHtml, new RegExp(`${escaped}\\?v=\\d+\\.\\d+\\.\\d+`), `${asset}?v=${version}`, `index script ${asset}`);
+}
 indexHtml = replaceRequired(indexHtml, /v\d+\.\d+\.\d+ Stable/, `v${version} Stable`, 'index version label');
 
 let serviceWorker = await read('sw.js');
 serviceWorker = replaceRequired(serviceWorker, /kakeibo-v\d+\.\d+\.\d+-stable/, `kakeibo-v${version}-stable`, 'service worker cache');
 serviceWorker = replaceRequired(serviceWorker, /style\.css\?v=\d+\.\d+\.\d+/, `style.css?v=${version}`, 'service worker stylesheet');
-serviceWorker = replaceRequired(serviceWorker, /app\.js\?v=\d+\.\d+\.\d+/, `app.js?v=${version}`, 'service worker script');
+for (const asset of scriptAssets) {
+  const escaped = asset.replaceAll('.', '\\.');
+  serviceWorker = replaceRequired(serviceWorker, new RegExp(`${escaped}\\?v=\\d+\\.\\d+\\.\\d+`), `${asset}?v=${version}`, `service worker script ${asset}`);
+}
 
 let readme = await read('README.md');
 readme = replaceRequired(readme, /^# 家計簿Webアプリ v\d+\.\d+\.\d+ Stable/m, `# 家計簿Webアプリ v${version} Stable`, 'README title');

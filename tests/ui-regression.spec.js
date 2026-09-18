@@ -486,8 +486,9 @@ test('desktop expense weekly total row matches item row height and shows week su
 test(`release assets use v${APP_VERSION} cache-busting URLs`, async ({ page }) => {
   await openApp(page);
   await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', `style.css?v=${APP_VERSION}`);
-  const appSrc = await page.locator('script[src*="app.js"]').getAttribute('src');
-  expect(appSrc).toBe(`app.js?v=${APP_VERSION}`);
+  const appScripts = ['app-data.js', 'app-sync.js', 'app-charts.js', 'app-ui.js'];
+  const sources = await page.locator('script[src^="app-"]').evaluateAll(scripts => scripts.map(script => script.getAttribute('src')));
+  expect(sources).toEqual(appScripts.map(script => `${script}?v=${APP_VERSION}`));
 });
 
 
@@ -498,11 +499,13 @@ test('release version metadata stays synchronized with package.json', async () =
   const readme = fs.readFileSync(path.resolve(__dirname, '../README.md'), 'utf8');
 
   expect(index).toContain(`style.css?v=${APP_VERSION}`);
-  expect(index).toContain(`app.js?v=${APP_VERSION}`);
+  for (const script of ['app-data.js', 'app-sync.js', 'app-charts.js', 'app-ui.js']) {
+    expect(index).toContain(`${script}?v=${APP_VERSION}`);
+    expect(serviceWorker).toContain(`${script}?v=${APP_VERSION}`);
+  }
   expect(index).toContain(`v${APP_VERSION} Stable`);
   expect(serviceWorker).toContain(`kakeibo-v${APP_VERSION}-stable`);
   expect(serviceWorker).toContain(`style.css?v=${APP_VERSION}`);
-  expect(serviceWorker).toContain(`app.js?v=${APP_VERSION}`);
   expect(readme).toMatch(new RegExp(`^# 家計簿Webアプリ v${APP_VERSION.replaceAll('.', '\\.')} Stable`, 'm'));
   expect(readme).toContain(`## v${APP_VERSION} Stable`);
 });
@@ -840,7 +843,7 @@ test('weekly chart keeps stable canvas size after hidden-panel redraws on iPad a
 });
 
 test('weekly chart draws the budget overlay after the stacked bars', async () => {
-  const source = fs.readFileSync(path.resolve(__dirname, '../app.js'), 'utf8');
+  const source = fs.readFileSync(path.resolve(__dirname, '../app-charts.js'), 'utf8');
   const start = source.indexOf('function drawWeekly()');
   const end = source.indexOf('const CHART_COLORS_LIGHT', start);
   const drawWeeklySource = source.slice(start, end);
