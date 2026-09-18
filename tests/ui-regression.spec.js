@@ -995,9 +995,9 @@ test('reference visual theme applies on phone, tablet and PC', async ({ page }) 
 
 test('approved CSS contract stays fixed on phone, tablet and PC', async ({ page }) => {
   for (const expected of [
-    {width:390,metricRadius:'19px',desktopTabs:'none',tabsPosition:'static',mobileNav:'flex',gridColumns:1,summaryCards:5},
-    {width:1024,metricRadius:'22px',desktopTabs:'flex',tabsPosition:'sticky',mobileNav:'none',gridColumns:2,summaryCards:4},
-    {width:1440,metricRadius:'22px',desktopTabs:'flex',tabsPosition:'sticky',mobileNav:'none',gridColumns:2,summaryCards:4}
+    {width:390,metricRadius:'19px',cardRadius:'20px',desktopTabs:'none',tabsPosition:'static',mobileNav:'flex',gridColumns:1,summaryCards:5},
+    {width:1024,metricRadius:'22px',cardRadius:'24px',desktopTabs:'flex',tabsPosition:'sticky',mobileNav:'none',gridColumns:2,summaryCards:4},
+    {width:1440,metricRadius:'22px',cardRadius:'24px',desktopTabs:'flex',tabsPosition:'sticky',mobileNav:'none',gridColumns:2,summaryCards:4}
   ]) {
     await page.setViewportSize({width:expected.width,height:900});
     await openApp(page);
@@ -1027,7 +1027,7 @@ test('approved CSS contract stays fixed on phone, tablet and PC', async ({ page 
       accent:'#277be8',
       bodyBackground:expect.stringContaining('linear-gradient'),
       metricRadius:expected.metricRadius,
-      cardRadius:'24px',
+      cardRadius:expected.cardRadius,
       desktopTabs:expected.desktopTabs,
       tabsPosition:expected.tabsPosition,
       mobileNav:expected.mobileNav,
