@@ -60,6 +60,7 @@ for (const asset of scriptAssets) {
 
 let readme = await read('README.md');
 readme = replaceRequired(readme, /^# 家計簿Webアプリ v\d+\.\d+\.\d+ Stable/m, `# 家計簿Webアプリ v${version} Stable`, 'README title');
+const changelog = await read('CHANGELOG.md');
 
 const expected = new Map([
   ['package.json', `${JSON.stringify(packageJson, null, 2)}\n`],
@@ -74,7 +75,7 @@ for (const [file, content] of expected) {
   const current = await read(file);
   if (current !== content) mismatches.push(file);
 }
-if (!readme.includes(`## v${version} Stable`)) mismatches.push('README.md changelog');
+if (!changelog.includes(`## v${version} Stable`)) mismatches.push('CHANGELOG.md release heading');
 
 if (checkOnly) {
   if (mismatches.length) {
