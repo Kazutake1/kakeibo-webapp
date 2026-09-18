@@ -1260,6 +1260,40 @@ test('iPhone income redesign shows graph, action, total, exactly four default ca
   }
 });
 
+test('income add button uses the shared primary button design on iPhone, iPad and PC',async({page})=>{
+  for(const theme of ['light','dark']){
+    for(const width of [390,820,1440]){
+      await page.setViewportSize({width,height:900});
+      await openApp(page,{theme});
+      const tabSelector=width<=700?'#mobileNav [data-tab="income"]':'#tabs [data-tab="income"]';
+      await page.locator(tabSelector).click();
+      const incomeSelector=width<=700?'#incomeAddCard':'#incomeDesktopAdd';
+      const styles=await page.locator(incomeSelector).evaluate((button)=>{
+        const shared=getComputedStyle(document.getElementById('addTxBtn'));
+        const secondary=getComputedStyle(document.getElementById('addBudgetBtn'));
+        const current=getComputedStyle(button);
+        const pick=style=>({
+          backgroundImage:style.backgroundImage,
+          border:style.border,
+          borderRadius:style.borderRadius,
+          boxShadow:style.boxShadow,
+          color:style.color,
+          fontSize:style.fontSize,
+          fontWeight:style.fontWeight,
+          padding:style.padding
+        });
+        return {current:pick(current),primary:pick(shared),secondary:pick(secondary),currentHeight:current.height};
+      });
+      expect(styles.current).toEqual(styles.primary);
+      expect(styles.current.borderRadius).toBe(styles.secondary.borderRadius);
+      expect(styles.current.fontSize).toBe(styles.secondary.fontSize);
+      expect(styles.current.padding).toBe(styles.secondary.padding);
+      expect(styles.currentHeight).toBe('46px');
+      await expect(page.locator(incomeSelector)).toHaveText('＋収入を追加');
+    }
+  }
+});
+
 test('income chart uses actual amounts and updates selected period and month',async({page})=>{
   await page.setViewportSize({width:390,height:844});
   const now=new Date();

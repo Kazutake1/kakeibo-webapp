@@ -157,9 +157,9 @@ body.dark-mode .summary>.metric:nth-child(3) .value.neg{color:#ff6b6b!important;
   .income-desktop-chart-column.selected .income-desktop-chart-value{color:#0870e7;font-size:13px;font-weight:850}
   .income-desktop-chart-label{padding:10px 2px 12px;color:#315b91;font-size:13px;font-weight:750;white-space:nowrap}
   .income-desktop-chart-column.selected .income-desktop-chart-label{color:#0870e7;font-weight:850}
-  .income-desktop-side{display:grid;grid-template-rows:112px minmax(0,1fr);gap:16px;min-width:0}
-  .income-desktop-add{display:flex;align-items:center;justify-content:center;gap:17px;border:0;border-radius:22px;background:linear-gradient(135deg,#3299f8 0%,#1972ed 100%);box-shadow:0 12px 25px rgba(28,116,225,.18);color:#fff;font-size:20px;font-weight:850;letter-spacing:.01em}
-  .income-desktop-add span{font-size:42px;font-weight:350;line-height:1}
+  .income-desktop-side{display:grid;grid-template-rows:46px minmax(0,1fr);gap:16px;min-width:0}
+  .income-desktop-add{display:flex;align-items:center;justify-content:center;gap:6px;min-width:0}
+  .income-desktop-add span{font-size:inherit;font-weight:inherit;line-height:1}
   .income-desktop-total{display:flex;flex-direction:column;padding:24px 28px 20px}
   .income-desktop-total>strong{margin-top:30px;color:#153e73;font-size:44px;line-height:1;font-weight:880;letter-spacing:-.04em;font-variant-numeric:tabular-nums;white-space:nowrap}
   .income-desktop-total>span{margin-top:14px;color:#35577e;font-size:15px;font-weight:750}
@@ -216,9 +216,7 @@ body.dark-mode .summary>.metric:nth-child(3) .value.neg{color:#ff6b6b!important;
   .income-desktop-chart-label{font-size:11px}
   .income-desktop-total{padding:21px 18px 17px}
   .income-desktop-total>strong{font-size:32px;margin-top:27px}
-  .income-desktop-side{grid-template-rows:96px minmax(0,1fr);gap:12px}
-  .income-desktop-add{font-size:17px;gap:10px}
-  .income-desktop-add span{font-size:34px}
+  .income-desktop-side{grid-template-rows:46px minmax(0,1fr);gap:12px}
   .income-desktop-categories>div:last-child,#incomeDesktopRecentRows{padding-left:15px;padding-right:15px}
   .income-desktop-recent-head{margin-left:15px;margin-right:15px}
   .income-desktop-recent-head,.income-desktop-recent-row{grid-template-columns:47px 84px minmax(72px,1fr) 91px 53px;gap:7px}
@@ -259,12 +257,7 @@ body.dark-mode .summary>.metric:nth-child(3) .value.neg{color:#ff6b6b!important;
   .income-chart-label{font-size:10px;font-weight:650;white-space:nowrap;padding:8px 0 0;line-height:1.5}
   .income-chart-column.selected .income-chart-label{color:#1975e2;font-weight:850}
   .income-mini-cards{display:grid;grid-template-columns:1fr 1fr;gap:9px;min-width:0}
-  .income-add-card{border:0;border-radius:21px;background:linear-gradient(115deg,#3280ec 0%,#3196f4 52%,#35cbe1 100%);box-shadow:0 10px 22px rgba(41,129,229,.17);color:#fff;display:flex;align-items:center;gap:9px;padding:15px 11px;text-align:left;min-width:0;min-height:108px}
-  .income-add-symbol{background:#fff;color:#2676dd;border-radius:50%;width:42px;height:42px;flex:0 0 42px;display:flex;align-items:center;justify-content:center;font-size:31px;font-weight:400;line-height:1}
-  .income-add-copy{min-width:0;flex:1;display:flex;flex-direction:column;gap:4px}
-  .income-add-copy strong{font-size:15px;line-height:1.2;white-space:nowrap}
-  .income-add-copy small{font-size:10px;line-height:1.4;overflow-wrap:anywhere}
-  .income-add-arrow{font-size:24px;line-height:1;font-weight:300}
+  .income-add-card{display:flex;align-items:center;align-self:center;justify-content:center;gap:6px;min-width:0;min-height:46px;white-space:nowrap}
   .income-total-card{display:flex;align-items:center;gap:9px;min-width:0;padding:12px 10px}
   .income-total-symbol{width:39px;height:39px;flex-basis:39px;background:#e9fff9;color:#12a287}
   .income-total-symbol svg{width:23px;height:23px}
@@ -313,10 +306,6 @@ body.dark-mode .summary>.metric:nth-child(3) .value.neg{color:#ff6b6b!important;
   body.dark-mode .income-month-actions button.income-month-delete{background:#35202c;border-color:#673849;color:#ffa4ae}
 }
 @media(max-width:360px){
-  .income-add-card{padding:10px 8px;gap:6px}
-  .income-add-symbol{width:35px;height:35px;flex-basis:35px;font-size:27px}
-  .income-add-copy strong{font-size:13px}
-  .income-add-arrow{display:none}
   .income-total-card{gap:6px;padding:10px 7px}
   .income-total-symbol{width:33px;height:33px;flex-basis:33px}
   .income-total-copy strong{font-size:18px}
