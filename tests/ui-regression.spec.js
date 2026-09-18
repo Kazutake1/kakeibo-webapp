@@ -1,4 +1,7 @@
 const { test, expect } = require('@playwright/test');
+const fs = require('fs');
+const path = require('path');
+const vm = require('vm');
 
 async function openApp(page, { theme = 'light', transactions = [] } = {}) {
   await page.addInitScript(({ theme, transactions }) => {
@@ -479,11 +482,94 @@ test('desktop expense weekly total row matches item row height and shows week su
 
 
 
-test('release assets use v2.6.60 cache-busting URLs', async ({ page }) => {
+test('release assets use v2.6.61 cache-busting URLs', async ({ page }) => {
   await openApp(page);
-  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.60');
+  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.61');
   const appSrc = await page.locator('script[src*="app.js"]').getAttribute('src');
-  expect(appSrc).toBe('app.js?v=2.6.60');
+  expect(appSrc).toBe('app.js?v=2.6.61');
+});
+
+
+
+test('service worker activation deletes only old kakeibo caches', async () => {
+  const source=fs.readFileSync(path.resolve(__dirname,'../sw.js'),'utf8');
+  const handlers={};
+  const deleted=[];
+  const context={
+    self:{
+      addEventListener:(name,handler)=>{handlers[name]=handler},
+      skipWaiting:async()=>{},
+      clients:{claim:async()=>{}},
+      location:{origin:'https://kazutake1.github.io'}
+    },
+    caches:{
+      open:async()=>({addAll:async()=>{},put:async()=>{}}),
+      keys:async()=>['kakeibo-v2.6.61-stable','kakeibo-v2.6.60-stable','forum-calendar-v1','another-app-v3'],
+      delete:async key=>{deleted.push(key);return true},
+      match:async()=>undefined
+    },
+    fetch:async()=>{throw new Error('fetch is not used by activation')},
+    URL
+  };
+  vm.runInNewContext(source,context);
+  let activation;
+  handlers.activate({waitUntil:promise=>{activation=promise}});
+  await activation;
+  expect(deleted).toEqual(['kakeibo-v2.6.60-stable']);
+});
+
+
+
+test('budget-only and category-only changes count as meaningful local sync data', async ({ page }) => {
+  await openApp(page);
+  const result=await page.evaluate(()=>{
+    state=normalizeState({});
+    ensureBudgetMonth(ym());
+    const untouchedDefaults=hasMeaningfulLocalData();
+    state.budgets[ym()].variable['外食']=1234;
+    const budgetOnly=hasMeaningfulLocalData();
+    state=normalizeState({});
+    state.categories.variable.push('追加項目');
+    const categoryOnly=hasMeaningfulLocalData();
+    return {untouchedDefaults,budgetOnly,categoryOnly}
+  });
+  expect(result).toEqual({untouchedDefaults:false,budgetOnly:true,categoryOnly:true});
+});
+
+
+
+test('cloud sync detects a newer version before overwriting it', async ({ page }) => {
+  await openApp(page);
+  const result=await page.evaluate(async()=>{
+    syncUser={id:'sync-version-user',email:'sync@example.com'};
+    syncCloudVersion=4;
+    syncBusy=false;
+    syncPending=false;
+    state.transactions=[{id:'local-new',date:'2026-09-18',type:'variable',category:'外食',item:'local',amount:800,amountExpression:'800',memo:''}];
+    const calls=[];
+    let patchCount=0;
+    let conflictMessage='';
+    supabaseFetch=async(requestPath,options)=>{
+      const body=JSON.parse(options.body);
+      calls.push({path:requestPath,method:options.method,body});
+      patchCount+=1;
+      if(patchCount===1)return {ok:true,status:200,json:async()=>[]};
+      return {ok:true,status:200,json:async()=>[{state:body.state,updated_at:'2026-09-18T01:00:00Z',sync_version:6}]}
+    };
+    fetchCloudState=async()=>({state:{transactions:[{id:'cloud-new',date:'2026-09-18',type:'variable',category:'外食',item:'cloud',amount:900,amountExpression:'900',memo:''}],budgets:{},categories:{}},updated_at:'2026-09-18T00:59:00Z',sync_version:5});
+    chooseSyncSource=async message=>{conflictMessage=message;return 'local'};
+    const ok=await uploadCloudState();
+    return {ok,calls,conflictMessage,version:syncCloudVersion}
+  });
+  expect(result.ok).toBe(true);
+  expect(result.calls).toHaveLength(2);
+  expect(result.calls.every(call=>call.method==='PATCH')).toBe(true);
+  expect(result.calls[0].path).toContain('sync_version=eq.4');
+  expect(result.calls[0].body.sync_version).toBe(5);
+  expect(result.calls[1].path).toContain('sync_version=eq.5');
+  expect(result.calls[1].body.sync_version).toBe(6);
+  expect(result.conflictMessage).toContain('別の端末');
+  expect(result.version).toBe(6);
 });
 
 
@@ -523,7 +609,7 @@ test('existing signed-in session can use sync choice dialog during startup', asy
       syncUser={id:'startup-sync-user',email:'test@example.com'};
       return syncUser;
     };
-    fetchCloudState=async()=>({state:{transactions:[],budgets:{},categories:{}},updated_at:'2026-09-06T00:00:00Z'});
+    fetchCloudState=async()=>({state:{transactions:[],budgets:{},categories:{}},updated_at:'2026-09-06T00:00:00Z',sync_version:1});
     window.__startupSyncInit=initCloudSync();
   },{date});
 
