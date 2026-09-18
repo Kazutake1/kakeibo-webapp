@@ -16,6 +16,7 @@ if (requestedVersion && !versionPattern.test(requestedVersion)) {
 }
 
 const read = file => readFile(path.join(root, file), 'utf8');
+const styleAssets = ['style-base.css', 'style-components.css', 'style-theme.css', 'style-pages.css'];
 const scriptAssets = ['app-data.js', 'app-sync.js', 'app-charts.js', 'app-ui.js'];
 const packageJson = JSON.parse(await read('package.json'));
 if (requestedVersion) packageJson.version = requestedVersion;
@@ -36,7 +37,10 @@ if (!packageLock.packages?.['']) throw new Error('package-lock.json root package
 packageLock.packages[''].version = version;
 
 let indexHtml = await read('index.html');
-indexHtml = replaceRequired(indexHtml, /style\.css\?v=\d+\.\d+\.\d+/, `style.css?v=${version}`, 'index stylesheet');
+for (const asset of styleAssets) {
+  const escaped = asset.replaceAll('.', '\\.');
+  indexHtml = replaceRequired(indexHtml, new RegExp(`${escaped}\\?v=\\d+\\.\\d+\\.\\d+`), `${asset}?v=${version}`, `index stylesheet ${asset}`);
+}
 for (const asset of scriptAssets) {
   const escaped = asset.replaceAll('.', '\\.');
   indexHtml = replaceRequired(indexHtml, new RegExp(`${escaped}\\?v=\\d+\\.\\d+\\.\\d+`), `${asset}?v=${version}`, `index script ${asset}`);
@@ -45,7 +49,10 @@ indexHtml = replaceRequired(indexHtml, /v\d+\.\d+\.\d+ Stable/, `v${version} Sta
 
 let serviceWorker = await read('sw.js');
 serviceWorker = replaceRequired(serviceWorker, /kakeibo-v\d+\.\d+\.\d+-stable/, `kakeibo-v${version}-stable`, 'service worker cache');
-serviceWorker = replaceRequired(serviceWorker, /style\.css\?v=\d+\.\d+\.\d+/, `style.css?v=${version}`, 'service worker stylesheet');
+for (const asset of styleAssets) {
+  const escaped = asset.replaceAll('.', '\\.');
+  serviceWorker = replaceRequired(serviceWorker, new RegExp(`${escaped}\\?v=\\d+\\.\\d+\\.\\d+`), `${asset}?v=${version}`, `service worker stylesheet ${asset}`);
+}
 for (const asset of scriptAssets) {
   const escaped = asset.replaceAll('.', '\\.');
   serviceWorker = replaceRequired(serviceWorker, new RegExp(`${escaped}\\?v=\\d+\\.\\d+\\.\\d+`), `${asset}?v=${version}`, `service worker script ${asset}`);

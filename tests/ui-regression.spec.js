@@ -485,7 +485,9 @@ test('desktop expense weekly total row matches item row height and shows week su
 
 test(`release assets use v${APP_VERSION} cache-busting URLs`, async ({ page }) => {
   await openApp(page);
-  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', `style.css?v=${APP_VERSION}`);
+  const styleAssets = ['style-base.css', 'style-components.css', 'style-theme.css', 'style-pages.css'];
+  const styles = await page.locator('link[rel="stylesheet"]').evaluateAll(links => links.map(link => link.getAttribute('href')));
+  expect(styles).toEqual(styleAssets.map(style => `${style}?v=${APP_VERSION}`));
   const appScripts = ['app-data.js', 'app-sync.js', 'app-charts.js', 'app-ui.js'];
   const sources = await page.locator('script[src^="app-"]').evaluateAll(scripts => scripts.map(script => script.getAttribute('src')));
   expect(sources).toEqual(appScripts.map(script => `${script}?v=${APP_VERSION}`));
@@ -498,14 +500,16 @@ test('release version metadata stays synchronized with package.json', async () =
   const serviceWorker = fs.readFileSync(path.resolve(__dirname, '../sw.js'), 'utf8');
   const readme = fs.readFileSync(path.resolve(__dirname, '../README.md'), 'utf8');
 
-  expect(index).toContain(`style.css?v=${APP_VERSION}`);
+  for (const style of ['style-base.css', 'style-components.css', 'style-theme.css', 'style-pages.css']) {
+    expect(index).toContain(`${style}?v=${APP_VERSION}`);
+    expect(serviceWorker).toContain(`${style}?v=${APP_VERSION}`);
+  }
   for (const script of ['app-data.js', 'app-sync.js', 'app-charts.js', 'app-ui.js']) {
     expect(index).toContain(`${script}?v=${APP_VERSION}`);
     expect(serviceWorker).toContain(`${script}?v=${APP_VERSION}`);
   }
   expect(index).toContain(`v${APP_VERSION} Stable`);
   expect(serviceWorker).toContain(`kakeibo-v${APP_VERSION}-stable`);
-  expect(serviceWorker).toContain(`style.css?v=${APP_VERSION}`);
   expect(readme).toMatch(new RegExp(`^# 家計簿Webアプリ v${APP_VERSION.replaceAll('.', '\\.')} Stable`, 'm'));
   expect(readme).toContain(`## v${APP_VERSION} Stable`);
 });

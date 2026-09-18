@@ -1,0 +1,422 @@
+/* Page-specific refinements and latest responsive overrides. */
+
+/* v2.6.43: approved summary card refinement — only the overview metric cards.
+   Keep card grid/ordering, figures, existing controls and budget calculation intact. */
+.summary>.metric:nth-child(-n+4){
+  height:160px;
+  min-height:160px;
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-start;
+  min-width:0;
+}
+.summary .metric-heading{display:flex;align-items:center;gap:9px;min-height:38px}
+.summary .metric-heading .label{font-size:13px;line-height:1.3}
+.summary .metric-icon{
+  width:38px;height:38px;flex:0 0 38px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:50%;background:#e8f2ff;color:#246ad3;
+}
+.summary .metric-icon svg{width:21px;height:21px;display:block}
+.summary>.metric:nth-child(-n+4) .value{margin-top:9px;overflow-wrap:anywhere}
+.summary>.metric:nth-child(-n+4) .sub{margin-top:auto}
+/* Deficit: only border and amount are red; never tint the card background. */
+body:not(.dark-mode) .summary>.metric:nth-child(3):has(.value.neg){
+  background:#fff!important;border-color:#dc2626!important;
+}
+body:not(.dark-mode) .summary>.metric:nth-child(3) .value.neg{color:#dc2626!important;text-shadow:none!important}
+body.dark-mode .summary .metric-icon{background:#203b60;color:#8dc7ff}
+body.dark-mode .summary>.metric:nth-child(3):has(.value.neg){
+  background:var(--card)!important;border-color:#ff6b6b!important;
+}
+body.dark-mode .summary>.metric:nth-child(3) .value.neg{color:#ff6b6b!important;text-shadow:none!important}
+@media(max-width:700px){
+  .summary>.metric:nth-child(-n+4){height:164px;min-height:164px}
+  .summary .metric-heading{gap:7px;min-height:36px}
+  .summary .metric-icon{width:36px;height:36px;flex-basis:36px}
+  .summary .metric-heading .label{font-size:12px}
+  .summary>.metric:nth-child(-n+4) .value{font-size:clamp(17px,4.6vw,21px)}
+}
+
+
+/* v2.6.44: compact iPhone summary cards only. Tablet and desktop untouched. */
+@media (max-width:700px){
+  .summary>.metric:nth-child(-n+4){
+    box-sizing:border-box;
+    height:80px;
+    min-height:80px;
+    max-height:80px;
+    padding:6px 12px!important;
+    gap:0;
+  }
+  .summary>.metric:nth-child(-n+4) .metric-heading{
+    min-height:28px;
+    height:28px;
+    gap:6px;
+    flex:0 0 28px;
+  }
+  .summary>.metric:nth-child(-n+4) .metric-icon{
+    width:28px;
+    height:28px;
+    flex:0 0 28px;
+  }
+  .summary>.metric:nth-child(-n+4) .metric-icon svg{width:17px;height:17px}
+  .summary>.metric:nth-child(-n+4) .metric-heading .label{font-size:12px;line-height:1.15}
+  .summary>.metric:nth-child(-n+4) .value{
+    margin-top:6px;
+    font-size:clamp(15px,4.2vw,20px);
+    line-height:1.12;
+    white-space:nowrap;
+    overflow-wrap:normal;
+  }
+  .summary>.metric:nth-child(-n+4) .sub{
+    margin-top:0;
+    font-size:10px;
+    line-height:10px;
+  }
+  /* v2.6.45: match the four 80px cards; retain amount, right-aligned remainder and bar. */
+  .summary>.metric:nth-child(5){
+    box-sizing:border-box;
+    height:80px;
+    min-height:80px;
+    max-height:80px;
+    padding:8px 12px!important;
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    grid-template-rows:16px minmax(0,1fr) 8px;
+    gap:4px;
+  }
+  .summary>.metric:nth-child(5) .metric-heading{grid-column:1/-1;grid-row:1;min-height:0;height:16px;align-self:center}
+  .summary>.metric:nth-child(5) .metric-heading .label{font-size:12px;line-height:16px}
+  .summary>.metric:nth-child(5) .value{
+    grid-column:1;
+    grid-row:2;
+    align-self:center;
+    min-width:0;
+    margin-top:0;
+  }
+  .summary>.metric:nth-child(5) .sub{
+    grid-column:2;
+    grid-row:2;
+    align-self:center;
+    justify-self:end;
+    margin:0;
+    font-size:clamp(9px,2.75vw,12px);
+    white-space:nowrap;
+    text-align:right;
+  }
+  .summary>.metric:nth-child(5) .variable-budget-bar{
+    grid-column:1/-1;
+    grid-row:3;
+    width:100%;
+    margin-top:0;
+  }
+}
+
+
+/* v2.6.47: selected shopping bag for variable expenses, preserving the 80px card. */
+@media(max-width:700px){
+  .summary>.metric:nth-child(5){grid-template-rows:22px minmax(0,1fr) 8px;gap:3px}
+  .summary>.metric:nth-child(5) .metric-heading{min-height:0;height:22px}
+  .summary>.metric:nth-child(5) .metric-icon{width:22px;height:22px;flex:0 0 22px}
+  .summary>.metric:nth-child(5) .metric-icon svg{width:14px;height:14px}
+}
+
+
+/* v2.6.58: PC/iPad summary uses four primary cards; variable details live below. */
+@media(min-width:701px){
+  .summary{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .summary>.metric[data-summary-key="variable"]{display:none}
+}
+
+/* v2.6.60: let the four PC/iPad summary cards fit their content without empty space. */
+@media(min-width:701px){
+  .summary>.metric:nth-child(-n+4){height:auto;min-height:0}
+}
+
+
+/* v2.6.57: PC/iPad income dashboard with summary first and a rolling 12-month chart. */
+.income-desktop-overview{display:none}
+@media(min-width:701px){
+  .income-desktop-overview{display:grid;gap:16px;min-width:0}
+  .income-desktop-top{display:grid;grid-template-columns:minmax(250px,.95fr) minmax(0,2.2fr);gap:16px;align-items:stretch;min-width:0}
+  .income-desktop-bottom{display:grid;grid-template-columns:minmax(300px,.9fr) minmax(0,1.1fr);gap:16px;align-items:stretch;min-width:0}
+  .income-desktop-card{background:var(--card);border:1px solid var(--line-soft);border-radius:22px;box-shadow:var(--shadow);overflow:hidden;min-width:0}
+  .income-desktop-card-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:20px 22px 14px}
+  .income-desktop-card-head h2,.income-desktop-total h2{margin:0;color:var(--text);font-size:20px;font-weight:850;letter-spacing:.01em}
+  .income-desktop-period{display:grid;grid-template-columns:1fr 1fr;width:min(290px,42%);padding:4px;border-radius:999px;background:#eaf3ff}
+  .income-desktop-period button{border:0;border-radius:999px;background:transparent;color:#7589a5;padding:9px 20px;font-size:13px;font-weight:800}
+  .income-desktop-period button.active{background:#fff;color:#1674e5;box-shadow:0 2px 8px rgba(34,113,211,.12)}
+  .income-desktop-graph{min-height:440px}
+  .income-desktop-chart{display:grid;grid-template-columns:repeat(var(--income-desktop-column-count,12),minmax(0,1fr));align-items:end;gap:12px;margin:4px 24px 22px;padding:0 10px;border-bottom:1px solid #cddff5;background:repeating-linear-gradient(to bottom,transparent 0,transparent 72px,#e4eefb 73px,#e4eefb 74px);min-width:0}
+  .income-desktop-chart-column{display:flex;min-width:0;flex-direction:column;align-items:center;border:0;background:transparent;color:#617995;padding:0;cursor:pointer}
+  .income-desktop-chart-track{position:relative;display:flex;width:100%;height:300px;align-items:flex-end;justify-content:center}
+  .income-desktop-chart-bar{display:block;width:min(42%,40px);border-radius:3px 3px 0 0;background:linear-gradient(180deg,#a9d6ff,#83c3fc);box-shadow:0 0 0 1px rgba(58,139,224,.05);transition:height .2s ease}
+  .income-desktop-chart-column.selected .income-desktop-chart-bar{background:linear-gradient(180deg,#268df2,#0868df)}
+  .income-desktop-chart-value{position:absolute;left:50%;bottom:calc(var(--bar-height,0%) + 8px);transform:translateX(-50%);color:#315b91;font-size:12px;font-weight:750;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .income-desktop-chart-column.selected .income-desktop-chart-value{color:#0870e7;font-size:13px;font-weight:850}
+  .income-desktop-chart-label{padding:10px 2px 12px;color:#315b91;font-size:13px;font-weight:750;white-space:nowrap}
+  .income-desktop-chart-column.selected .income-desktop-chart-label{color:#0870e7;font-weight:850}
+  .income-desktop-side{display:grid;grid-template-rows:112px minmax(0,1fr);gap:16px;min-width:0}
+  .income-desktop-add{display:flex;align-items:center;justify-content:center;gap:17px;border:0;border-radius:22px;background:linear-gradient(135deg,#3299f8 0%,#1972ed 100%);box-shadow:0 12px 25px rgba(28,116,225,.18);color:#fff;font-size:20px;font-weight:850;letter-spacing:.01em}
+  .income-desktop-add span{font-size:42px;font-weight:350;line-height:1}
+  .income-desktop-total{display:flex;flex-direction:column;padding:24px 28px 20px}
+  .income-desktop-total>strong{margin-top:30px;color:#153e73;font-size:44px;line-height:1;font-weight:880;letter-spacing:-.04em;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .income-desktop-total>span{margin-top:14px;color:#35577e;font-size:15px;font-weight:750}
+  .income-desktop-compare{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:auto;padding-top:18px;border-top:1px solid var(--line-soft);color:#315174;font-size:15px;font-weight:750}
+  .income-desktop-compare b{color:#1375e4;font-size:20px;font-weight:880;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .income-desktop-categories,.income-desktop-recent{min-height:310px}
+  .income-desktop-categories>.income-desktop-card-head,.income-desktop-recent>.income-desktop-card-head{padding-bottom:12px}
+  .income-desktop-categories>div:last-child{padding:0 22px 18px}
+  .income-desktop-category-row{display:grid;width:100%;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px;border:0;border-bottom:1px solid var(--line-soft);background:transparent;color:var(--text);padding:15px 8px;text-align:left}
+  .income-desktop-category-row:last-child{border-bottom:0}
+  .income-desktop-category-row:hover{background:#f7fbff}
+  .income-desktop-category-name{display:flex;align-items:center;gap:14px;min-width:0;font-size:15px;font-weight:750}
+  .income-desktop-category-name i{width:20px;height:20px;flex:0 0 20px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(255,255,255,.35)}
+  .income-desktop-category-row strong{color:#183e70;font-size:16px;font-weight:820;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .income-desktop-recent>.income-desktop-card-head button{border:1px solid #cfe1f7;border-radius:999px;background:#fff;color:#1572dc;padding:8px 15px;font-size:12px;font-weight:800;white-space:nowrap}
+  .income-desktop-recent-head,.income-desktop-recent-row{display:grid;grid-template-columns:62px 120px minmax(110px,1fr) 120px 66px;gap:12px;align-items:center}
+  .income-desktop-recent-head{margin:0 22px;padding:9px 12px;border-radius:9px;background:#edf5ff;color:#7188a4;font-size:11px;font-weight:750}
+  #incomeDesktopRecentRows{padding:0 22px 14px}
+  .income-desktop-recent-row{min-height:58px;padding:9px 12px;border-bottom:1px solid var(--line-soft);color:#26466d;font-size:13px}
+  .income-desktop-recent-row>span:first-child{font-variant-numeric:tabular-nums}
+  .income-desktop-recent-category{font-weight:750;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .income-desktop-recent-content{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .income-desktop-recent-row>strong{color:#173d6e;text-align:right;font-size:14px;font-weight:820;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .income-desktop-recent-row>button{border:0;border-radius:999px;background:#edf5ff;color:#1472dc;padding:7px 10px;font-size:11px;font-weight:800}
+  .income-desktop-empty{display:flex;min-height:170px;align-items:center;justify-content:center;color:var(--muted);font-size:13px}
+  body.dark-mode .income-desktop-card{background:var(--card);border-color:var(--line-soft)}
+  body.dark-mode .income-desktop-period{background:#1e334c}
+  body.dark-mode .income-desktop-period button{color:#9bb0c8}
+  body.dark-mode .income-desktop-period button.active{background:#2a4b70;color:#8ec5ff;box-shadow:none}
+  body.dark-mode .income-desktop-chart{border-bottom-color:#38536f;background:repeating-linear-gradient(to bottom,transparent 0,transparent 72px,#273b51 73px,#273b51 74px)}
+  body.dark-mode .income-desktop-chart-bar{background:linear-gradient(180deg,#4e789f,#365f87)}
+  body.dark-mode .income-desktop-chart-column.selected .income-desktop-chart-bar{background:linear-gradient(180deg,#4ca5ff,#2179d9)}
+  body.dark-mode .income-desktop-chart-value,body.dark-mode .income-desktop-chart-label{color:#9db7d4}
+  body.dark-mode .income-desktop-chart-column.selected .income-desktop-chart-value,body.dark-mode .income-desktop-chart-column.selected .income-desktop-chart-label{color:#71b7ff}
+  body.dark-mode .income-desktop-total>strong,body.dark-mode .income-desktop-category-row strong,body.dark-mode .income-desktop-recent-row>strong{color:#e6f2ff}
+  body.dark-mode .income-desktop-total>span,body.dark-mode .income-desktop-compare,body.dark-mode .income-desktop-recent-row{color:#b3c6da}
+  body.dark-mode .income-desktop-category-row:hover{background:#1b2a39}
+  body.dark-mode .income-desktop-recent>.income-desktop-card-head button,body.dark-mode .income-desktop-recent-row>button{background:#203b5a;border-color:#315475;color:#92c7ff}
+  body.dark-mode .income-desktop-recent-head{background:#1c3046;color:#a8bdd5}
+}
+@media(min-width:701px) and (max-width:1000px){
+  .income-desktop-top{grid-template-columns:minmax(235px,.88fr) minmax(0,1.72fr);gap:12px}
+  .income-desktop-bottom{grid-template-columns:minmax(280px,.85fr) minmax(0,1.15fr);gap:12px}
+  .income-desktop-overview{gap:12px}
+  .income-desktop-card-head{padding:17px 17px 12px}
+  .income-desktop-card-head h2,.income-desktop-total h2{font-size:17px}
+  .income-desktop-period{width:min(220px,48%)}
+  .income-desktop-period button{padding:8px 11px;font-size:12px}
+  .income-desktop-graph{min-height:390px}
+  .income-desktop-chart{gap:5px;margin:3px 15px 18px;padding:0 5px;background:repeating-linear-gradient(to bottom,transparent 0,transparent 62px,#e4eefb 63px,#e4eefb 64px)}
+  .income-desktop-chart-track{height:260px}
+  .income-desktop-chart-value{font-size:10px}
+  .income-desktop-chart-column.selected .income-desktop-chart-value{font-size:11px}
+  .income-desktop-chart-label{font-size:11px}
+  .income-desktop-total{padding:21px 18px 17px}
+  .income-desktop-total>strong{font-size:32px;margin-top:27px}
+  .income-desktop-side{grid-template-rows:96px minmax(0,1fr);gap:12px}
+  .income-desktop-add{font-size:17px;gap:10px}
+  .income-desktop-add span{font-size:34px}
+  .income-desktop-categories>div:last-child,#incomeDesktopRecentRows{padding-left:15px;padding-right:15px}
+  .income-desktop-recent-head{margin-left:15px;margin-right:15px}
+  .income-desktop-recent-head,.income-desktop-recent-row{grid-template-columns:47px 84px minmax(72px,1fr) 91px 53px;gap:7px}
+  .income-desktop-recent-head{padding:8px;font-size:10px}
+  .income-desktop-recent-row{padding:8px;font-size:11px}
+  .income-desktop-recent-row>strong{font-size:12px}
+  .income-desktop-recent-row>button{padding:6px 7px;font-size:10px}
+  body.dark-mode .income-desktop-chart{background:repeating-linear-gradient(to bottom,transparent 0,transparent 62px,#273b51 63px,#273b51 64px)}
+}
+
+/* v2.6.48: iPhone income page only. Retain the original daily entry and editing card. */
+.income-mobile-overview{display:none}
+@media(max-width:700px){
+  .income-panel .income-mobile-overview{display:grid;gap:12px;margin-bottom:12px;min-width:0}
+  .income-graph-card,.income-total-card,.income-categories-card{
+    background:var(--card);border:1px solid var(--line-soft);box-shadow:var(--shadow);border-radius:22px;
+  }
+  .income-graph-card{padding:15px 13px 13px;overflow:hidden}
+  .income-graph-head{display:flex;align-items:flex-start;gap:10px;min-width:0}
+  .income-graph-mark,.income-total-symbol,.income-category-symbol{
+    display:flex;flex:none;align-items:center;justify-content:center;background:#e9f3ff;color:#246ed5;border-radius:50%;
+  }
+  .income-graph-mark{width:42px;height:42px}
+  .income-graph-mark svg{width:25px;height:25px}
+  .income-graph-summary{display:flex;flex:1;min-width:0;flex-direction:column}
+  .income-graph-summary>span{font-weight:750;font-size:13px;color:var(--muted)}
+  .income-graph-summary strong{font-weight:850;font-size:26px;color:var(--text);line-height:1.22;margin-top:4px;font-variant-numeric:tabular-nums}
+  .income-graph-summary small{font-size:11px;color:var(--muted);margin-top:5px}
+  .income-period-wrap{flex:0 0 auto}
+  .income-period-wrap select{appearance:none;-webkit-appearance:none;cursor:pointer;border:0;border-radius:999px;padding:8px 24px 8px 12px;background:#e9f3ff;color:#284f84;font-size:12px;font-weight:750;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='m1 1 5 5 5-5' fill='none' stroke='%23256bcc' stroke-width='1.7'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center}
+  .income-chart-bars{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));align-items:end;column-gap:4px;margin-top:13px;border-bottom:1px solid #dce9fb;min-width:0}
+  .income-chart-column{min-width:0;background:none;border:0;padding:0;color:var(--muted);display:flex;flex-direction:column;align-items:center;cursor:pointer}
+  .income-chart-track{height:126px;width:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;position:relative}
+  .income-chart-bar{display:block;width:min(75%,28px);min-height:0;border-radius:5px 5px 0 0;background:#d7eaff;flex:none}
+  .income-chart-column.selected .income-chart-bar{background:linear-gradient(180deg,#419bf5,#2679e9)}
+  .income-chart-tag{position:absolute;bottom:calc(82% + 5px);left:50%;transform:translateX(-50%);background:#e9f3ff;color:#1c4678;padding:3px 6px;border-radius:999px;font-size:10px;font-weight:800;white-space:nowrap;line-height:1.3;pointer-events:none}
+  .income-chart-column.selected .income-chart-tag{font-variant-numeric:tabular-nums}
+  .income-chart-label{font-size:10px;font-weight:650;white-space:nowrap;padding:8px 0 0;line-height:1.5}
+  .income-chart-column.selected .income-chart-label{color:#1975e2;font-weight:850}
+  .income-mini-cards{display:grid;grid-template-columns:1fr 1fr;gap:9px;min-width:0}
+  .income-add-card{border:0;border-radius:21px;background:linear-gradient(115deg,#3280ec 0%,#3196f4 52%,#35cbe1 100%);box-shadow:0 10px 22px rgba(41,129,229,.17);color:#fff;display:flex;align-items:center;gap:9px;padding:15px 11px;text-align:left;min-width:0;min-height:108px}
+  .income-add-symbol{background:#fff;color:#2676dd;border-radius:50%;width:42px;height:42px;flex:0 0 42px;display:flex;align-items:center;justify-content:center;font-size:31px;font-weight:400;line-height:1}
+  .income-add-copy{min-width:0;flex:1;display:flex;flex-direction:column;gap:4px}
+  .income-add-copy strong{font-size:15px;line-height:1.2;white-space:nowrap}
+  .income-add-copy small{font-size:10px;line-height:1.4;overflow-wrap:anywhere}
+  .income-add-arrow{font-size:24px;line-height:1;font-weight:300}
+  .income-total-card{display:flex;align-items:center;gap:9px;min-width:0;padding:12px 10px}
+  .income-total-symbol{width:39px;height:39px;flex-basis:39px;background:#e9fff9;color:#12a287}
+  .income-total-symbol svg{width:23px;height:23px}
+  .income-total-copy{display:flex;min-width:0;flex-direction:column;gap:3px}
+  .income-total-copy>span{color:var(--muted);font-size:12px;font-weight:750}
+  .income-total-copy strong{font-size:21px;letter-spacing:-.025em;color:var(--text);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .income-total-copy small{font-size:11px;color:var(--muted);white-space:nowrap}
+  .income-categories-card{padding:13px 11px 10px;min-width:0}
+  .income-categories-head{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:0 4px 9px}
+  .income-categories-head h2{font-size:17px;margin:0;color:var(--text)}
+  .income-categories-head button{border:0;background:none;color:#1975e2;font-weight:700;font-size:12px;padding:4px 0;white-space:nowrap}
+  .income-categories-head button span{font-size:19px;vertical-align:-1px}
+  .income-categories-list{border:1px solid var(--line-soft);border-radius:16px;overflow:hidden}
+  .income-category-row{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;border-bottom:1px solid var(--line-soft);color:var(--text);padding:8px;text-align:left;min-width:0}
+  .income-category-row:last-child{border-bottom:0}
+  .income-category-symbol{width:37px;height:37px;flex-basis:37px;border-radius:13px}
+  .income-category-symbol svg{width:22px;height:22px}
+  .income-category-symbol.color-1{background:#e6fff5;color:#109c70}
+  .income-category-symbol.color-2{background:#eaf2ff;color:#2c78ce}
+  .income-category-symbol.color-3{background:#f2edff;color:#7045d3}
+  .income-category-name{display:flex;flex:1;min-width:0;flex-direction:column;gap:2px}
+  .income-category-name strong{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .income-category-name small{font-size:10px;color:var(--muted);white-space:nowrap}
+  .income-category-count{color:var(--muted);font-size:11px;white-space:nowrap}
+  .income-category-arrow{color:#718aaa;font-size:21px}
+  /* Do not remove or replace the previous income day editor; preserve its date and controls. */
+  .income-panel #mobileIncome .mobile-day-card{margin-top:0}
+  .income-month-dialog{width:min(94vw,540px);max-height:86dvh;overflow:auto}
+  .income-month-meta{font-size:12px;color:var(--muted);margin:0 0 12px;line-height:1.6}
+  .income-month-row{display:flex;align-items:center;justify-content:space-between;gap:7px;border-bottom:1px solid var(--line-soft);padding:12px 0}
+  .income-month-entry{display:flex;min-width:0;flex:1;flex-direction:column;gap:4px}
+  .income-month-entry strong{font-size:16px;color:var(--text);font-variant-numeric:tabular-nums}
+  .income-month-entry small{font-size:11px;color:var(--muted);overflow-wrap:anywhere}
+  .income-month-actions{display:flex;gap:5px;flex:none}
+  .income-month-actions button{border-radius:9px;border:1px solid var(--line);background:#eaf4ff;color:#246ad3;padding:7px 8px;font-weight:750;font-size:12px}
+  .income-month-actions button.income-month-delete{background:#fff1f2;border-color:#fecaca;color:#dc2626}
+  body.dark-mode .income-graph-card,body.dark-mode .income-total-card,body.dark-mode .income-categories-card{background:var(--card);border-color:var(--line-soft)}
+  body.dark-mode .income-graph-mark,body.dark-mode .income-category-symbol{background:#203b60;color:#83bdff}
+  body.dark-mode .income-total-symbol{background:#133d3b;color:#6ad5b8}
+  body.dark-mode .income-period-wrap select,body.dark-mode .income-chart-tag{background-color:#203b60;color:#bed9ff}
+  body.dark-mode .income-chart-bar{background:#355779}
+  body.dark-mode .income-chart-column.selected .income-chart-bar{background:#4397f0}
+  body.dark-mode .income-chart-bars{border-bottom-color:#34516f}
+  body.dark-mode .income-categories-list,body.dark-mode .income-category-row,body.dark-mode .income-month-row{border-color:var(--line-soft)}
+  body.dark-mode .income-month-actions button{background:#203b60;border-color:#36516f;color:#afceff}
+  body.dark-mode .income-month-actions button.income-month-delete{background:#35202c;border-color:#673849;color:#ffa4ae}
+}
+@media(max-width:360px){
+  .income-add-card{padding:10px 8px;gap:6px}
+  .income-add-symbol{width:35px;height:35px;flex-basis:35px;font-size:27px}
+  .income-add-copy strong{font-size:13px}
+  .income-add-arrow{display:none}
+  .income-total-card{gap:6px;padding:10px 7px}
+  .income-total-symbol{width:33px;height:33px;flex-basis:33px}
+  .income-total-copy strong{font-size:18px}
+}
+.sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+
+/* v2.6.50: align expense calendar dates to the top, with or without an amount. */
+@media(max-width:700px){
+  .expense-panel #expenseMonthCalendar .mobile-cal-day:not(.empty){
+    display:flex;
+    flex-direction:column;
+    align-items:stretch;
+    justify-content:flex-start;
+  }
+}
+
+/* v2.6.51: Design1 — clean, slim donut charts on every viewport. */
+.donut-card .donut-layout{gap:28px}
+.donut-card .donut-side-legend{gap:0}
+.donut-card .donut-mode-toggle{
+  grid-template-columns:1fr 1fr;
+  gap:2px;
+  margin:0 0 8px;
+  padding:3px;
+  border:0;
+  border-radius:999px;
+  background:#edf5ff;
+}
+.donut-card .donut-mode-btn{
+  padding:7px 12px;
+  border-radius:999px;
+  color:#71839c;
+  font-size:11px;
+  font-weight:750;
+}
+.donut-card .donut-mode-btn.active{
+  background:#fff;
+  color:#2577dd;
+  box-shadow:0 1px 5px rgba(37,119,221,.12);
+}
+.donut-card .donut-legend-list{gap:0}
+.donut-card .donut-legend-row{
+  min-height:38px;
+  padding:8px 2px;
+  border-bottom:1px solid var(--line-soft);
+  font-size:12px;
+}
+.donut-card .donut-legend-row:last-child{border-bottom:0}
+.donut-card .donut-legend-name{font-weight:650;color:#334b6a}
+.donut-card .donut-legend-name .dot{width:8px;height:8px;margin-right:9px;border-radius:50%}
+.donut-card .donut-legend-value{font-size:12px;font-weight:750;color:#49617f}
+body.dark-mode .donut-card .donut-mode-toggle{background:#1e2e40}
+body.dark-mode .donut-card .donut-mode-btn{color:#9db0c7}
+body.dark-mode .donut-card .donut-mode-btn.active{background:#29415c;color:#8fc4ff;box-shadow:none}
+body.dark-mode .donut-card .donut-legend-name{color:#dbe9f8}
+body.dark-mode .donut-card .donut-legend-value{color:#b9c9dc}
+
+@media(max-width:700px){
+  .donut-card .donut-layout{gap:8px}
+  .donut-card .donut-canvas-wrap{width:min(220px,100%)}
+  .donut-card .donut-side-legend{padding:0 2px 2px}
+}
+@media(min-width:701px) and (max-width:1366px){
+  .donut-card .donut-layout{gap:24px}
+  .donut-card .donut-canvas-wrap{width:min(270px,100%)}
+}
+@media(min-width:1367px){
+  .card:has(#donutChart) .donut-layout,
+  .card:has(#variableDonut) .donut-layout{
+    grid-template-columns:270px minmax(0,1fr);
+    gap:28px;
+    min-height:0;
+  }
+  .card:has(#donutChart) .donut-canvas-wrap,
+  .card:has(#variableDonut) .donut-canvas-wrap{width:270px;height:auto!important}
+}
+
+/* v2.6.52: align both donut cards with a six-row desktop/tablet legend viewport. */
+@media(min-width:701px){
+  .donut-card .donut-layout{min-height:0}
+  .donut-card .donut-legend-list{height:228px}
+  .donut-card .donut-legend-row{height:38px;min-height:38px}
+  #donutLegend .donut-legend-list{overflow:hidden}
+  #variableLegend .donut-legend-list{
+    overflow-y:auto;
+    overflow-x:hidden;
+    overscroll-behavior:contain;
+    scrollbar-gutter:stable;
+    scrollbar-width:thin;
+    scrollbar-color:#b8cce5 transparent;
+  }
+  #variableLegend .donut-legend-list:focus-visible{
+    outline:2px solid color-mix(in srgb,var(--accent) 35%,transparent);
+    outline-offset:2px;
+    border-radius:8px;
+  }
+  #variableLegend .donut-legend-list::-webkit-scrollbar{width:5px}
+  #variableLegend .donut-legend-list::-webkit-scrollbar-track{background:transparent}
+  #variableLegend .donut-legend-list::-webkit-scrollbar-thumb{background:#b8cce5;border-radius:999px}
+  body.dark-mode #variableLegend .donut-legend-list{scrollbar-color:#526b87 transparent}
+  body.dark-mode #variableLegend .donut-legend-list::-webkit-scrollbar-thumb{background:#526b87}
+}
