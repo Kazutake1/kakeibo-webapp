@@ -30,6 +30,9 @@ jobs:
       - name: Static checks
         run: |
           node --check app.js
+          node --check sw.js
+          node --check scripts/sync-version.mjs
+          npm run version:check
           node -e "const fs=require('fs');const h=fs.readFileSync('index.html','utf8');const js=fs.readFileSync('app.js','utf8');const sw=fs.readFileSync('sw.js','utf8');if(h.includes('<style>')||!h.includes('style.css')||!h.includes('app.js'))process.exit(1);for(const x of ['SUPABASE_URL','scheduleCloudSync()','effectiveTypeSum','CHART_COLORS_LIGHT','CHART_COLORS_DARK'])if(!js.includes(x))process.exit(1);if(js.toLowerCase().includes('service_role'))process.exit(1);if(!sw.includes('./style.css')||!sw.includes('./app.js'))process.exit(1);"
 
       - name: Run Playwright regression tests
