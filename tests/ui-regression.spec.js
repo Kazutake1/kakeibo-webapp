@@ -482,11 +482,11 @@ test('desktop expense weekly total row matches item row height and shows week su
 
 
 
-test('release assets use v2.6.61 cache-busting URLs', async ({ page }) => {
+test('release assets use v2.6.62 cache-busting URLs', async ({ page }) => {
   await openApp(page);
-  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.61');
+  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.62');
   const appSrc = await page.locator('script[src*="app.js"]').getAttribute('src');
-  expect(appSrc).toBe('app.js?v=2.6.61');
+  expect(appSrc).toBe('app.js?v=2.6.62');
 });
 
 
@@ -504,7 +504,7 @@ test('service worker activation deletes only old kakeibo caches', async () => {
     },
     caches:{
       open:async()=>({addAll:async()=>{},put:async()=>{}}),
-      keys:async()=>['kakeibo-v2.6.61-stable','kakeibo-v2.6.60-stable','forum-calendar-v1','another-app-v3'],
+      keys:async()=>['kakeibo-v2.6.62-stable','kakeibo-v2.6.61-stable','forum-calendar-v1','another-app-v3'],
       delete:async key=>{deleted.push(key);return true},
       match:async()=>undefined
     },
@@ -515,7 +515,7 @@ test('service worker activation deletes only old kakeibo caches', async () => {
   let activation;
   handlers.activate({waitUntil:promise=>{activation=promise}});
   await activation;
-  expect(deleted).toEqual(['kakeibo-v2.6.60-stable']);
+  expect(deleted).toEqual(['kakeibo-v2.6.61-stable']);
 });
 
 
@@ -818,6 +818,74 @@ test('weekly chart keeps stable canvas size after hidden-panel redraws on iPad a
     expect(Math.abs(repeated.cssHeight - after.cssHeight)).toBeLessThanOrEqual(1);
     expect(repeated.backingWidth).toBe(after.backingWidth);
     expect(repeated.backingHeight).toBe(after.backingHeight);
+  }
+});
+
+test('weekly chart draws the budget overlay after the stacked bars', async () => {
+  const source = fs.readFileSync(path.resolve(__dirname, '../app.js'), 'utf8');
+  const start = source.indexOf('function drawWeekly()');
+  const end = source.indexOf('const CHART_COLORS_LIGHT', start);
+  const drawWeeklySource = source.slice(start, end);
+  const barDraw = drawWeeklySource.indexOf('ctx.fillRect(x,yBottom,barW,bh)');
+  const budgetLineDraw = drawWeeklySource.indexOf("ctx.strokeStyle='#ef4444'");
+
+  expect(barDraw).toBeGreaterThan(-1);
+  expect(budgetLineDraw).toBeGreaterThan(barDraw);
+});
+
+test('weekly budget line stays visible above bars on iPad and PC', async ({ page }) => {
+  for (const viewport of [
+    { width: 900, height: 768 },
+    { width: 1440, height: 900 }
+  ]) {
+    await page.setViewportSize(viewport);
+    await openApp(page);
+
+    const result = await page.evaluate(() => {
+      current = new Date(2026, 8, 1);
+      state.transactions = [{
+        id: 'weekly-line-overlay',
+        date: '2026-09-01',
+        type: 'variable',
+        category: 'セブンイレブン',
+        item: 'line overlay',
+        amount: 16800,
+        amountExpression: '16800',
+        memo: ''
+      }];
+      render();
+      drawWeekly();
+
+      const canvas = document.getElementById('weeklyChart');
+      const context = canvas.getContext('2d');
+      const rect = canvas.getBoundingClientRect();
+      const dpr = devicePixelRatio || 1;
+      const left = 54, right = 14, top = 26, bottom = 40;
+      const plotWidth = rect.width - left - right;
+      const plotHeight = rect.height - top - bottom;
+      const max = 16800;
+      const budgetY = top + plotHeight - (14000 / max * plotHeight);
+      const slot = plotWidth / 5;
+      const barWidth = Math.min(58, slot * .58);
+      const barX = left + (slot - barWidth) / 2;
+      const image = context.getImageData(
+        Math.floor((barX + 2) * dpr),
+        Math.floor((budgetY - 2) * dpr),
+        Math.max(1, Math.floor((barWidth - 4) * dpr)),
+        Math.max(1, Math.ceil(5 * dpr))
+      );
+      let redPixels = 0;
+      for (let i = 0; i < image.data.length; i += 4) {
+        if (image.data[i] > 210 && image.data[i + 1] < 110 && image.data[i + 2] < 110 && image.data[i + 3] > 180) {
+          redPixels++;
+        }
+      }
+      return { redPixels, canvasWidth: rect.width, canvasHeight: rect.height };
+    });
+
+    expect(result.canvasWidth).toBeGreaterThan(100);
+    expect(result.canvasHeight).toBeGreaterThan(100);
+    expect(result.redPixels).toBeGreaterThan(4);
   }
 });
 
