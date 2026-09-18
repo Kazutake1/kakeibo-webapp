@@ -1,4 +1,4 @@
-# 家計簿Webアプリ v2.6.63 Stable
+# 家計簿Webアプリ v2.6.64 Stable
 
 Excel家計簿をベースにした iPhone / iPad / Mac 対応のレスポンシブPWAです。
 
@@ -15,6 +15,10 @@ npm run version:set -- 2.6.64
 ```bash
 npm run version:check
 ```
+
+## v2.6.64 Stable
+- iPad版のナビゲーションをヘッダーの実際の高さに合わせて固定し、スクロール中も5つのページ切替ボタンを表示
+- PC・iPhone版のナビゲーション設定、データ・同期・その他の表示は変更なし
 
 ## v2.6.63 Stable
 - v2.6.47専用の一回限りの旧公開ワークフローを削除し、現行のUI回帰テストへ一本化
