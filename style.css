@@ -792,8 +792,8 @@ body:not(.dark-mode) .sync-status-row,body:not(.dark-mode) .daily-history-row,bo
   .card:has(#donutChart) .donut-side-legend,.card:has(#variableDonut) .donut-side-legend{min-width:0;padding-bottom:4px}
 }
 
-/* Keep the main page tabs visible while scrolling on tablet-sized screens. */
-@media (min-width:701px) and (max-width:1366px){
+/* Keep the main page tabs visible while scrolling at every desktop/tablet width. */
+@media (min-width:701px){
   .desktop-tabs{
     position:sticky;
     top:calc(60px + env(safe-area-inset-top));

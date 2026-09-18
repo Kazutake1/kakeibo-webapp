@@ -45,17 +45,19 @@ for(const browserName of ['chromium','webkit']){
   });
 }
 
-test('PC keeps its existing navigation rules without the iPad override',async({page})=>{
+test('PC keeps navigation fixed at every desktop width without the iPad override',async({page})=>{
   await page.goto('/');
-  for(const width of [1024,1280,1440]){
+  for(const width of [701,1024,1280,1366,1440,1920,2560]){
     await page.setViewportSize({width,height:900});
     const tabs=page.locator('#tabs');
     await expect(tabs).not.toHaveClass(/ipad-fixed-tabs/);
-    const expected=width<=1366?'sticky':'static';
-    expect(await tabs.evaluate(el=>getComputedStyle(el).position)).toBe(expected);
-    if(expected==='sticky'){
-      await page.evaluate(()=>window.scrollTo(0,1000));
-      expect((await tabs.boundingBox()).y).toBeGreaterThanOrEqual(59);
+    expect(await tabs.evaluate(el=>getComputedStyle(el).position)).toBe('sticky');
+    await page.evaluate(()=>window.scrollTo(0,1000));
+    const box=await tabs.boundingBox();
+    expect(box.y).toBeGreaterThanOrEqual(59);
+    expect(box.y+box.height).toBeLessThanOrEqual(900);
+    for(const label of ['概要','支出','収入','予算','設定']){
+      await expect(tabs.getByRole('button',{name:label,exact:true})).toBeVisible();
     }
   }
 });
