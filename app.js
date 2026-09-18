@@ -1121,22 +1121,9 @@ function drawWeekly(){
     ctx.fillText(val?money(val):'¥0',left-7,y+4);
   }
 
-  // Weekly budget threshold: ¥2,000/day × 7 days = ¥14,000/week.
+  // Calculate the weekly budget threshold now, but draw it after the bars so
+  // the warning line always stays visible when a bar crosses it.
   const budgetY=top+plotH-(WEEKLY_BUDGET/max*plotH);
-  ctx.save();
-  ctx.setLineDash([7,5]);
-  ctx.strokeStyle='#ef4444';
-  ctx.lineWidth=1.5;
-  ctx.beginPath();
-  ctx.moveTo(left,budgetY);
-  ctx.lineTo(w-right,budgetY);
-  ctx.stroke();
-  ctx.restore();
-
-  ctx.fillStyle='#ef4444';
-  ctx.font='700 10px sans-serif';
-  ctx.textAlign='left';
-  ctx.fillText('週予算 ¥14,000',left+4,Math.max(top+11,budgetY-6));
 
   // Weekly stacked bars.
   const slot=plotW/periods.length;
@@ -1169,6 +1156,23 @@ function drawWeekly(){
       );
     }
   });
+
+  // Weekly budget threshold: ¥2,000/day × 7 days = ¥14,000/week.
+  // Draw this overlay last so the red dotted line is not hidden by the bars.
+  ctx.save();
+  ctx.setLineDash([7,5]);
+  ctx.strokeStyle='#ef4444';
+  ctx.lineWidth=1.5;
+  ctx.beginPath();
+  ctx.moveTo(left,budgetY);
+  ctx.lineTo(w-right,budgetY);
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.fillStyle='#ef4444';
+  ctx.font='700 10px sans-serif';
+  ctx.textAlign='left';
+  ctx.fillText('週予算 ¥14,000',left+4,Math.max(top+11,budgetY-6));
 
   document.getElementById('weeklyLegend').innerHTML=cats
     .map((c,j)=>`<span><i class="dot" style="background:${chartColor(j)}"></i>${escapeHtml(c)}</span>`)
