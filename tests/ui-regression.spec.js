@@ -499,6 +499,7 @@ test('release version metadata stays synchronized with package.json', async () =
   const index = fs.readFileSync(path.resolve(__dirname, '../index.html'), 'utf8');
   const serviceWorker = fs.readFileSync(path.resolve(__dirname, '../sw.js'), 'utf8');
   const readme = fs.readFileSync(path.resolve(__dirname, '../README.md'), 'utf8');
+  const changelog = fs.readFileSync(path.resolve(__dirname, '../CHANGELOG.md'), 'utf8');
 
   for (const style of ['style-base.css', 'style-components.css', 'style-theme.css', 'style-pages.css']) {
     expect(index).toContain(`${style}?v=${APP_VERSION}`);
@@ -511,7 +512,9 @@ test('release version metadata stays synchronized with package.json', async () =
   expect(index).toContain(`v${APP_VERSION} Stable`);
   expect(serviceWorker).toContain(`kakeibo-v${APP_VERSION}-stable`);
   expect(readme).toMatch(new RegExp(`^# 家計簿Webアプリ v${APP_VERSION.replaceAll('.', '\\.')} Stable`, 'm'));
-  expect(readme).toContain(`## v${APP_VERSION} Stable`);
+  expect(readme).toContain('[CHANGELOG.md](CHANGELOG.md)');
+  expect(readme).not.toMatch(/^## v\d+\.\d+\.\d+/m);
+  expect(changelog).toContain(`## v${APP_VERSION} Stable`);
 });
 
 
