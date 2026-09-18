@@ -2,6 +2,7 @@ const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
+const APP_VERSION = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../package.json'), 'utf8')).version;
 
 async function openApp(page, { theme = 'light', transactions = [] } = {}) {
   await page.addInitScript(({ theme, transactions }) => {
@@ -482,11 +483,28 @@ test('desktop expense weekly total row matches item row height and shows week su
 
 
 
-test('release assets use v2.6.62 cache-busting URLs', async ({ page }) => {
+test(`release assets use v${APP_VERSION} cache-busting URLs`, async ({ page }) => {
   await openApp(page);
-  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', 'style.css?v=2.6.62');
+  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', `style.css?v=${APP_VERSION}`);
   const appSrc = await page.locator('script[src*="app.js"]').getAttribute('src');
-  expect(appSrc).toBe('app.js?v=2.6.62');
+  expect(appSrc).toBe(`app.js?v=${APP_VERSION}`);
+});
+
+
+
+test('release version metadata stays synchronized with package.json', async () => {
+  const index = fs.readFileSync(path.resolve(__dirname, '../index.html'), 'utf8');
+  const serviceWorker = fs.readFileSync(path.resolve(__dirname, '../sw.js'), 'utf8');
+  const readme = fs.readFileSync(path.resolve(__dirname, '../README.md'), 'utf8');
+
+  expect(index).toContain(`style.css?v=${APP_VERSION}`);
+  expect(index).toContain(`app.js?v=${APP_VERSION}`);
+  expect(index).toContain(`v${APP_VERSION} Stable`);
+  expect(serviceWorker).toContain(`kakeibo-v${APP_VERSION}-stable`);
+  expect(serviceWorker).toContain(`style.css?v=${APP_VERSION}`);
+  expect(serviceWorker).toContain(`app.js?v=${APP_VERSION}`);
+  expect(readme).toMatch(new RegExp(`^# 家計簿Webアプリ v${APP_VERSION.replaceAll('.', '\\.')} Stable`, 'm'));
+  expect(readme).toContain(`## v${APP_VERSION} Stable`);
 });
 
 
@@ -504,7 +522,7 @@ test('service worker activation deletes only old kakeibo caches', async () => {
     },
     caches:{
       open:async()=>({addAll:async()=>{},put:async()=>{}}),
-      keys:async()=>['kakeibo-v2.6.62-stable','kakeibo-v2.6.61-stable','forum-calendar-v1','another-app-v3'],
+      keys:async()=>[`kakeibo-v${APP_VERSION}-stable`,'kakeibo-v0.0.0-stable','forum-calendar-v1','another-app-v3'],
       delete:async key=>{deleted.push(key);return true},
       match:async()=>undefined
     },
@@ -515,7 +533,7 @@ test('service worker activation deletes only old kakeibo caches', async () => {
   let activation;
   handlers.activate({waitUntil:promise=>{activation=promise}});
   await activation;
-  expect(deleted).toEqual(['kakeibo-v2.6.61-stable']);
+  expect(deleted).toEqual(['kakeibo-v0.0.0-stable']);
 });
 
 
