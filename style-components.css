@@ -1,0 +1,377 @@
+/* Reusable components, calendars, charts and interaction surfaces. */
+
+/* v2.6.9: softer, lower-glare light mode */
+body:not(.dark-mode){
+  --bg:#e8edf2;--paper:#eef2f6;--card:#f7f9fb;--line:#cbd6e1;--line-soft:#dce4ec;
+  --header:#f5f7f9;--header2:#edf2f6;--text:#1d2a3a;--muted:#6f7f92;--accent:#3d79b8;
+  --accent-soft:#e2ebf4;--shadow:0 10px 28px rgba(45,67,92,.08);--ink:#1d2a3a;
+  background:linear-gradient(180deg,#e4ebf2 0,#edf2f6 250px,#e8edf2 100%)!important;color:var(--text)
+}
+body:not(.dark-mode) .app{background:linear-gradient(180deg,#e4ebf2 0,#eef2f6 260px,#e8edf2 100%)}
+body:not(.dark-mode) .topbar{background:rgba(246,248,250,.95)!important;border-bottom-color:#d6e0e9!important;box-shadow:0 5px 18px rgba(45,67,92,.06)!important}
+body:not(.dark-mode) .topbar .monthnav button,body:not(.dark-mode) .theme-toggle{background:#eef3f7!important;border-color:#d2dde7!important;color:#24364a!important}
+body:not(.dark-mode) .metric,body:not(.dark-mode) .card,body:not(.dark-mode) .budget-section,body:not(.dark-mode) .status-stat,body:not(.dark-mode) .table-wrap,body:not(.dark-mode) .mobile-quick-entry,body:not(.dark-mode) .mobile-recent,body:not(.dark-mode) dialog,body:not(.dark-mode) .mobile-month-calendar,body:not(.dark-mode) .mobile-day-card{background:#f7f9fb!important;border-color:#dce4ec!important;box-shadow:0 10px 28px rgba(45,67,92,.075)!important}
+body:not(.dark-mode) .card h2,body:not(.dark-mode) .budget-section h3,body:not(.dark-mode) .data-table th,body:not(.dark-mode) .cal-table th,body:not(.dark-mode) .row.total{background:#edf2f6!important;border-color:#d8e1e9!important;color:#2a3d52!important}
+body:not(.dark-mode) .variable-status{background:linear-gradient(180deg,#f3f6f9,#edf2f6)!important;border-color:#dce4ec!important}
+body:not(.dark-mode) .status-stat{background:#f9fafb!important}
+body:not(.dark-mode) .field input,body:not(.dark-mode) .field select,body:not(.dark-mode) .quick-amount input,body:not(.dark-mode) .secondary,body:not(.dark-mode) .item-chip,body:not(.dark-mode) .daily-history-buttons button,body:not(.dark-mode) .daily-native-date{background:#f0f4f7!important;border-color:#d1dce6!important;color:#24364a!important}
+body:not(.dark-mode) .calendar,body:not(.dark-mode) .cal-cell,body:not(.dark-mode) .data-table td{background:#f8fafb!important}
+body:not(.dark-mode) .cal-cell:hover,body:not(.dark-mode) .data-table tbody tr:hover td{background:#edf3f7!important}
+body:not(.dark-mode) .cal-cat{background:#eef3f7!important;color:#4d647c!important}
+body:not(.dark-mode) .mobile-nav{background:rgba(246,248,250,.96)!important;border-top-color:#d7e0e8!important;box-shadow:0 -7px 20px rgba(45,67,92,.07)!important}
+body:not(.dark-mode) .mobile-quick-head{background:linear-gradient(135deg,#477fb7,#6194c7)!important}
+body:not(.dark-mode) .primary{background:linear-gradient(135deg,#3d79b8,#548bc3)!important;box-shadow:0 7px 16px rgba(61,121,184,.18)!important}
+body:not(.dark-mode) .metric:nth-child(3){background:linear-gradient(145deg,#427fbf,#6097cb)!important}
+body:not(.dark-mode) .progress,body:not(.dark-mode) .variable-status .big-progress{background:#dce4ec!important}
+body:not(.dark-mode) .variable-status .big-progress span{background:linear-gradient(90deg,#3f7fbe,#6a9dce)!important}
+body:not(.dark-mode) .sync-status-row,body:not(.dark-mode) .daily-history-row,body:not(.dark-mode) .day-summary-strip{background:#eef3f7!important;border-color:#dce4ec!important}
+
+
+    /* v2.6.10: emphasize negative balance and over-budget values */
+    .metric:nth-child(3) .value.neg,
+    .budget-section .actual.neg,
+    .status-stat.remaining .v.neg,
+    .budget-watch-row.over strong{
+      color:#dc2626!important;
+    }
+    body.dark-mode .metric:nth-child(3) .value.neg,
+    body.dark-mode .budget-section .actual.neg,
+    body.dark-mode .status-stat.remaining .v.neg,
+    body.dark-mode .budget-watch-row.over strong{
+      color:#ff6b6b!important;
+    }
+
+
+    /* v2.6.11: improve negative-balance contrast on blue summary card */
+    .metric:nth-child(3):has(.value.neg) .value{color:#ffffff!important;text-shadow:0 1px 2px rgba(0,0,0,.18)}
+    .metric:nth-child(3):has(.value.neg) .label{color:#eaf4ff!important}
+    .metric:nth-child(3):has(.value.neg) .sub{color:#ffe4e6!important;font-weight:750}
+    body.dark-mode .metric:nth-child(3):has(.value.neg) .value{color:#ffffff!important}
+    body.dark-mode .metric:nth-child(3):has(.value.neg) .label{color:#eaf4ff!important}
+    body.dark-mode .metric:nth-child(3):has(.value.neg) .sub{color:#ffd7dc!important}
+
+
+    /* v2.6.12: neutral balance card with blue outline */
+    .metric:nth-child(3){background:var(--card)!important;border:2px solid var(--accent)!important;color:var(--text)!important;box-shadow:var(--shadow)!important}
+    .metric:nth-child(3) .label,.metric:nth-child(3) .sub{color:var(--muted)!important}
+    .metric:nth-child(3) .value{color:var(--text)!important;text-shadow:none!important}
+    .metric:nth-child(3) .value.pos{color:var(--good)!important}
+    .metric:nth-child(3) .value.neg{color:#dc2626!important;text-shadow:none!important}
+    .metric:nth-child(3):has(.value.neg) .label{color:var(--muted)!important}
+    .metric:nth-child(3):has(.value.neg) .sub{color:#dc2626!important;font-weight:750}
+    body.dark-mode .metric:nth-child(3){background:var(--card)!important;border-color:#55a8ff!important;color:var(--text)!important}
+    body.dark-mode .metric:nth-child(3) .label,body.dark-mode .metric:nth-child(3):has(.value.neg) .label{color:var(--muted)!important}
+    body.dark-mode .metric:nth-child(3) .sub{color:var(--muted)!important}
+    body.dark-mode .metric:nth-child(3) .value{color:var(--text)!important}
+    body.dark-mode .metric:nth-child(3) .value.pos{color:var(--good)!important}
+    body.dark-mode .metric:nth-child(3) .value.neg{color:#ff6b6b!important}
+    body.dark-mode .metric:nth-child(3):has(.value.neg) .sub{color:#ff8d92!important}
+
+
+    /* v2.6.13: fix light-mode specificity for the balance card */
+    body:not(.dark-mode) .metric:nth-child(3){
+      background:var(--card)!important;
+      border:2px solid var(--accent)!important;
+      color:var(--text)!important;
+      box-shadow:var(--shadow)!important;
+    }
+    body:not(.dark-mode) .metric:nth-child(3) .label{
+      color:var(--muted)!important;
+    }
+    body:not(.dark-mode) .metric:nth-child(3) .value{
+      color:var(--text)!important;
+      text-shadow:none!important;
+    }
+    body:not(.dark-mode) .metric:nth-child(3) .value.pos{
+      color:var(--good)!important;
+    }
+    body:not(.dark-mode) .metric:nth-child(3) .value.neg{
+      color:#dc2626!important;
+    }
+    body:not(.dark-mode) .metric:nth-child(3) .sub{
+      color:var(--muted)!important;
+    }
+    body:not(.dark-mode) .metric:nth-child(3):has(.value.neg) .sub{
+      color:#dc2626!important;
+      font-weight:750;
+    }
+
+
+    /* v2.6.14: force red negative balance in dark mode */
+    body.dark-mode .metric:nth-child(3):has(.value.neg) .value.neg{
+      color:#ff6b6b!important;
+      text-shadow:none!important;
+    }
+    body.dark-mode .metric:nth-child(3):has(.value.neg) .sub{
+      color:#ff8d92!important;
+      font-weight:750;
+    }
+
+
+/* v2.6.16 / v2.6.19: narrow overview donut layout */
+/* Keep both donut legends inside narrow overview cards using the same design. */
+.card:has(#donutChart),.card:has(#variableDonut){container-type:inline-size}
+@container (max-width:620px){
+  .card:has(#donutChart) .donut-layout,.card:has(#variableDonut) .donut-layout{grid-template-columns:1fr;gap:12px;min-height:0}
+  .card:has(#donutChart) .donut-canvas-wrap,.card:has(#variableDonut) .donut-canvas-wrap{height:240px}
+  .card:has(#donutChart) .donut-side-legend,.card:has(#variableDonut) .donut-side-legend{min-width:0;padding-bottom:4px}
+}
+
+/* Keep the main page tabs visible while scrolling at every desktop/tablet width. */
+@media (min-width:701px){
+  .desktop-tabs{
+    position:sticky;
+    top:calc(60px + env(safe-area-inset-top));
+    z-index:19;
+    background:var(--bg);
+    padding-top:8px;
+  }
+}
+
+
+/* iPad only: measured header height avoids overlap, including Safari/PWA insets. */
+.desktop-tabs.ipad-fixed-tabs{
+  position:fixed;
+  top:var(--ipad-tabs-top);
+  left:var(--ipad-tabs-left);
+  width:var(--ipad-tabs-width);
+  z-index:19;
+  background:var(--bg);
+  padding-top:8px;
+}
+
+/* v2.6.17: compact donut legend toggle */
+.donut-side-legend{align-self:stretch;justify-content:center}
+.donut-mode-toggle{display:grid;grid-template-columns:1fr 1fr;gap:3px;padding:3px;margin:0 0 12px;border:1px solid var(--line-soft);border-radius:12px;background:var(--header2)}
+.donut-mode-btn{border:0;border-radius:9px;padding:7px 12px;background:transparent;color:var(--muted);font-size:12px;font-weight:750;line-height:1.2}
+.donut-mode-btn.active{background:var(--card);color:var(--accent);box-shadow:0 1px 5px rgba(30,70,120,.10)}
+.donut-legend-list{display:flex;flex-direction:column;gap:11px;min-width:0}
+.donut-legend-row{grid-template-columns:minmax(0,1fr) minmax(72px,auto)}
+.donut-legend-value{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.donut-side-legend[data-mode="percent"] .donut-value-amount{display:none}
+.donut-side-legend[data-mode="amount"] .donut-value-percent{display:none}
+.donut-value-percent{color:#70819d}
+.donut-value-amount{color:#173b67;font-weight:750}
+body.dark-mode .donut-value-percent{color:#a9bbd3}
+body.dark-mode .donut-value-amount{color:#dce9f8}
+
+/* With a single value column, iPad can keep the cleaner side-by-side donut layout. */
+@media (min-width:701px) and (max-width:1000px){
+  .donut-layout{grid-template-columns:minmax(220px,.9fr) minmax(260px,1.1fr);gap:16px;min-height:300px}
+  .donut-canvas-wrap{height:270px}
+  .donut-legend-row{grid-template-columns:minmax(0,1fr) minmax(68px,auto);gap:9px}
+  .donut-card .card-body{padding:16px}
+}
+
+
+/* v2.6.17: iPad full-width donut cards */
+@media (min-width:701px) and (max-width:1366px){
+  .grid>.donut-card{grid-column:1/-1}
+  .donut-card .donut-layout{grid-template-columns:minmax(220px,.85fr) minmax(280px,1.15fr);gap:20px;min-height:300px}
+  .donut-card .donut-canvas-wrap{height:280px}
+  .card:has(#variableDonut) .donut-layout{grid-template-columns:minmax(220px,.85fr) minmax(280px,1.15fr)}
+}
+
+
+/* v2.6.20: taller weekly chart on iPad and desktop */
+@media (min-width:701px) and (max-width:1000px){
+  .weekly-canvas{height:350px;min-height:350px}
+}
+@media (min-width:1001px){
+  .weekly-canvas{height:400px;min-height:400px}
+}
+
+
+/* v2.6.22: hide compact date picker on smartphone and iPad */
+@media (max-width:1366px){
+  .daily-native-date{display:none!important}
+}
+
+
+/* v2.6.26: expense history */
+.expense-history-card{margin-top:16px}
+.expense-history-head{padding:18px 20px 0}
+.expense-history-head h2{margin:0 0 4px}
+.expense-history-head .hint{margin:0}
+.expense-history-filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.expense-history-filter{border:1px solid var(--line);background:var(--paper);color:var(--text);border-radius:999px;padding:7px 11px;font-size:12px;font-weight:700;cursor:pointer}
+.expense-history-filter.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.expense-history-list{display:grid;gap:0}
+.expense-history-row{display:grid;grid-template-columns:72px minmax(0,1fr) auto auto;gap:14px;align-items:center;padding:13px 0;border-top:1px solid var(--line-soft)}
+.expense-history-row:first-child{border-top:0}
+.expense-history-fixed{margin-bottom:2px;padding:13px 12px;border:1px solid var(--line-soft);border-radius:12px;background:var(--accent-soft)}
+.expense-history-date{font-size:12px;font-weight:750;color:var(--muted)}
+.expense-history-main{min-width:0;display:grid;gap:3px}
+.expense-history-main strong{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.expense-history-main>span:last-child{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.expense-history-type{width:max-content;font-size:10px!important;font-weight:800;color:var(--accent)!important;background:var(--accent-soft);border-radius:999px;padding:2px 7px}
+.expense-history-fixed .expense-history-type{background:var(--paper)}
+.expense-history-amount{font-size:15px;font-weight:850;white-space:nowrap}
+.expense-history-actions{display:flex;gap:6px;justify-content:flex-end}
+.expense-history-actions button{border:1px solid var(--line);background:var(--paper);color:var(--text);border-radius:8px;padding:7px 9px;font-size:12px;font-weight:750;cursor:pointer}
+.expense-history-actions .expense-history-delete{color:#dc2626}
+.expense-history-empty{padding:22px 0;text-align:center;color:var(--muted);font-size:13px}
+@media(max-width:700px){
+  .expense-history-head{padding:16px 16px 0}
+  .expense-history-card .card-body{padding-top:12px}
+  .expense-history-filters{gap:6px;overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+  .expense-history-filter{flex:0 0 auto}
+  .expense-history-row{grid-template-columns:56px minmax(0,1fr) auto;gap:10px;padding:12px 0}
+  .expense-history-fixed{padding:12px 10px}
+  .expense-history-actions{grid-column:2 / -1}
+  .expense-history-main strong{font-size:13px}
+  .expense-history-amount{font-size:14px}
+}
+
+
+/* v2.6.27: match expense history spacing to mobile calendar spacing */
+@media(max-width:700px){
+  .expense-history-card{margin-top:12px}
+}
+
+
+/* v2.6.28: force donut canvases to a square drawing area */
+.donut-canvas-wrap{
+  width:min(310px,100%);
+  height:auto!important;
+  aspect-ratio:1 / 1;
+  margin-left:auto;
+  margin-right:auto;
+}
+@container (max-width:620px){
+  .card:has(#donutChart) .donut-canvas-wrap,.card:has(#variableDonut) .donut-canvas-wrap{
+    width:min(240px,100%);
+    height:auto!important;
+  }
+}
+@media (min-width:701px) and (max-width:1366px){
+  .donut-card .donut-canvas-wrap{
+    width:min(280px,100%);
+    height:auto!important;
+  }
+}
+@media (min-width:1367px){
+  .donut-card .donut-canvas-wrap{
+    width:min(330px,100%);
+    height:auto!important;
+  }
+}
+
+
+/* v2.6.31: dedicated cloud sync choice dialog */
+.sync-choice-dialog{width:min(92vw,620px);max-width:620px;padding:0;overflow:hidden}
+.sync-choice-dialog .sync-choice-shell{background:var(--card);color:var(--text)}
+.sync-choice-head{padding:18px 20px 14px;border-bottom:1px solid var(--line-soft);background:var(--header2)}
+.sync-choice-kicker{display:block;margin-bottom:5px;font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--muted)}
+.sync-choice-dialog .dialog-head{padding:0;background:transparent;color:var(--text);font-size:20px;line-height:1.35}
+.sync-choice-body{padding:18px 20px 20px}
+.sync-choice-message{margin:0 0 15px;color:var(--text);font-size:14px;line-height:1.7}
+.sync-choice-options{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.sync-choice-option{display:flex;flex-direction:column;gap:8px;min-width:0;min-height:150px;padding:17px;text-align:left;border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--text);cursor:pointer;transition:border-color .15s ease,box-shadow .15s ease,transform .15s ease}
+.sync-choice-option:hover,.sync-choice-option:focus-visible{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent);outline:none}
+.sync-choice-option:active{transform:translateY(1px)}
+.sync-choice-option-title{font-size:16px;font-weight:800;line-height:1.4}
+.sync-choice-option-detail{font-size:12px;line-height:1.7;color:var(--muted)}
+.sync-choice-option-detail strong{display:block;margin-top:5px;color:var(--danger);font-size:12px}
+.sync-choice-cloud .sync-choice-option-title{color:var(--accent)}
+.sync-choice-local .sync-choice-option-title{color:var(--good)}
+.sync-choice-warning{margin:14px 0 0;padding:10px 12px;border-radius:10px;background:color-mix(in srgb,var(--danger) 8%,transparent);color:var(--danger);font-size:11px;line-height:1.6;font-weight:700}
+body.dark-mode .sync-choice-dialog .sync-choice-shell{background:var(--card)}
+body.dark-mode .sync-choice-option{background:#152231;border-color:var(--line)}
+@media(max-width:700px){
+  .sync-choice-dialog{width:min(94vw,560px)}
+  .sync-choice-head{padding:16px 16px 12px}
+  .sync-choice-dialog .dialog-head{font-size:18px}
+  .sync-choice-body{padding:15px 16px 17px}
+  .sync-choice-options{grid-template-columns:1fr;gap:10px}
+  .sync-choice-option{min-height:0;padding:15px}
+}
+
+
+/* v2.6.33: light-mode daily-history delete button */
+body:not(.dark-mode) .daily-history-buttons .history-delete{
+  color:#dc2626!important;
+  border-color:#fecaca!important;
+  background:#fff1f2!important;
+}
+
+
+/* v2.6.35: PC/iPad expense daily and weekly limit highlighting */
+.expense-week-total-cell .expense-limit-over{color:#dc2626!important}
+body.dark-mode .expense-week-total-cell .expense-limit-over{color:#ff6b6b!important}
+
+
+/* v2.6.36: stabilize weekly comparison canvas */
+.weekly-canvas canvas{display:block}
+
+
+/* v2.6.37: separate smartphone variable quick input and full entry */
+.mobile-full-entry{display:none}
+@media(max-width:700px){
+  .mobile-full-entry{
+    display:block;
+    margin-bottom:14px;
+    overflow:hidden;
+    border:0;
+    border-radius:26px;
+    background:var(--card);
+    box-shadow:0 14px 32px rgba(41,108,187,.12)
+  }
+  .mobile-full-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:18px 18px 10px
+  }
+  .mobile-full-head strong{font-size:18px;color:var(--text)}
+  .mobile-full-badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:6px 10px;
+    border-radius:999px;
+    background:var(--accent-soft);
+    color:var(--accent);
+    font-size:12px;
+    font-weight:800
+  }
+  .mobile-full-body{padding:0 18px 18px}
+  .mobile-full-note{
+    margin:0 0 12px;
+    color:var(--muted);
+    font-size:13px;
+    line-height:1.65
+  }
+  .full-entry-btn{width:100%;min-height:54px;font-size:16px;font-weight:750}
+  .mobile-quick-entry .quick-actions{grid-template-columns:1fr}
+}
+body.dark-mode .mobile-full-entry{background:var(--card)!important}
+body.dark-mode .mobile-full-badge{background:#183753;color:#8ec8ff}
+body.dark-mode .mobile-full-note{color:var(--muted)}
+
+
+/* v2.6.39: total variable-budget usage bar */
+.variable-budget-bar{
+  height:8px;
+  margin-top:10px;
+  overflow:hidden;
+  border-radius:999px;
+  background:var(--line-soft);
+}
+.variable-budget-bar span{
+  display:block;
+  height:100%;
+  border-radius:999px;
+  background:var(--accent);
+  transition:width .2s ease;
+}
+.variable-budget-bar.warn span{background:#d99a32}
+.variable-budget-bar.danger span,.variable-budget-bar.over span{background:#dc2626}
+body.dark-mode .variable-budget-bar{background:#26384c}
+body.dark-mode .variable-budget-bar span{background:#55a8ff}
+body.dark-mode .variable-budget-bar.warn span{background:#e2b56b}
+body.dark-mode .variable-budget-bar.danger span,body.dark-mode .variable-budget-bar.over span{background:#ff6b6b}
+
+
+

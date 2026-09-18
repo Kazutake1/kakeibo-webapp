@@ -485,7 +485,9 @@ test('desktop expense weekly total row matches item row height and shows week su
 
 test(`release assets use v${APP_VERSION} cache-busting URLs`, async ({ page }) => {
   await openApp(page);
-  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute('href', `style.css?v=${APP_VERSION}`);
+  const styleAssets = ['style-base.css', 'style-components.css', 'style-theme.css', 'style-pages.css'];
+  const styles = await page.locator('link[rel="stylesheet"]').evaluateAll(links => links.map(link => link.getAttribute('href')));
+  expect(styles).toEqual(styleAssets.map(style => `${style}?v=${APP_VERSION}`));
   const appScripts = ['app-data.js', 'app-sync.js', 'app-charts.js', 'app-ui.js'];
   const sources = await page.locator('script[src^="app-"]').evaluateAll(scripts => scripts.map(script => script.getAttribute('src')));
   expect(sources).toEqual(appScripts.map(script => `${script}?v=${APP_VERSION}`));
@@ -498,14 +500,16 @@ test('release version metadata stays synchronized with package.json', async () =
   const serviceWorker = fs.readFileSync(path.resolve(__dirname, '../sw.js'), 'utf8');
   const readme = fs.readFileSync(path.resolve(__dirname, '../README.md'), 'utf8');
 
-  expect(index).toContain(`style.css?v=${APP_VERSION}`);
+  for (const style of ['style-base.css', 'style-components.css', 'style-theme.css', 'style-pages.css']) {
+    expect(index).toContain(`${style}?v=${APP_VERSION}`);
+    expect(serviceWorker).toContain(`${style}?v=${APP_VERSION}`);
+  }
   for (const script of ['app-data.js', 'app-sync.js', 'app-charts.js', 'app-ui.js']) {
     expect(index).toContain(`${script}?v=${APP_VERSION}`);
     expect(serviceWorker).toContain(`${script}?v=${APP_VERSION}`);
   }
   expect(index).toContain(`v${APP_VERSION} Stable`);
   expect(serviceWorker).toContain(`kakeibo-v${APP_VERSION}-stable`);
-  expect(serviceWorker).toContain(`style.css?v=${APP_VERSION}`);
   expect(readme).toMatch(new RegExp(`^# 家計簿Webアプリ v${APP_VERSION.replaceAll('.', '\\.')} Stable`, 'm'));
   expect(readme).toContain(`## v${APP_VERSION} Stable`);
 });
@@ -990,6 +994,52 @@ test('reference visual theme applies on phone, tablet and PC', async ({ page }) 
     await expect(page.locator('#summaryCards .metric')).toHaveCount(5);
     await expect(page.locator('#summaryCards .metric:visible')).toHaveCount(width<=700?5:4);
     await expect(page.locator('#mobileFullEntry #quickFullBtn')).toHaveText('入力画面を開く');
+  }
+});
+
+test('approved CSS contract stays fixed on phone, tablet and PC', async ({ page }) => {
+  for (const expected of [
+    {width:390,metricRadius:'19px',cardRadius:'20px',desktopTabs:'none',tabsPosition:'static',mobileNav:'flex',gridColumns:1,summaryCards:5},
+    {width:1024,metricRadius:'22px',cardRadius:'24px',desktopTabs:'flex',tabsPosition:'sticky',mobileNav:'none',gridColumns:2,summaryCards:4},
+    {width:1440,metricRadius:'22px',cardRadius:'24px',desktopTabs:'flex',tabsPosition:'sticky',mobileNav:'none',gridColumns:2,summaryCards:4}
+  ]) {
+    await page.setViewportSize({width:expected.width,height:900});
+    await openApp(page);
+    const contract=await page.evaluate(()=>{
+      const metric=document.querySelector('#summaryCards .metric');
+      const card=document.querySelector('.grid>.card');
+      const tabs=document.querySelector('#tabs');
+      const mobileNav=document.querySelector('#mobileNav');
+      const grid=document.querySelector('section[data-panel="dashboard"]>.grid');
+      const summary=document.querySelector('#summaryCards');
+      const visibleSummaryCards=[...summary.querySelectorAll('.metric')].filter(item=>getComputedStyle(item).display!=='none').length;
+      return {
+        accent:getComputedStyle(document.body).getPropertyValue('--accent').trim(),
+        bodyBackground:getComputedStyle(document.body).backgroundImage,
+        metricRadius:getComputedStyle(metric).borderRadius,
+        cardRadius:getComputedStyle(card).borderRadius,
+        desktopTabs:getComputedStyle(tabs).display,
+        tabsPosition:getComputedStyle(tabs).position,
+        mobileNav:getComputedStyle(mobileNav).display,
+        gridColumns:getComputedStyle(grid).gridTemplateColumns.trim().split(/\s+/).length,
+        summaryGap:getComputedStyle(summary).gap,
+        visibleSummaryCards,
+        donutToggleRadius:getComputedStyle(document.querySelector('.donut-mode-toggle')).borderRadius
+      };
+    });
+    expect(contract).toEqual({
+      accent:'#277be8',
+      bodyBackground:expect.stringContaining('linear-gradient'),
+      metricRadius:expected.metricRadius,
+      cardRadius:expected.cardRadius,
+      desktopTabs:expected.desktopTabs,
+      tabsPosition:expected.tabsPosition,
+      mobileNav:expected.mobileNav,
+      gridColumns:expected.gridColumns,
+      summaryGap:'10px',
+      visibleSummaryCards:expected.summaryCards,
+      donutToggleRadius:'999px'
+    });
   }
 });
 
