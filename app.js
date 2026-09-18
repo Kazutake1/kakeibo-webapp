@@ -1050,6 +1050,35 @@ function renderItemList(){if(!document.getElementById('itemList'))return;const t
 function addItem(){const type=itemType.value;const name=newItemName.value.trim();if(!name)return;if(catsFor(type).some(c=>c.toLowerCase()===name.toLowerCase())){alert('同じ名前の項目があります');return}state.categories[type].push(name);const b=getBudget();if(!(name in b[type]))b[type][name]=0;saveState();newItemName.value='';render();itemType.value=type;renderItemList();updateCats()}
 window.editItem=(type,encoded)=>{const oldName=decodeURIComponent(encoded);const input=prompt(`「${oldName}」の新しい項目名を入力してください`,oldName);if(input===null)return;const newName=input.trim();if(!newName||newName===oldName)return;if(catsFor(type).some(c=>c!==oldName&&c.toLowerCase()===newName.toLowerCase())){alert('同じ名前の項目があります');return}if(!confirm(`「${oldName}」を「${newName}」に変更しますか？\n過去の収支データと各月の予算にも反映されます。`))return;state.categories[type]=catsFor(type).map(c=>c===oldName?newName:c);for(const tx of state.transactions){if(tx.type===type&&tx.category===oldName)tx.category=newName}for(const month of Object.values(state.budgets)){if(!month?.[type]||!(oldName in month[type]))continue;const oldValue=month[type][oldName];if(!(newName in month[type]))month[type][newName]=oldValue;delete month[type][oldName]}saveState();render();itemType.value=type;renderItemList();updateCats()};
 window.deleteItem=(type,encoded)=>{const name=decodeURIComponent(encoded);if(!confirm(`「${name}」を削除しますか？\n過去の収支データは削除されません。`))return;state.categories[type]=catsFor(type).filter(c=>c!==name);for(const month of Object.values(state.budgets)){if(month?.[type])delete month[type][name]}saveState();render();itemType.value=type;renderItemList();updateCats()};
+// iPad Safari: keep navigation outside sticky-positioning/scrolling quirks.
+// Desktop browsers and the narrow iPhone layout retain their existing rules.
+function initIPadNavigation(){
+  const isIPad=/iPad/.test(navigator.userAgent)||
+    (/Mac/.test(navigator.platform)&&navigator.maxTouchPoints>1);
+  if(!isIPad)return;
+  const nav=document.getElementById('tabs');
+  const header=document.querySelector('.topbar');
+  const spacer=document.createElement('div');
+  spacer.setAttribute('aria-hidden','true');
+  nav.before(spacer);
+  const update=()=>{
+    const wide=window.matchMedia('(min-width:701px)').matches;
+    nav.classList.toggle('ipad-fixed-tabs',wide);
+    if(!wide){spacer.style.height='0px';return}
+    const rect=spacer.getBoundingClientRect();
+    nav.style.setProperty('--ipad-tabs-top',header.getBoundingClientRect().height+'px');
+    nav.style.setProperty('--ipad-tabs-left',rect.left+'px');
+    nav.style.setProperty('--ipad-tabs-width',rect.width+'px');
+    spacer.style.height=nav.getBoundingClientRect().height+'px';
+  };
+  const observer=new ResizeObserver(update);
+  observer.observe(header);
+  observer.observe(nav.parentElement);
+  observer.observe(nav);
+  window.addEventListener('resize',update);
+  update();
+}
+
 let chartDrawTimer=null;
 let chartDrawSeq=0;
 function chartCanvasVisible(id){
@@ -1524,6 +1553,6 @@ importInput.onchange=async e=>{let f=e.target.files[0];if(!f)return;try{if(f.siz
 resetBtn.onclick=()=>{if(confirm('すべての家計簿データを初期化しますか？')){state=normalizeState({});saveState();render()}};
 window.addEventListener('resize',()=>scheduleChartDraw(140));
 if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
-initNav();populateType();initQuickEntry();initTheme();initMobileDaily();initIncomeMobileOverview();
+initNav();initIPadNavigation();populateType();initQuickEntry();initTheme();initMobileDaily();initIncomeMobileOverview();
 render();
 initCloudSync();

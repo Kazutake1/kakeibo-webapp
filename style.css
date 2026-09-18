@@ -804,6 +804,17 @@ body:not(.dark-mode) .sync-status-row,body:not(.dark-mode) .daily-history-row,bo
 }
 
 
+/* iPad only: measured header height avoids overlap, including Safari/PWA insets. */
+.desktop-tabs.ipad-fixed-tabs{
+  position:fixed;
+  top:var(--ipad-tabs-top);
+  left:var(--ipad-tabs-left);
+  width:var(--ipad-tabs-width);
+  z-index:19;
+  background:var(--bg);
+  padding-top:8px;
+}
+
 /* v2.6.17: compact donut legend toggle */
 .donut-side-legend{align-self:stretch;justify-content:center}
 .donut-mode-toggle{display:grid;grid-template-columns:1fr 1fr;gap:3px;padding:3px;margin:0 0 12px;border:1px solid var(--line-soft);border-radius:12px;background:var(--header2)}
