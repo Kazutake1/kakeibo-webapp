@@ -279,7 +279,6 @@ function renderVariableStatus(){
   const daysText=isCurrent?`月末まで ${daysLeft}日`:(isFuture?`対象月 ${daysInMonth}日間`:'対象月は終了');
   root.innerHTML=`<div class="variable-status-top"><div class="status-stat"><div class="k">予算</div><div class="v">${money(budgetTotal)}</div></div><div class="status-stat"><div class="k">使用済</div><div class="v">${money(used)}</div></div><div class="status-stat remaining"><div class="k">残り</div><div class="v ${remaining<0?'neg':''}">${money(remaining)}</div></div></div><div class="big-progress"><span class="${pct>100?'over':''}" style="width:${width}%"></span></div><div class="status-caption"><span>${budgetTotal>0?`予算消化 ${pct}%`:'予算未設定'}</span><span>${daysText}${daysLeft>0?` ・ 1日目安 ${money(daily)}`:''}</span></div>${watched.length?`<div class="budget-watch"><div class="budget-watch-title">予算残額が少ない項目</div>${watched.map(x=>`<div class="budget-watch-row ${x.remaining<0?'over':''}"><span>${escapeHtml(x.name)}</span><strong>${x.remaining<0?'超過 ':'残り '}${money(Math.abs(x.remaining))}</strong></div>`).join('')}</div>`:''}`;
 }
-function renderTransactions(){const body=document.querySelector('#txBody');if(!body)return;const rows=monthTx().sort((a,b)=>(b.date||'').localeCompare(a.date||''));body.innerHTML=rows.length?rows.map(t=>{const typeLabel=TYPES.find(x=>x.key===t.type)?.label||t.type;return `<tr><td>${escapeHtml(t.date)}</td><td>${escapeHtml(typeLabel)}</td><td>${escapeHtml(t.category||'')}</td><td>${escapeHtml(t.item||'')}</td><td>${escapeHtml(t.memo||'')}</td><td class="amount">${money(t.amount)}</td><td><button class="ghost" onclick="editTxEncoded('${encodeArg(t.id)}')">編集</button></td></tr>`}).join(''):`<tr><td colspan="7" class="empty">この月のデータはありません</td></tr>`}
 window.editTxEncoded=encoded=>openTx(decodeURIComponent(encoded));
 
 function normalizeExpression(s){return String(s||'').trim().replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0)).replace(/[，,￥¥円\s]/g,'').replace(/[＋]/g,'+').replace(/[－−ー]/g,'-').replace(/[×＊]/g,'*').replace(/[÷／]/g,'/').replace(/[（]/g,'(').replace(/[）]/g,')').replace(/[＝=]$/,'')}
@@ -303,7 +302,6 @@ function initQuickEntry(){if(!document.getElementById('quickCategory'))return;co
 function refreshQuickEntry(){if(!document.getElementById('quickCategory'))return;const prev=quickCategory.value;quickCategory.innerHTML=catsFor('variable').map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');if(catsFor('variable').includes(prev))quickCategory.value=prev;const now=new Date();quickDateLabel.textContent=`${now.getMonth()+1}月${now.getDate()}日`}
 function saveQuickEntry(){const expr=quickAmount.value.trim();const calc=evaluateAmountExpression(expr);if(!expr||!calc.ok){alert('金額を正しく入力してください');quickAmount.focus();return}const amount=calc.value;const now=new Date();const date=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;const cat=quickCategory.value;state.transactions.push({id:newId(),date,type:'variable',category:cat,item:quickItem.value.trim(),amount,amountExpression:expr,memo:''});current=new Date(now.getFullYear(),now.getMonth(),1);saveState();quickAmount.value='';quickAmountResult.textContent='保存しました';quickItem.value='';render();setTimeout(()=>{if(quickAmountResult.textContent==='保存しました')quickAmountResult.textContent=''},1200)}
 function openTx(id=null){txId.value=id||'';txDialogTitle.textContent=id?'収支を編集':'収支を追加'; if(id){let t=state.transactions.find(x=>x.id===id);txDate.value=t.date;txType.value=t.type;updateCats(t.category);txCategory.value=t.category;txItem.value=t.item;txAmount.value=t.amountExpression||t.amount;txMemo.value=t.memo||'';updateAmountPreview()}else{txDate.value=ym()+'-'+String(Math.min(new Date().getDate(),new Date(current.getFullYear(),current.getMonth()+1,0).getDate())).padStart(2,'0');txType.value='variable';updateCats();txItem.value='';txAmount.value='';txMemo.value='';updateAmountPreview()} txDialog.tabIndex=-1;txDate.disabled=true;try{txDialog.showModal()}finally{txDate.disabled=false}txDialog.focus()}
-window.editTx=openTx;
 txForm.onsubmit=e=>{e.preventDefault();const calc=evaluateAmountExpression(txAmount.value);if(!calc.ok){updateAmountPreview();txAmount.focus();return}let obj={id:txId.value||newId(),date:txDate.value,type:txType.value,category:txCategory.value,item:txItem.value.trim(),amount:calc.value,amountExpression:txAmount.value.trim(),memo:txMemo.value.trim()};let i=state.transactions.findIndex(x=>x.id===obj.id);if(i>=0)state.transactions[i]=obj;else state.transactions.push(obj);saveState();txDialog.close();render()};
 function renderBudgetEditor(){const b=getBudget();const budgetTypes=TYPES.filter(t=>t.key!=='income'&&t.key!=='tax');budgetEditor.innerHTML=budgetTypes.map(t=>`<div class="budget-section" style="margin-bottom:10px"><h3>${t.label}</h3><div class="rows">${catsFor(t.key).map(c=>`<div class="row"><span>${escapeHtml(c)}</span><strong>${money(b[t.key]?.[c]||0)}</strong></div>`).join('')||'<div class="empty">項目がありません</div>'}</div></div>`).join('')+`<button class="primary" onclick="openBudget()">予算を編集</button>`}
 window.openBudget=()=>{
@@ -801,9 +799,6 @@ function openDailyEntryEditor(type,category,editId='',returnToHistory=false){
   dailyEntryDialog.showModal();
   setTimeout(()=>dailyEntryAmount.focus(),80)
 }
-window.openDailyEntry=encoded=>openDailyEntryEditor('variable',decodeURIComponent(encoded));
-window.openDailyIncome=encoded=>openDailyEntryEditor('income',decodeURIComponent(encoded));
-
 function renderDailyHistory(){
   const dateKey=localDateKey(mobileDailyDate);
   const rows=dailyTransactionsFor(dateKey,dailyHistoryType,dailyHistoryCategory);
@@ -827,9 +822,6 @@ function openDailyHistoryFor(type,encoded){
   renderDailyHistory();
   if(!dailyHistoryDialog.open)dailyHistoryDialog.showModal();
 }
-window.openDailyHistory=encoded=>openDailyHistoryFor('variable',encoded);
-window.openDailyIncomeHistory=encoded=>openDailyHistoryFor('income',encoded);
-
 window.editDailyHistoryEntry=encoded=>{
   const id=decodeURIComponent(encoded);
   const tx=state.transactions.find(t=>t.id===id&&t.type===dailyHistoryType);
@@ -978,7 +970,6 @@ function renderTypeCalendar(wrapId,type,cats,label){
   const root=document.getElementById(wrapId);
   if(!root)return;
   const types=Array.isArray(type)?type:[type];
-  const isIncome=types.length===1&&types[0]==='income';
   const rows=Array.isArray(cats)&&cats.length&&typeof cats[0]==='object'
     ?cats
     :(cats||[]).map(cat=>({type:types[0],cat}));
@@ -1002,26 +993,17 @@ function renderTypeCalendar(wrapId,type,cats,label){
         if(!d)return '<td></td>';
         const date=ym()+'-'+String(d).padStart(2,'0');
         const a=sum(rowTx.filter(t=>t.category===row.cat&&t.date===date).map(t=>t.amount));
-        return `<td class="cal-cell ${isIncome?'income-cell':''}" onclick="quickAddType('${date}','${row.type}','${encodeArg(row.cat)}')">${a?`<span class="amt">${money(a)}</span>`:''}</td>`
-      }).join('')}<td class="cal-cell ${isIncome?'income-cell':''}"><b>${money(sum(rowTx.filter(t=>t.category===row.cat&&ds.includes(+t.date.slice(-2))).map(t=>t.amount)))}</b></td></tr>`
+        return `<td class="cal-cell" onclick="quickAddType('${date}','${row.type}','${encodeArg(row.cat)}')">${a?`<span class="amt">${money(a)}</span>`:''}</td>`
+      }).join('')}<td class="cal-cell"><b>${money(sum(rowTx.filter(t=>t.category===row.cat&&ds.includes(+t.date.slice(-2))).map(t=>t.amount)))}</b></td></tr>`
     }
 
-    if(!isIncome){
-      const weekTotal=sum(tx.filter(t=>ds.includes(+t.date.slice(-2))).map(t=>t.amount));
-      html+=`<tr class="expense-week-total-row"><td class="cal-cat"><b>${label}合計</b></td>${ds.map(d=>{
-        if(!d)return '<td class="cal-cell expense-week-total-cell"></td>';
-        const date=ym()+'-'+String(d).padStart(2,'0');
-        const a=sum(tx.filter(t=>t.date===date).map(t=>t.amount));
-        return `<td class="cal-cell expense-week-total-cell"><b class="${a>2000?'expense-limit-over':''}">${a?money(a):''}</b></td>`
-      }).join('')}<td class="cal-cell expense-week-total-cell"><b class="${weekTotal>14000?'expense-limit-over':''}">${money(weekTotal)}</b></td></tr>`;
-    }else{
-      html+=`<tr><td class="cal-cat"><b>${label}合計</b></td>${ds.map(d=>{
-        if(!d)return '<td></td>';
-        const date=ym()+'-'+String(d).padStart(2,'0');
-        const a=sum(tx.filter(t=>t.date===date).map(t=>t.amount));
-        return `<td class="${isIncome?'income-cell':''}"><b>${a?money(a):''}</b></td>`
-      }).join('')}<td></td></tr>`;
-    }
+    const weekTotal=sum(tx.filter(t=>ds.includes(+t.date.slice(-2))).map(t=>t.amount));
+    html+=`<tr class="expense-week-total-row"><td class="cal-cat"><b>${label}合計</b></td>${ds.map(d=>{
+      if(!d)return '<td class="cal-cell expense-week-total-cell"></td>';
+      const date=ym()+'-'+String(d).padStart(2,'0');
+      const a=sum(tx.filter(t=>t.date===date).map(t=>t.amount));
+      return `<td class="cal-cell expense-week-total-cell"><b class="${a>2000?'expense-limit-over':''}">${a?money(a):''}</b></td>`
+    }).join('')}<td class="cal-cell expense-week-total-cell"><b class="${weekTotal>14000?'expense-limit-over':''}">${money(weekTotal)}</b></td></tr>`;
   }
   html+='</table>';
   root.innerHTML=html
@@ -1044,7 +1026,6 @@ window.quickAddType=(date,type,encoded)=>{
   }
   openTx();txDate.value=date;txType.value=type;updateCats();txCategory.value=cat;txItem.value='';
 }
-window.quickAdd=(date,encoded)=>quickAddType(date,'variable',encoded);
 function renderItemManager(){if(!document.getElementById('itemType'))return;const selected=itemType.dataset.ready?itemType.value:'variable';itemType.innerHTML=TYPES.map(t=>`<option value="${t.key}">${t.label}</option>`).join('');itemType.value=selected||'variable';itemType.dataset.ready='1';renderItemList()}
 function renderItemList(){if(!document.getElementById('itemList'))return;const type=itemType.value||'variable';const cats=catsFor(type);itemList.innerHTML=cats.length?cats.map(c=>`<div class="item-chip"><span>${escapeHtml(c)}</span><span class="item-chip-actions"><button class="edit-item" type="button" onclick="editItem('${type}','${encodeArg(c)}')">編集</button><button class="delete-item" type="button" onclick="deleteItem('${type}','${encodeArg(c)}')">削除</button></span></div>`).join(''):'<div class="empty">項目がありません</div>'}
 function addItem(){const type=itemType.value;const name=newItemName.value.trim();if(!name)return;if(catsFor(type).some(c=>c.toLowerCase()===name.toLowerCase())){alert('同じ名前の項目があります');return}state.categories[type].push(name);const b=getBudget();if(!(name in b[type]))b[type][name]=0;saveState();newItemName.value='';render();itemType.value=type;renderItemList();updateCats()}
