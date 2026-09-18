@@ -1,9 +1,11 @@
 {
   "name": "kakeibo-webapp",
-  "version": "2.6.62",
+  "version": "2.6.63",
   "private": true,
   "scripts": {
-    "test": "playwright test"
+    "test": "playwright test",
+    "version:set": "node scripts/sync-version.mjs",
+    "version:check": "node scripts/sync-version.mjs --check"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.0"
