@@ -1008,6 +1008,7 @@ test('approved CSS contract stays fixed on phone, tablet and PC', async ({ page 
   ]) {
     await page.setViewportSize({width:expected.width,height:900});
     await openApp(page);
+    await expect(page.locator('.donut-mode-toggle')).toHaveCount(2);
     const contract=await page.evaluate(()=>{
       const metric=document.querySelector('#summaryCards .metric');
       const card=document.querySelector('.grid>.card');

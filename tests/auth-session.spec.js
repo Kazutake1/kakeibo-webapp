@@ -60,7 +60,7 @@ test('an expiring session refreshes before expiry and saves the replacement',asy
   await mockCloud(page,{refreshedSession:newSession});
   await page.goto('/');
   await expect.poll(()=>page.evaluate(key=>JSON.parse(localStorage.getItem(key)||'null')?.access_token,SESSION_KEY)).toBe('new-access');
-  await expect(page.locator('#syncSignedIn')).toBeVisible();
+  await expect.poll(()=>page.locator('#syncSignedIn').evaluate(element=>element.hidden)).toBe(false);
   await expect(page.locator('#syncUserEmail')).toContainText('user@example.com')
 });
 
@@ -69,7 +69,7 @@ test('a temporary refresh failure keeps the saved login session',async({page})=>
   await seedSession(page,oldSession);
   const stats=await mockCloud(page,{refreshStatus:503});
   await page.goto('/');
-  await expect(page.locator('#syncSignedIn')).toBeVisible();
+  await expect.poll(()=>page.locator('#syncSignedIn').evaluate(element=>element.hidden)).toBe(false);
   await expect.poll(()=>stats.refreshes).toBeGreaterThan(0);
   await expect.poll(()=>page.evaluate(key=>JSON.parse(localStorage.getItem(key)||'null')?.refresh_token,SESSION_KEY)).toBe('kept-refresh')
 });
