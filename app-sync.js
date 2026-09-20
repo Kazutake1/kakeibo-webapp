@@ -2,9 +2,13 @@
 const SUPABASE_URL='https://blyyxmhehubufqzyqapq.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_DB6exzL5oiIQ3e30r6nqmw_FC14UaM4';
 const SYNC_SESSION_KEY='kakeibo-sync-session-v1';
+const SYNC_REFRESH_MARGIN_MS=60*1000;
+const SYNC_REFRESH_RETRY_MS=30*1000;
 let syncSession=null;
 let syncUser=null;
 let syncSaveTimer=null;
+let syncRefreshTimer=null;
+let syncRefreshPromise=null;
 let syncBusy=false;
 let syncPending=false;
 let syncCloudVersion;
@@ -21,17 +25,85 @@ function setSyncStatus(kind,title,detail){
 function updateSyncUI(){
   const signedIn=!!syncUser,out=document.getElementById('syncSignedOut'),inside=document.getElementById('syncSignedIn'),email=document.getElementById('syncUserEmail');
   if(out)out.hidden=signedIn;if(inside)inside.hidden=!signedIn;if(email)email.textContent=signedIn?`ログイン中: ${syncUser.email||''}`:'';
-  if(!signedIn)setSyncStatus('','未ログイン','この端末内だけに保存されています')
+  if(!signedIn){
+    if(syncSession)setSyncStatus('busy','ログイン確認中','通信が戻ると自動的に確認します');
+    else setSyncStatus('','未ログイン','この端末内だけに保存されています')
+  }
 }
-function persistSyncSession(){try{if(syncSession)localStorage.setItem(SYNC_SESSION_KEY,JSON.stringify(syncSession));else localStorage.removeItem(SYNC_SESSION_KEY)}catch{}}
-function loadSyncSession(){try{const s=JSON.parse(localStorage.getItem(SYNC_SESSION_KEY)||'null');if(s&&s.access_token&&s.refresh_token)syncSession=s}catch{}}
-async function refreshSyncSession(){
+function normalizeSyncSession(session){
+  if(!session?.access_token||!session?.refresh_token)return null;
+  const normalized={...session};
+  if(!Number.isFinite(Number(normalized.expires_at))&&Number.isFinite(Number(normalized.expires_in)))normalized.expires_at=Math.floor(Date.now()/1000)+Number(normalized.expires_in);
+  return normalized
+}
+function readStoredSyncSession(){
+  try{return normalizeSyncSession(JSON.parse(localStorage.getItem(SYNC_SESSION_KEY)||'null'))}catch{return null}
+}
+function persistSyncSession(){
+  try{
+    if(syncSession)localStorage.setItem(SYNC_SESSION_KEY,JSON.stringify(syncSession));
+    else localStorage.removeItem(SYNC_SESSION_KEY);
+    return true
+  }catch(e){console.error('ログイン情報を端末へ保存できませんでした',e);return false}
+}
+function clearSyncRefreshTimer(){clearTimeout(syncRefreshTimer);syncRefreshTimer=null}
+function sessionExpiresSoon(session=syncSession,marginMs=SYNC_REFRESH_MARGIN_MS){
+  const expiresAt=Number(session?.expires_at)*1000;
+  return !Number.isFinite(expiresAt)||expiresAt-Date.now()<=marginMs
+}
+function scheduleSyncRefresh(delayMs){
+  clearSyncRefreshTimer();
+  if(!syncSession?.refresh_token)return;
+  const expiresAt=Number(syncSession.expires_at)*1000;
+  const delay=Number.isFinite(delayMs)?delayMs:Number.isFinite(expiresAt)?Math.max(0,expiresAt-Date.now()-SYNC_REFRESH_MARGIN_MS):SYNC_REFRESH_RETRY_MS;
+  syncRefreshTimer=setTimeout(()=>refreshSyncSession(),delay)
+}
+function loadSyncSession(){
+  const stored=readStoredSyncSession();
+  if(!stored)return;
+  syncSession=stored;
+  if(stored.user)syncUser=stored.user;
+  scheduleSyncRefresh()
+}
+function invalidateSyncSession(){
+  clearSyncRefreshTimer();syncSession=null;syncUser=null;persistSyncSession();updateSyncUI()
+}
+async function performSyncSessionRefresh(){
   if(!syncSession?.refresh_token)return false;
   try{
     const r=await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,{method:'POST',headers:syncHeaders(false),body:JSON.stringify({refresh_token:syncSession.refresh_token})});
-    if(!r.ok)throw new Error('refresh failed');
-    syncSession=await r.json();persistSyncSession();return true
-  }catch{syncSession=null;syncUser=null;persistSyncSession();updateSyncUI();return false}
+    if(!r.ok){
+      if([400,401,403].includes(r.status))invalidateSyncSession();
+      else{scheduleSyncRefresh(SYNC_REFRESH_RETRY_MS);setSyncStatus('err','接続待ち','ログイン状態を保持したまま再接続します')}
+      return false
+    }
+    const refreshed=normalizeSyncSession(await r.json());
+    if(!refreshed){invalidateSyncSession();return false}
+    const refreshedUser=refreshed.user||syncUser||syncSession.user||null;
+    syncSession=refreshedUser?{...refreshed,user:refreshedUser}:refreshed;
+    if(refreshedUser)syncUser=refreshedUser;
+    if(!persistSyncSession())setSyncStatus('err','保存エラー','端末のパスワード・ストレージ設定を確認してください');
+    scheduleSyncRefresh();updateSyncUI();return true
+  }catch(e){
+    console.error(e);scheduleSyncRefresh(SYNC_REFRESH_RETRY_MS);setSyncStatus('err','接続待ち','ログイン状態を保持したまま再接続します');return false
+  }
+}
+async function refreshSyncSession(){
+  if(!syncSession?.refresh_token)return false;
+  if(syncRefreshPromise)return syncRefreshPromise;
+  const refreshToken=syncSession.refresh_token;
+  const refresh=async()=>{
+    const stored=readStoredSyncSession();
+    if(stored&&stored.refresh_token!==refreshToken){
+      syncSession=stored;if(stored.user)syncUser=stored.user;scheduleSyncRefresh();updateSyncUI();return true
+    }
+    return performSyncSessionRefresh()
+  };
+  syncRefreshPromise=(async()=>{
+    if(navigator.locks?.request)return navigator.locks.request('kakeibo-session-refresh',refresh);
+    return refresh()
+  })();
+  try{return await syncRefreshPromise}finally{syncRefreshPromise=null}
 }
 async function supabaseFetch(path,options={},retry=true){
   if(!syncSession?.access_token)throw new Error('not signed in');
@@ -40,12 +112,18 @@ async function supabaseFetch(path,options={},retry=true){
 }
 async function fetchSyncUser(){
   if(!syncSession?.access_token)return null;
+  const cachedUser=syncUser||syncSession.user||null;
   try{
     let r=await fetch(`${SUPABASE_URL}/auth/v1/user`,{headers:syncHeaders(true)});
     if(r.status===401&&await refreshSyncSession())r=await fetch(`${SUPABASE_URL}/auth/v1/user`,{headers:syncHeaders(true)});
     if(!r.ok)throw new Error('user fetch failed');
-    syncUser=await r.json();return syncUser
-  }catch{syncUser=null;return null}
+    syncUser=await r.json();syncSession={...syncSession,user:syncUser};persistSyncSession();return syncUser
+  }catch(e){
+    console.error(e);
+    if(syncSession){syncUser=cachedUser;setSyncStatus('err','接続待ち','ログイン状態を保持したまま再接続します')}
+    else syncUser=null;
+    return syncUser
+  }
 }
 function hasMeaningfulLocalData(){
   if(Array.isArray(state?.transactions)&&state.transactions.length>0)return true;
@@ -173,7 +251,9 @@ async function signInCloud(){
   try{
     const r=await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`,{method:'POST',headers:syncHeaders(false),body:JSON.stringify({email,password})});
     const data=await r.json();if(!r.ok)throw new Error(data?.msg||data?.error_description||'ログインできませんでした');
-    syncSession=data;persistSyncSession();syncUser=await fetchSyncUser();if(!syncUser)throw new Error('ユーザー情報を取得できませんでした');
+    syncSession=normalizeSyncSession(data);syncUser=data.user||null;
+    if(!persistSyncSession()){syncSession=null;syncUser=null;throw new Error('ログイン情報をこの端末に保存できませんでした')}
+    scheduleSyncRefresh();syncUser=await fetchSyncUser();if(!syncUser)throw new Error('ユーザー情報を取得できませんでした');
     updateSyncUI();await initialCloudSync()
   }catch(e){setSyncStatus('err','ログイン失敗',e.message||'ログインできませんでした')}
 }
@@ -184,13 +264,13 @@ async function signUpCloud(){
   try{
     const r=await fetch(`${SUPABASE_URL}/auth/v1/signup`,{method:'POST',headers:syncHeaders(false),body:JSON.stringify({email,password})});
     const data=await r.json();if(!r.ok)throw new Error(data?.msg||data?.error_description||'登録できませんでした');
-    if(data.access_token){syncSession=data;persistSyncSession();syncUser=await fetchSyncUser();updateSyncUI();await initialCloudSync()}
+    if(data.access_token){syncSession=normalizeSyncSession(data);syncUser=data.user||null;if(!persistSyncSession()){syncSession=null;syncUser=null;throw new Error('ログイン情報をこの端末に保存できませんでした')}scheduleSyncRefresh();syncUser=await fetchSyncUser();updateSyncUI();await initialCloudSync()}
     else setSyncStatus('ok','確認メールを送信しました','メール内の確認リンクを開いたあと、この画面からログインしてください')
   }catch(e){setSyncStatus('err','登録失敗',e.message||'登録できませんでした')}
 }
 async function signOutCloud(){
   try{if(syncSession?.access_token)await fetch(`${SUPABASE_URL}/auth/v1/logout`,{method:'POST',headers:syncHeaders(true)})}catch{}
-  clearTimeout(syncSaveTimer);syncSaveTimer=null;syncPending=false;syncCloudVersion=undefined;
+  clearTimeout(syncSaveTimer);syncSaveTimer=null;clearSyncRefreshTimer();syncPending=false;syncCloudVersion=undefined;
   syncSession=null;syncUser=null;persistSyncSession();updateSyncUI()
 }
 async function manualCloudSync(){
@@ -211,8 +291,8 @@ async function manualCloudSync(){
 async function initCloudSync(){
   // Bind every sync control before awaiting session restoration / initial sync.
   // Otherwise an existing session can open syncChoiceDialog while its buttons still have no handlers.
-  const a=document.getElementById('syncSignInBtn'),b=document.getElementById('syncSignUpBtn'),c=document.getElementById('syncSignOutBtn'),d=document.getElementById('syncNowBtn');
-  if(a)a.onclick=signInCloud;if(b)b.onclick=signUpCloud;if(c)c.onclick=signOutCloud;if(d)d.onclick=manualCloudSync;
+  const form=document.getElementById('syncSignedOut'),b=document.getElementById('syncSignUpBtn'),c=document.getElementById('syncSignOutBtn'),d=document.getElementById('syncNowBtn');
+  if(form)form.addEventListener('submit',e=>{e.preventDefault();signInCloud()});if(b)b.onclick=signUpCloud;if(c)c.onclick=signOutCloud;if(d)d.onclick=manualCloudSync;
   const dialog=document.getElementById('syncChoiceDialog');
   const cloudBtn=document.getElementById('syncUseCloudBtn');
   const localBtn=document.getElementById('syncUseLocalBtn');
@@ -222,4 +302,14 @@ async function initCloudSync(){
 
   loadSyncSession();
   if(syncSession){syncUser=await fetchSyncUser();updateSyncUI();if(syncUser)await initialCloudSync()}else updateSyncUI();
+
+  window.addEventListener('online',()=>{if(syncSession&&sessionExpiresSoon())refreshSyncSession()});
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&syncSession&&sessionExpiresSoon())refreshSyncSession()});
+  window.addEventListener('storage',event=>{
+    if(event.key!==SYNC_SESSION_KEY)return;
+    if(!event.newValue){clearSyncRefreshTimer();syncSession=null;syncUser=null;updateSyncUI();return}
+    const stored=readStoredSyncSession();
+    if(!stored)return;
+    syncSession=stored;syncUser=stored.user||syncUser;scheduleSyncRefresh();updateSyncUI()
+  })
 }

@@ -11,10 +11,10 @@
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <title>家計簿アプリ</title>
-    <link rel="stylesheet" href="style-base.css?v=2.6.70" />
-    <link rel="stylesheet" href="style-components.css?v=2.6.70" />
-    <link rel="stylesheet" href="style-theme.css?v=2.6.70" />
-    <link rel="stylesheet" href="style-pages.css?v=2.6.70" />
+    <link rel="stylesheet" href="style-base.css?v=2.6.71" />
+    <link rel="stylesheet" href="style-components.css?v=2.6.71" />
+    <link rel="stylesheet" href="style-theme.css?v=2.6.71" />
+    <link rel="stylesheet" href="style-pages.css?v=2.6.71" />
 </head>
 <body>
 <div class="app">
@@ -189,17 +189,17 @@
             <div class="sync-status-main"><strong id="syncStatusTitle">未ログイン</strong><span id="syncStatusDetail">この端末内だけに保存されています</span></div>
             <i class="sync-dot" id="syncStatusDot" aria-hidden="true"></i>
           </div>
-          <div id="syncSignedOut">
+          <form id="syncSignedOut" autocomplete="on">
             <div class="sync-auth-grid">
-              <div class="field"><label>メールアドレス</label><input type="email" id="syncEmail" autocomplete="email" placeholder="name@example.com"></div>
-              <div class="field"><label>パスワード</label><input type="password" id="syncPassword" autocomplete="current-password" minlength="8" placeholder="8文字以上"></div>
+              <div class="field"><label for="syncEmail">メールアドレス</label><input type="email" id="syncEmail" name="email" autocomplete="username" autocapitalize="none" spellcheck="false" inputmode="email" placeholder="name@example.com"></div>
+              <div class="field"><label for="syncPassword">パスワード</label><input type="password" id="syncPassword" name="password" autocomplete="current-password" minlength="8" placeholder="8文字以上"></div>
             </div>
             <div class="sync-auth-actions" style="margin-top:10px">
-              <button type="button" class="primary" id="syncSignInBtn">ログイン</button>
+              <button type="submit" class="primary" id="syncSignInBtn">ログイン</button>
               <button type="button" class="secondary" id="syncSignUpBtn">新規登録</button>
             </div>
             <div class="sync-help" style="margin-top:8px">同じアカウントでiPhone・iPad・Macにログインすると、家計簿データを同期できます。</div>
-          </div>
+          </form>
           <div id="syncSignedIn" hidden>
             <div class="sync-user" id="syncUserEmail"></div>
             <div class="sync-auth-actions" style="margin-top:10px">
@@ -209,7 +209,7 @@
           </div>
         </div></div>
         <div class="card"><h2>データ管理</h2><div class="card-body"><p class="hint">データは端末内にも保存され、ログイン中はSupabaseへ自動同期します。実データはGitHubへ送信されません。万一に備えてJSONバックアップも定期的に保存してください。</p><div class="toolbar"><button class="secondary" id="exportBtn">JSONを書き出す</button><label class="secondary" style="cursor:pointer">JSONを読み込む<input id="importInput" type="file" accept="application/json" hidden></label><button class="danger" id="resetBtn">データ初期化</button></div></div></div>
-        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span> <span class="pill">v2.6.70 Stable</span></div></div>
+        <div class="card"><h2>このアプリについて</h2><div class="card-body"><p class="hint">Excel家計簿の構成をベースに、収入・税金・貯蓄・自己投資・固定費・特別費・変動費を月単位で管理できます。iPhone/iPadでは「ホーム画面に追加」でPWAとして利用できます。</p><span class="pill">PWA対応</span> <span class="pill">オフライン対応</span> <span class="pill">レスポンシブ</span> <span class="pill">v2.6.71 Stable</span></div></div>
       </div>
     </section>
   </main>
@@ -288,9 +288,9 @@
 
 <dialog id="budgetDialog"><div class="dialog-head">予算を編集</div><div class="dialog-body"><div id="budgetDialogBody"></div><div class="dialog-actions"><button class="secondary" id="budgetCancel">キャンセル</button><button class="primary" id="budgetSave">保存</button></div></div></dialog>
 
-<script src="app-data.js?v=2.6.70"></script>
-<script src="app-sync.js?v=2.6.70"></script>
-<script src="app-charts.js?v=2.6.70"></script>
-<script src="app-ui.js?v=2.6.70"></script>
+<script src="app-data.js?v=2.6.71"></script>
+<script src="app-sync.js?v=2.6.71"></script>
+<script src="app-charts.js?v=2.6.71"></script>
+<script src="app-ui.js?v=2.6.71"></script>
 </body>
 </html>
