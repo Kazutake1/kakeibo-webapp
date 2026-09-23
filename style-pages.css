@@ -1,5 +1,8 @@
 /* Page-specific refinements and latest responsive overrides. */
 
+/* Keep the two budget-page cards separated by the standard page card gap. */
+.budget-panel.active{display:grid;gap:14px}
+
 /* v2.6.43: approved summary card refinement — only the overview metric cards.
    Keep card grid/ordering, figures, existing controls and budget calculation intact. */
 .summary>.metric:nth-child(-n+4){

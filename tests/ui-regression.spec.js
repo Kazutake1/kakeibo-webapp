@@ -436,6 +436,30 @@ test('mobile expense history gap matches calendar gap', async ({ page }) => {
   expect(spacing.historyTop).toBe(spacing.calendarBottom);
 });
 
+test('budget settings and item manager use the standard card gap at every layout width', async ({ page }) => {
+  for (const viewport of [
+    { width: 390, height: 844 },
+    { width: 1024, height: 768 },
+    { width: 1440, height: 900 }
+  ]) {
+    await page.setViewportSize(viewport);
+    await openApp(page);
+    const nav = viewport.width <= 700 ? '#mobileNav' : '#tabs';
+    await page.locator(`${nav} [data-tab="budget"]`).click();
+    const spacing = await page.locator('section[data-panel="budget"]').evaluate(panel => {
+      const cards = panel.querySelectorAll(':scope > .card');
+      const first = cards[0].getBoundingClientRect();
+      const second = cards[1].getBoundingClientRect();
+      return {
+        display: getComputedStyle(panel).display,
+        cssGap: getComputedStyle(panel).rowGap,
+        measuredGap: Math.round(second.top - first.bottom)
+      };
+    });
+    expect(spacing).toEqual({ display: 'grid', cssGap: '14px', measuredGap: 14 });
+  }
+});
+
 
 test('donut canvases stay perfectly square on smartphone and iPad', async ({ page }) => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 1024, height: 768 }]) {
