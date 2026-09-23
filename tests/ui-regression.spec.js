@@ -93,6 +93,52 @@ test('mobile bottom navigation opens the main pages', async ({ page }) => {
   }
 });
 
+test('daily swipe shows its direction on expense and income pages', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openApp(page);
+  for (const kind of ['expense','income']) {
+    await page.locator(`#mobileNav [data-tab="${kind}"]`).click();
+    const root=page.locator(kind==='expense'?'#mobileExpense':'#mobileIncome');
+    const picker=root.locator('.daily-native-date');
+    const before=await picker.inputValue();
+    const nextSwipe=await root.evaluate(element=>{
+      const start=new Event('touchstart',{bubbles:true});
+      Object.defineProperty(start,'changedTouches',{value:[{clientX:300}]});
+      element.dispatchEvent(start);
+      const end=new Event('touchend',{bubbles:true});
+      Object.defineProperty(end,'changedTouches',{value:[{clientX:180}]});
+      element.dispatchEvent(end);
+      const card=element.querySelector('.mobile-day-card');
+      return {
+        value:element.querySelector('.daily-native-date').value,
+        className:card.className,
+        animationName:getComputedStyle(card.querySelector('.mobile-day-head')).animationName
+      };
+    });
+    expect(nextSwipe.value).not.toBe(before);
+    expect(nextSwipe.className).toContain('day-swipe-next');
+    expect(nextSwipe.animationName).toBe('daySwipeFromRight');
+
+    const previousSwipe=await root.evaluate(element=>{
+      const start=new Event('touchstart',{bubbles:true});
+      Object.defineProperty(start,'changedTouches',{value:[{clientX:120}]});
+      element.dispatchEvent(start);
+      const end=new Event('touchend',{bubbles:true});
+      Object.defineProperty(end,'changedTouches',{value:[{clientX:250}]});
+      element.dispatchEvent(end);
+      const card=element.querySelector('.mobile-day-card');
+      return {
+        value:element.querySelector('.daily-native-date').value,
+        className:card.className,
+        animationName:getComputedStyle(card.querySelector('.mobile-day-head')).animationName
+      };
+    });
+    expect(previousSwipe.value).toBe(before);
+    expect(previousSwipe.className).toContain('day-swipe-prev');
+    expect(previousSwipe.animationName).toBe('daySwipeFromLeft');
+  }
+});
+
 
 test('iPad: variable category card does not clip and tabs stay visible while scrolling', async ({ page }) => {
   await page.setViewportSize({ width: 1024, height: 768 });

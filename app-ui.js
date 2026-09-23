@@ -800,6 +800,21 @@ function bindMonthCalendar(rootId,kind){
     if(picked)setMobileDailyDate(picked)
   })
 }
+const dailySwipeAnimationTimers=new WeakMap();
+function animateDailySwipe(root,days){
+  const card=root?.querySelector('.mobile-day-card');
+  if(!card)return;
+  const className=days>0?'day-swipe-next':'day-swipe-prev';
+  const previousTimer=dailySwipeAnimationTimers.get(card);
+  if(previousTimer)clearTimeout(previousTimer);
+  card.classList.remove('day-swipe-next','day-swipe-prev');
+  void card.offsetWidth;
+  card.classList.add(className);
+  dailySwipeAnimationTimers.set(card,setTimeout(()=>{
+    card.classList.remove(className);
+    dailySwipeAnimationTimers.delete(card)
+  },280))
+}
 function bindDailySwipe(rootId){
   const root=document.getElementById(rootId);
   if(!root)return;
@@ -808,7 +823,11 @@ function bindDailySwipe(rootId){
   root.addEventListener('touchend',e=>{
     if(touchX===null)return;
     const dx=(e.changedTouches[0]?.clientX??touchX)-touchX;touchX=null;
-    if(Math.abs(dx)>55)shiftMobileDailyDate(dx<0?1:-1)
+    if(Math.abs(dx)>55){
+      const days=dx<0?1:-1;
+      shiftMobileDailyDate(days);
+      animateDailySwipe(root,days)
+    }
   },{passive:true})
 }
 function initMobileDaily(){
