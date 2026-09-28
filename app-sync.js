@@ -156,6 +156,11 @@ function hasMeaningfulLocalData(){
   return false
 }
 function cloudVersion(row){const version=Number(row?.sync_version);return Number.isSafeInteger(version)&&version>=1?version:null}
+function localSnapshotIsCurrent(){
+  if(localStorage.getItem('kakeibo-v1')===savedStateSnapshot)return true;
+  setSyncStatus('err','同期を保留しました','別のタブでデータが更新されました。このタブを再読み込みしてください');
+  return false
+}
 function rememberCloudRow(row){const version=cloudVersion(row);if(version!==null)syncCloudVersion=version;return version}
 async function fetchCloudState(){
   const r=await supabaseFetch(`/rest/v1/kakeibo_user_state?select=state,updated_at,sync_version&user_id=eq.${encodeURIComponent(syncUser.id)}&limit=1`,{method:'GET',headers:{Accept:'application/json'}});
@@ -183,6 +188,7 @@ async function resolveCloudConflict(latest){
     await applyCloudState(latest);setSyncStatus('ok','同期済み','別の端末の最新データを読み込みました');return true
   }
   if(choice==='local'){
+    if(!localSnapshotIsCurrent())return false;
     const saved=await updateCloudState(deepCopy(state),latestVersion);
     if(!saved){syncCloudVersion=undefined;setSyncStatus('err','同期の確認が必要','同期中に別の端末で再更新されました。「今すぐ同期」を押してください');return false}
     rememberCloudRow(saved);setSyncStatus('ok','同期済み',`最終同期 ${new Date().toLocaleString('ja-JP')}`);return true
@@ -191,14 +197,17 @@ async function resolveCloudConflict(latest){
 }
 async function uploadCloudState(){
   if(!syncUser)return false;
+  if(!localSnapshotIsCurrent())return false;
   if(syncBusy){syncPending=true;return false}
   syncBusy=true;setSyncStatus('busy','同期中','クラウドへ保存しています…');
   try{
     if(syncCloudVersion===undefined){
       const latest=await fetchCloudState();
+      if(!syncUser||!localSnapshotIsCurrent())return false;
       if(latest)return await resolveCloudConflict(latest);
       syncCloudVersion=0
     }
+    if(!syncUser||!localSnapshotIsCurrent())return false;
     const snapshot=deepCopy(state);
     const saved=syncCloudVersion===0?await insertCloudState(snapshot):await updateCloudState(snapshot,syncCloudVersion);
     if(!saved){
