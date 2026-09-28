@@ -1,4 +1,4 @@
-# 家計簿Webアプリ v2.6.73 Stable
+# 家計簿Webアプリ v2.6.74 Stable
 
 Excel家計簿をベースにした、iPhone・iPad・PC・Mac対応のレスポンシブPWAです。
 
@@ -24,6 +24,8 @@ Excel家計簿をベースにした、iPhone・iPad・PC・Mac対応のレスポ
 | `style-pages.css` | 画面別の調整 |
 | `app-data.js` | データ構造、正規化、端末内保存 |
 | `app-sync.js` | ログインとSupabase同期 |
+| `app-items.js` | 項目の追加・編集・削除と一覧 |
+| `app-daily.js` | 日別入力、履歴、日付移動 |
 | `app-charts.js` | グラフの集計と描画 |
 | `app-ui.js` | 画面描画とユーザー操作 |
 | `sw.js` | PWAキャッシュとオフライン処理 |

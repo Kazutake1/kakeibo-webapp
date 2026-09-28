@@ -558,7 +558,7 @@ test(`release assets use v${APP_VERSION} cache-busting URLs`, async ({ page }) =
   const styleAssets = ['style-base.css', 'style-components.css', 'style-theme.css', 'style-pages.css'];
   const styles = await page.locator('link[rel="stylesheet"]').evaluateAll(links => links.map(link => link.getAttribute('href')));
   expect(styles).toEqual(styleAssets.map(style => `${style}?v=${APP_VERSION}`));
-  const appScripts = ['app-data.js', 'app-sync.js', 'app-charts.js', 'app-ui.js'];
+  const appScripts = ['app-data.js', 'app-sync.js', 'app-charts.js', 'app-items.js', 'app-daily.js', 'app-ui.js'];
   const sources = await page.locator('script[src^="app-"]').evaluateAll(scripts => scripts.map(script => script.getAttribute('src')));
   expect(sources).toEqual(appScripts.map(script => `${script}?v=${APP_VERSION}`));
 });
@@ -1733,4 +1733,20 @@ test('iPhone expense calendar and summaries include self-investment and special 
   await page.locator('#expenseCategoryList [data-calendar-type="self"]',{hasText:'学習'}).click();
   await expect(page.locator('#dailyEntryDialog')).toBeVisible();
   await expect(page.locator('#dailyEntryMeta')).toContainText('自己投資 ・ 学習');
+});
+
+test('diagonal vertical gesture does not change the daily date',async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await openApp(page);
+  await page.locator('#mobileNav [data-tab="expense"]').click();
+  const date=await page.locator('#mobileExpense .daily-native-date').inputValue();
+  await page.locator('#mobileExpense').evaluate(element=>{
+    const start=new Event('touchstart',{bubbles:true});
+    Object.defineProperty(start,'changedTouches',{value:[{clientX:300,clientY:100}]});
+    element.dispatchEvent(start);
+    const end=new Event('touchend',{bubbles:true});
+    Object.defineProperty(end,'changedTouches',{value:[{clientX:210,clientY:300}]});
+    element.dispatchEvent(end)
+  });
+  await expect(page.locator('#mobileExpense .daily-native-date')).toHaveValue(date);
 });

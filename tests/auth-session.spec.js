@@ -73,3 +73,29 @@ test('a temporary refresh failure keeps the saved login session',async({page})=>
   await expect.poll(()=>stats.refreshes).toBeGreaterThan(0);
   await expect.poll(()=>page.evaluate(key=>JSON.parse(localStorage.getItem(key)||'null')?.refresh_token,SESSION_KEY)).toBe('kept-refresh')
 });
+
+test('logout during a pending refresh never restores the session',async({page})=>{
+  const oldSession=session('old-access','old-refresh',Math.floor(Date.now()/1000)+3600);
+  await seedSession(page,oldSession);
+  await mockCloud(page,{refreshedSession:session('new-access','new-refresh',Math.floor(Date.now()/1000)+3600)});
+  await page.goto('/');
+  await expect.poll(()=>page.locator('#syncSignedIn').evaluate(el=>el.hidden)).toBe(false);
+  const result=await page.evaluate(async()=>{
+    const original=window.fetch;
+    let release;
+    let started;
+    const ready=new Promise(resolve=>{started=resolve});
+    const gate=new Promise(resolve=>{release=resolve});
+    window.fetch=(url,options)=>{
+      if(String(url).includes('grant_type=refresh_token')){started();return gate.then(()=>new Response(JSON.stringify({access_token:'new-access',refresh_token:'new-refresh',expires_at:Math.floor(Date.now()/1000)+3600,user:{id:'user-1',email:'user@example.com'}}),{status:200,headers:{'Content-Type':'application/json'}}))}
+      return original(url,options)
+    };
+    const refreshing=refreshSyncSession();
+    await ready;
+    await signOutCloud();
+    release();await refreshing;
+    window.fetch=original;
+    return {stored:localStorage.getItem('kakeibo-sync-session-v1'),user:syncUser,session:syncSession}
+  });
+  expect(result).toEqual({stored:null,user:null,session:null});
+});
