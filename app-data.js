@@ -14,12 +14,13 @@ const DEFAULT_CATS = {
 };
 const DEFAULT_BUDGET = {income:{},tax:{},saving:{NISA:30000},self:{},fixed:{生命保険:25646,住宅ローン:60000,通信費:2181,Youtube:1280,'iCloud+':150,MoneyForward:550},special:{},variable:{セブンイレブン:20000,ローソン:0,ファミリーマート:0,スギ薬局:15000,ゲンキー:15000,その他:0,外食:0,インターネット:0,ネット通販:0,その他2:0}};
 let current = new Date(); current.setDate(1);
+let savedStateSnapshot;
 let state = loadState();
 function newId(){return crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2)}
 function cleanText(v,max=200){return String(v??'').replace(/[\u0000-\u001F\u007F]/g,' ').trim().slice(0,max)}
 function validDateString(v){const s=String(v||'');if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return false;const [y,m,d]=s.split('-').map(Number),dt=new Date(y,m-1,d);return dt.getFullYear()===y&&dt.getMonth()===m-1&&dt.getDate()===d}
 function finiteMoney(v){const n=Number(v);return Number.isFinite(n)&&n>=0&&n<=1e12?Math.round(n):0}
-function loadState(){try{const d=JSON.parse(localStorage.getItem('kakeibo-v1'))||{};return normalizeState(d)}catch{return normalizeState({})}}
+function loadState(){try{savedStateSnapshot=localStorage.getItem('kakeibo-v1');const d=JSON.parse(savedStateSnapshot)||{};return normalizeState(d)}catch{return normalizeState({})}}
 function normalizeState(input){
   const d=input&&typeof input==='object'?input:{};
   const categories={};
@@ -45,7 +46,13 @@ function normalizeState(input){
 function catsFor(type){return state.categories?.[type]||[]}
 function saveState(){
   try{
-    localStorage.setItem('kakeibo-v1',JSON.stringify(state));
+    if(localStorage.getItem('kakeibo-v1')!==savedStateSnapshot){
+      alert('別のタブで家計簿データが更新されました。上書きを防ぐため、このタブを再読み込みしてください。');
+      return false
+    }
+    const serialized=JSON.stringify(state);
+    localStorage.setItem('kakeibo-v1',serialized);
+    savedStateSnapshot=serialized;
     if(!suppressCloudSync)scheduleCloudSync();
     return true
   }catch(e){
@@ -57,10 +64,10 @@ function saveState(){
 function ym(d=current){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
 function money(n){return '¥'+Math.round(n||0).toLocaleString('ja-JP')}
 function deepCopy(o){return JSON.parse(JSON.stringify(o))}
-function normalizeBudgetForCategories(source){
+function normalizeBudgetForCategories(source,preserveArchived=false){
   const out={};
   for(const t of TYPES){
-    out[t.key]={};
+    out[t.key]=preserveArchived?{...source?.[t.key]}:{};
     for(const c of catsFor(t.key)){
       const hasValue=source?.[t.key]&&Object.prototype.hasOwnProperty.call(source[t.key],c);
       out[t.key][c]=hasValue?finiteMoney(source[t.key][c]):finiteMoney(DEFAULT_BUDGET[t.key]?.[c]||0);
@@ -78,7 +85,7 @@ function ensureBudgetMonth(monthKey){
   if(!state.budgets[monthKey]){
     state.budgets[monthKey]=normalizeBudgetForCategories(previousBudgetSource(monthKey));
   }else{
-    state.budgets[monthKey]=normalizeBudgetForCategories(state.budgets[monthKey]);
+    state.budgets[monthKey]=normalizeBudgetForCategories(state.budgets[monthKey],true);
   }
   return state.budgets[monthKey];
 }

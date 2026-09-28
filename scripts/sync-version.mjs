@@ -17,7 +17,7 @@ if (requestedVersion && !versionPattern.test(requestedVersion)) {
 
 const read = file => readFile(path.join(root, file), 'utf8');
 const styleAssets = ['style-base.css', 'style-components.css', 'style-theme.css', 'style-pages.css'];
-const scriptAssets = ['app-data.js', 'app-sync.js', 'app-charts.js', 'app-ui.js'];
+const scriptAssets = ['app-data.js', 'app-sync.js', 'app-charts.js', 'app-items.js', 'app-ui.js'];
 const packageJson = JSON.parse(await read('package.json'));
 if (requestedVersion) packageJson.version = requestedVersion;
 const version = packageJson.version;

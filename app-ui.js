@@ -178,9 +178,9 @@ function populateType(){txType.innerHTML=TYPES.map(t=>`<option value="${t.key}">
 function updateCats(extra=''){let arr=catsFor(txType.value);let bud=getBudget()[txType.value]||{};let cats=[...new Set([...arr,...Object.keys(bud)])];if(extra&&!cats.includes(extra))cats.push(extra);txCategory.innerHTML=cats.map(c=>`<option>${escapeHtml(c)}</option>`).join('')}
 function initQuickEntry(){if(!document.getElementById('quickCategory'))return;const now=new Date();quickDateLabel.textContent=`${now.getMonth()+1}月${now.getDate()}日`;quickCategory.innerHTML=catsFor('variable').map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');quickCategory.onchange=()=>{if(!quickItem.value.trim())quickItem.placeholder=`例：${quickCategory.value}`};quickAmount.addEventListener('input',()=>{const r=evaluateAmountExpression(quickAmount.value);quickAmountResult.textContent=r.ok&&quickAmount.value.trim()?`合計 ${money(r.value)}`:''});quickSaveBtn.onclick=saveQuickEntry;quickFullBtn.onclick=()=>openTx()}
 function refreshQuickEntry(){if(!document.getElementById('quickCategory'))return;const prev=quickCategory.value;quickCategory.innerHTML=catsFor('variable').map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');if(catsFor('variable').includes(prev))quickCategory.value=prev;const now=new Date();quickDateLabel.textContent=`${now.getMonth()+1}月${now.getDate()}日`}
-function saveQuickEntry(){const expr=quickAmount.value.trim();const calc=evaluateAmountExpression(expr);if(!expr||!calc.ok){alert('金額を正しく入力してください');quickAmount.focus();return}const amount=calc.value;const now=new Date();const date=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;const cat=quickCategory.value;state.transactions.push({id:newId(),date,type:'variable',category:cat,item:quickItem.value.trim(),amount,amountExpression:expr,memo:''});current=new Date(now.getFullYear(),now.getMonth(),1);saveState();quickAmount.value='';quickAmountResult.textContent='保存しました';quickItem.value='';render();setTimeout(()=>{if(quickAmountResult.textContent==='保存しました')quickAmountResult.textContent=''},1200)}
+function saveQuickEntry(){const expr=quickAmount.value.trim();const calc=evaluateAmountExpression(expr);if(!expr||!calc.ok){alert('金額を正しく入力してください');quickAmount.focus();return}const amount=calc.value;const now=new Date();const date=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;const cat=quickCategory.value;state.transactions.push({id:newId(),date,type:'variable',category:cat,item:quickItem.value.trim(),amount,amountExpression:expr,memo:''});if(!saveState()){state.transactions.pop();return}current=new Date(now.getFullYear(),now.getMonth(),1);quickAmount.value='';quickAmountResult.textContent='保存しました';quickItem.value='';render();setTimeout(()=>{if(quickAmountResult.textContent==='保存しました')quickAmountResult.textContent=''},1200)}
 function openTx(id=null){txId.value=id||'';txDialogTitle.textContent=id?'収支を編集':'収支を追加'; if(id){let t=state.transactions.find(x=>x.id===id);txDate.value=t.date;txType.value=t.type;updateCats(t.category);txCategory.value=t.category;txItem.value=t.item;txAmount.value=t.amountExpression||t.amount;txMemo.value=t.memo||'';updateAmountPreview()}else{txDate.value=ym()+'-'+String(Math.min(new Date().getDate(),new Date(current.getFullYear(),current.getMonth()+1,0).getDate())).padStart(2,'0');txType.value='variable';updateCats();txItem.value='';txAmount.value='';txMemo.value='';updateAmountPreview()} txDialog.tabIndex=-1;txDate.disabled=true;try{txDialog.showModal()}finally{txDate.disabled=false}txDialog.focus()}
-txForm.onsubmit=e=>{e.preventDefault();const calc=evaluateAmountExpression(txAmount.value);if(!calc.ok){updateAmountPreview();txAmount.focus();return}let obj={id:txId.value||newId(),date:txDate.value,type:txType.value,category:txCategory.value,item:txItem.value.trim(),amount:calc.value,amountExpression:txAmount.value.trim(),memo:txMemo.value.trim()};let i=state.transactions.findIndex(x=>x.id===obj.id);if(i>=0)state.transactions[i]=obj;else state.transactions.push(obj);saveState();txDialog.close();render()};
+txForm.onsubmit=e=>{e.preventDefault();const calc=evaluateAmountExpression(txAmount.value);if(!calc.ok){updateAmountPreview();txAmount.focus();return}let obj={id:txId.value||newId(),date:txDate.value,type:txType.value,category:txCategory.value,item:txItem.value.trim(),amount:calc.value,amountExpression:txAmount.value.trim(),memo:txMemo.value.trim()};let i=state.transactions.findIndex(x=>x.id===obj.id);const before=i>=0?state.transactions[i]:null;if(i>=0)state.transactions[i]=obj;else state.transactions.push(obj);if(!saveState()){if(i>=0)state.transactions[i]=before;else state.transactions.pop();return}txDialog.close();render()};
 function renderBudgetEditor(){const b=getBudget();const budgetTypes=TYPES.filter(t=>t.key!=='income'&&t.key!=='tax');budgetEditor.innerHTML=budgetTypes.map(t=>`<div class="budget-section" style="margin-bottom:10px"><h3>${t.label}</h3><div class="rows">${catsFor(t.key).map(c=>`<div class="row"><span>${escapeHtml(c)}</span><strong>${money(b[t.key]?.[c]||0)}</strong></div>`).join('')||'<div class="empty">項目がありません</div>'}</div></div>`).join('')+`<button class="primary" onclick="openBudget()">予算を編集</button>`}
 window.openBudget=()=>{
   const b=getBudget();
@@ -196,7 +196,7 @@ function saveBudget(){
   document.querySelectorAll('[data-budget-type]').forEach(i=>{
     b[i.dataset.budgetType][i.dataset.budgetCat]=+i.value||0
   });
-  state.budgets[monthKey]=normalizeBudgetForCategories(b);
+  state.budgets[monthKey]=normalizeBudgetForCategories(b,true);
   applyBudgetForwardFrom(monthKey,state.budgets[monthKey]);
   if(!saveState()){
     state.budgets=before;
@@ -818,17 +818,19 @@ function animateDailySwipe(root,days){
 function bindDailySwipe(rootId){
   const root=document.getElementById(rootId);
   if(!root)return;
-  let touchX=null;
-  root.addEventListener('touchstart',e=>{touchX=e.changedTouches[0]?.clientX??null},{passive:true});
+  let touchStart=null;
+  root.addEventListener('touchstart',e=>{const touch=e.changedTouches[0];touchStart=touch?{x:touch.clientX,y:touch.clientY}:null},{passive:true});
   root.addEventListener('touchend',e=>{
-    if(touchX===null)return;
-    const dx=(e.changedTouches[0]?.clientX??touchX)-touchX;touchX=null;
-    if(Math.abs(dx)>55){
+    if(!touchStart)return;
+    const touch=e.changedTouches[0];const dx=(touch?.clientX??touchStart.x)-touchStart.x;
+    const dy=(touch?.clientY??touchStart.y)-touchStart.y;touchStart=null;
+    if(Math.abs(dx)>55&&Math.abs(dx)>Math.abs(dy)*1.2){
       const days=dx<0?1:-1;
       shiftMobileDailyDate(days);
       animateDailySwipe(root,days)
     }
-  },{passive:true})
+  },{passive:true});
+  root.addEventListener('touchcancel',()=>{touchStart=null},{passive:true})
 }
 function initMobileDaily(){
   if(!document.getElementById('mobileExpense')||!document.getElementById('mobileIncome'))return;
@@ -923,11 +925,6 @@ window.quickAddType=(date,type,encoded)=>{
   }
   openTx();txDate.value=date;txType.value=type;updateCats();txCategory.value=cat;txItem.value='';
 }
-function renderItemManager(){if(!document.getElementById('itemType'))return;const selected=itemType.dataset.ready?itemType.value:'variable';itemType.innerHTML=TYPES.map(t=>`<option value="${t.key}">${t.label}</option>`).join('');itemType.value=selected||'variable';itemType.dataset.ready='1';renderItemList()}
-function renderItemList(){if(!document.getElementById('itemList'))return;const type=itemType.value||'variable';const cats=catsFor(type);itemList.innerHTML=cats.length?cats.map(c=>`<div class="item-chip"><span>${escapeHtml(c)}</span><span class="item-chip-actions"><button class="edit-item" type="button" onclick="editItem('${type}','${encodeArg(c)}')">編集</button><button class="delete-item" type="button" onclick="deleteItem('${type}','${encodeArg(c)}')">削除</button></span></div>`).join(''):'<div class="empty">項目がありません</div>'}
-function addItem(){const type=itemType.value;const name=newItemName.value.trim();if(!name)return;if(catsFor(type).some(c=>c.toLowerCase()===name.toLowerCase())){alert('同じ名前の項目があります');return}state.categories[type].push(name);const b=getBudget();if(!(name in b[type]))b[type][name]=0;saveState();newItemName.value='';render();itemType.value=type;renderItemList();updateCats()}
-window.editItem=(type,encoded)=>{const oldName=decodeURIComponent(encoded);const input=prompt(`「${oldName}」の新しい項目名を入力してください`,oldName);if(input===null)return;const newName=input.trim();if(!newName||newName===oldName)return;if(catsFor(type).some(c=>c!==oldName&&c.toLowerCase()===newName.toLowerCase())){alert('同じ名前の項目があります');return}if(!confirm(`「${oldName}」を「${newName}」に変更しますか？\n過去の収支データと各月の予算にも反映されます。`))return;state.categories[type]=catsFor(type).map(c=>c===oldName?newName:c);for(const tx of state.transactions){if(tx.type===type&&tx.category===oldName)tx.category=newName}for(const month of Object.values(state.budgets)){if(!month?.[type]||!(oldName in month[type]))continue;const oldValue=month[type][oldName];if(!(newName in month[type]))month[type][newName]=oldValue;delete month[type][oldName]}saveState();render();itemType.value=type;renderItemList();updateCats()};
-window.deleteItem=(type,encoded)=>{const name=decodeURIComponent(encoded);if(!confirm(`「${name}」を削除しますか？\n過去の収支データは削除されません。`))return;state.categories[type]=catsFor(type).filter(c=>c!==name);for(const month of Object.values(state.budgets)){if(month?.[type])delete month[type][name]}saveState();render();itemType.value=type;renderItemList();updateCats()};
 // iPad Safari: keep navigation outside sticky-positioning/scrolling quirks.
 // Desktop browsers and the narrow iPhone layout retain their existing rules.
 function initIPadNavigation(){
@@ -1008,8 +1005,8 @@ function shiftVisibleMonth(delta){
 prevMonth.onclick=()=>shiftVisibleMonth(-1);nextMonth.onclick=()=>shiftVisibleMonth(1);todayBtn.onclick=()=>{if(mobileDailyPanelActive())setMobileDailyDate(new Date());else{current=new Date();current.setDate(1);render()}};
 addTxBtn.onclick=()=>openTx();addBudgetBtn.onclick=()=>openBudget();txCancel.onclick=()=>txDialog.close();txType.onchange=updateCats;txAmount.addEventListener('input',updateAmountPreview);budgetCancel.onclick=()=>budgetDialog.close();budgetSave.onclick=saveBudget;itemType.onchange=renderItemList;addItemBtn.onclick=addItem;newItemName.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addItem()}});
 exportBtn.onclick=()=>{let blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='kakeibo-backup-'+ym()+'.json';a.click();URL.revokeObjectURL(a.href)};
-importInput.onchange=async e=>{let f=e.target.files[0];if(!f)return;try{if(f.size>10*1024*1024)throw 0;let d=JSON.parse(await f.text());if(!d||typeof d!=='object'||!Array.isArray(d.transactions)||!d.budgets||typeof d.budgets!=='object')throw 0;state=normalizeState(d);if(saveState()){render();alert('読み込みました')}}catch{alert('読み込めないファイルです')}finally{e.target.value=''}};
-resetBtn.onclick=()=>{if(confirm('すべての家計簿データを初期化しますか？')){state=normalizeState({});saveState();render()}};
+importInput.onchange=async e=>{let f=e.target.files[0];if(!f)return;try{if(f.size>10*1024*1024)throw 0;let d=JSON.parse(await f.text());if(!d||typeof d!=='object'||!Array.isArray(d.transactions)||!d.budgets||typeof d.budgets!=='object')throw 0;const before=state;state=normalizeState(d);if(saveState()){render();alert('読み込みました')}else state=before}catch{alert('読み込めないファイルです')}finally{e.target.value=''}};
+resetBtn.onclick=()=>{if(confirm('すべての家計簿データを初期化しますか？')){const before=state;state=normalizeState({});if(saveState())render();else state=before}};
 window.addEventListener('resize',()=>scheduleChartDraw(140));
 if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
 initNav();initIPadNavigation();populateType();initQuickEntry();initTheme();initMobileDaily();initIncomeMobileOverview();
