@@ -558,7 +558,7 @@ test(`release assets use v${APP_VERSION} cache-busting URLs`, async ({ page }) =
   const styleAssets = ['style-base.css', 'style-components.css', 'style-theme.css', 'style-pages.css'];
   const styles = await page.locator('link[rel="stylesheet"]').evaluateAll(links => links.map(link => link.getAttribute('href')));
   expect(styles).toEqual(styleAssets.map(style => `${style}?v=${APP_VERSION}`));
-  const appScripts = ['app-data.js', 'app-sync.js', 'app-charts.js', 'app-ui.js'];
+  const appScripts = ['app-data.js', 'app-sync.js', 'app-charts.js', 'app-items.js', 'app-ui.js'];
   const sources = await page.locator('script[src^="app-"]').evaluateAll(scripts => scripts.map(script => script.getAttribute('src')));
   expect(sources).toEqual(appScripts.map(script => `${script}?v=${APP_VERSION}`));
 });

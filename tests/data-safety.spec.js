@@ -6,6 +6,7 @@ async function start(page,seed){
 }
 
 test('failed quick save keeps the entered amount and does not add a transaction',async({page})=>{
+  await page.setViewportSize({width:390,height:844});
   await start(page);
   await page.locator('#quickAmount').fill('321');
   await page.evaluate(()=>{const original=Storage.prototype.setItem;Storage.prototype.setItem=function(key,value){if(key==='kakeibo-v1')throw new Error('quota');return original.call(this,key,value)}});
@@ -35,7 +36,7 @@ test('deleted fixed item still contributes to a past month but not this month or
 });
 
 test('stale tab cannot silently overwrite a change saved in another tab',async({browser})=>{
-  const context=await browser.newContext();
+  const context=await browser.newContext({viewport:{width:390,height:844}});
   const first=await context.newPage(),second=await context.newPage();
   await start(first);await start(second);
   second.on('dialog',dialog=>dialog.accept());
