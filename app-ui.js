@@ -819,7 +819,7 @@ function bindDailySwipe(rootId){
   const root=document.getElementById(rootId);
   if(!root)return;
   let touchStart=null;
-  root.addEventListener('touchstart',e=>{const touch=e.changedTouches[0];touchStart=touch?{x:touch.clientX,y:touch.clientY}:null},{passive:true});
+  root.addEventListener('touchstart',e=>{const touch=e.changedTouches[0];touchStart=touch?{x:touch.clientX??0,y:touch.clientY??0}:null},{passive:true});
   root.addEventListener('touchend',e=>{
     if(!touchStart)return;
     const touch=e.changedTouches[0];const dx=(touch?.clientX??touchStart.x)-touchStart.x;
