@@ -446,6 +446,7 @@ test('strict CSP rehearsal permits delegated budget actions but blocks remaining
   await page.locator('#expenseHistoryFilters button').nth(1).click();
   expect(await page.evaluate(()=>expenseHistoryFilter)).toBe(filterBefore);
   await expect.poll(()=>page.evaluate(()=>window.__cspViolations.includes('script-src-attr'))).toBe(true);
+  await page.locator('#tabs [data-tab="budget"]').click();
   const dialogs=[];
   page.on('dialog',async dialog=>{dialogs.push(dialog.type());await dialog.dismiss()});
   await page.locator('#itemList .edit-item').first().click();
