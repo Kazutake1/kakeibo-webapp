@@ -141,3 +141,7 @@ PR #22のworkflowとCSSは変更していない。既存テストの削除・検
 
 - Playwright network routing / Service Workers: https://playwright.dev/docs/network#missing-network-events-and-service-workers
 - Playwright per-test timeout: https://playwright.dev/docs/test-timeouts
+
+## 公開手順開始時の追記
+
+2026-10-12にユーザーがPR #22 → #23の順でのマージ・再テスト・公開確認を承認した。PR #22は `0cf3fd3bda9b8151eb6102c02a4918e3c394e038` としてmainへ統合済み。PR #23はこのmainを履歴を保った通常マージで取り込み、統合構成のCI成功後に公開する。本文の未公開・未マージ表記は監査時点の記録である。最終的な公開版・main SHA・PR状態は、Codexの公開完了報告とGitHubの最新状態を参照する。
