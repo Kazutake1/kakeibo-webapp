@@ -1,4 +1,4 @@
-# 家計簿Webアプリ v2.6.77 Stable
+# 家計簿Webアプリ v2.6.78 Stable
 
 Excel家計簿をベースにした、iPhone・iPad・PC・Mac対応のレスポンシブPWAです。
 
