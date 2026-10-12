@@ -45,7 +45,22 @@ function openDailyEntryEditor(type,category,editId='',returnToHistory=false){
   dailyEntryDialog.showModal();
   setTimeout(()=>dailyEntryAmount.focus(),80)
 }
+function bindDailyHistoryActions(){
+  const list=document.getElementById('dailyHistoryList');
+  if(!list||list.dataset.dailyHistoryActionsBound==='1')return;
+  list.addEventListener('click',event=>{
+    if(!(event.target instanceof Element))return;
+    const button=event.target.closest('button[data-daily-history-action]');
+    if(!button||!list.contains(button))return;
+    const {dailyHistoryAction:action,dailyHistoryId:encoded}=button.dataset;
+    if(!encoded)return;
+    if(action==='edit')window.editDailyHistoryEntry(encoded);
+    else if(action==='delete')window.deleteDailyHistoryEntry(encoded);
+  });
+  list.dataset.dailyHistoryActionsBound='1';
+}
 function renderDailyHistory(){
+  bindDailyHistoryActions();
   const dateKey=localDateKey(mobileDailyDate);
   const rows=dailyTransactionsFor(dateKey,dailyHistoryType,dailyHistoryCategory);
   const typeLabel=TYPES.find(t=>t.key===dailyHistoryType)?.label||dailyHistoryType;
@@ -56,8 +71,8 @@ function renderDailyHistory(){
     return `<div class="daily-history-row">
       <div class="daily-history-main"><strong>${money(t.amount)}</strong><span>${escapeHtml(details)}</span></div>
       <div class="daily-history-buttons">
-        <button type="button" onclick="editDailyHistoryEntry('${encodeArg(t.id)}')">編集</button>
-        <button type="button" class="history-delete" onclick="deleteDailyHistoryEntry('${encodeArg(t.id)}')">削除</button>
+        <button type="button" data-daily-history-action="edit" data-daily-history-id="${escapeHtml(encodeArg(t.id))}">編集</button>
+        <button type="button" class="history-delete" data-daily-history-action="delete" data-daily-history-id="${escapeHtml(encodeArg(t.id))}">削除</button>
       </div>
     </div>`
   }).join(''):'<div class="daily-history-empty">この項目の入力はありません</div>';
