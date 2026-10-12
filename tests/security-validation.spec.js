@@ -354,7 +354,9 @@ for(const width of [390,1194]){
       return {before,after,restored:section.classList.contains('collapsed'),calls:window.__budgetFoldCalls,inline:header.hasAttribute('onclick')};
     });
     expect(fold).toEqual({before:width===390,after:false,restored:width===390,calls:2,inline:false});
-    await page.locator('#tabs [data-tab="budget"]').click();
+    // On phones the desktop #tabs is hidden; use the shared panel switcher.
+    if(width===390)await page.evaluate(()=>showPanel('budget'));
+    else await page.locator('#tabs [data-tab="budget"]').click();
     const priorStorage=await page.evaluate(()=>localStorage.getItem('kakeibo-v1'));
     await page.evaluate(()=>{
       window.__budgetOpenCalls=0;
