@@ -81,11 +81,80 @@ for(const width of [390,1194]){
     expect(await page.evaluate(()=>window.__xssExecuted||false)).toBe(false);
     await expect(page.locator('img[src="x"],script:not([src])')).toHaveCount(0);
     expect(await page.locator('#itemList').textContent()).toContain(payload);
-    const handler=await page.locator('#itemList .edit-item').first().getAttribute('onclick');
-    expect(handler).toBe(`editItem('variable','${encodeURIComponent(payload).replace(/'/g,'%27')}')`);
-    expect(handler).toContain('%27');
+    const editButton=page.locator('#itemList .edit-item').first();
+    const deleteButton=page.locator('#itemList .delete-item').first();
+    await expect(editButton).not.toHaveAttribute('onclick',/.+/);
+    await expect(deleteButton).not.toHaveAttribute('onclick',/.+/);
+    await expect(editButton).toHaveAttribute('data-item-action','edit');
+    await expect(deleteButton).toHaveAttribute('data-item-action','delete');
+    await expect(editButton).toHaveAttribute('data-item-type','variable');
+    await expect(editButton).toHaveAttribute('data-item-name',encodeURIComponent(payload).replace(/'/g,'%27'));
   });
 }
+
+
+test('delegated category edit/delete fires once after rerender and preserves historical budgets',async({page})=>{
+  const oldCategory=`出張'"<&`;
+  const newCategory=`出張費<更新> & '`;
+  const now=new Date();
+  const currentMonth=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const next=new Date(now.getFullYear(),now.getMonth()+1,1);
+  const nextMonth=`${next.getFullYear()}-${String(next.getMonth()+1).padStart(2,'0')}`;
+  const historyMonth='2025-01';
+  const transaction={id:'historical-category-fixture',date:'2025-01-07',type:'variable',category:oldCategory,item:'記録',amount:1234,amountExpression:'1234',memo:'残す'};
+  await open(page,{
+    transactions:[transaction],
+    categories:{variable:[oldCategory,'外食']},
+    budgets:{
+      [historyMonth]:{variable:{[oldCategory]:5000}},
+      [currentMonth]:{variable:{[oldCategory]:6000}},
+      [nextMonth]:{variable:{[oldCategory]:7000}}
+    }
+  });
+  await page.locator('#tabs [data-tab="budget"]').click();
+  await page.evaluate(()=>{renderItemManager();renderItemManager();renderItemList()});
+  const oldRow=page.locator('#itemList .item-chip').filter({hasText:oldCategory});
+  const editButton=oldRow.locator('.edit-item');
+  await expect(editButton).toHaveAttribute('data-item-name',encodeURIComponent(oldCategory).replace(/'/g,'%27'));
+  const dialogs=[];
+  page.on('dialog',async dialog=>{
+    dialogs.push(dialog.type());
+    if(dialog.type()==='prompt')await dialog.accept(newCategory);
+    else await dialog.accept();
+  });
+  await editButton.click();
+  await expect(page.locator('#itemList .item-chip').filter({hasText:newCategory})).toHaveCount(1);
+  expect(dialogs).toEqual(['prompt','confirm']);
+  const renamed=await page.evaluate(({historyMonth,currentMonth,nextMonth,newCategory,oldCategory})=>({
+    transaction:state.transactions[0],historical:state.budgets[historyMonth].variable[newCategory],
+    current:state.budgets[currentMonth].variable[newCategory],
+    next:state.budgets[nextMonth].variable[newCategory],
+    legacyNameExists:state.categories.variable.includes(oldCategory)
+  }),{historyMonth,currentMonth,nextMonth,newCategory,oldCategory});
+  expect(renamed.transaction).toEqual({...transaction,category:newCategory});
+  expect(renamed.historical).toBe(5000);
+  expect(renamed.current).toBe(6000);
+  expect(renamed.next).toBe(7000);
+  expect(renamed.legacyNameExists).toBe(false);
+
+  await page.evaluate(()=>{renderItemManager();renderItemList()});
+  await page.locator('#itemList .item-chip').filter({hasText:newCategory}).locator('.delete-item').click();
+  expect(dialogs).toEqual(['prompt','confirm','confirm']);
+  const deleted=await page.evaluate(({historyMonth,currentMonth,nextMonth,newCategory})=>({
+    categories:state.categories.variable,
+    transaction:state.transactions[0],
+    historical:state.budgets[historyMonth].variable[newCategory],
+    current:state.budgets[currentMonth].variable[newCategory],
+    next:state.budgets[nextMonth].variable[newCategory],
+    saved:JSON.parse(localStorage.getItem('kakeibo-v1')).transactions[0]
+  }),{historyMonth,currentMonth,nextMonth,newCategory});
+  expect(deleted.categories).not.toContain(newCategory);
+  expect(deleted.transaction).toEqual({...transaction,category:newCategory});
+  expect(deleted.saved).toEqual({...transaction,category:newCategory});
+  expect(deleted.historical).toBe(5000);
+  expect(deleted.current).toBeUndefined();
+  expect(deleted.next).toBeUndefined();
+});
 
 test('backup export and JSON restore preserve all historical data and exclude auth information',async({page})=>{
   await open(page,baseline);
@@ -269,6 +338,10 @@ test('strict CSP rehearsal exposes blocked HTML handlers while external scripts 
   await page.locator('#budgetEditor button').click();
   await expect(page.locator('#budgetDialog')).not.toBeVisible();
   await expect.poll(()=>page.evaluate(()=>window.__cspViolations.includes('script-src-attr'))).toBe(true);
+  const dialogs=[];
+  page.on('dialog',async dialog=>{dialogs.push(dialog.type());await dialog.dismiss()});
+  await page.locator('#itemList .edit-item').first().click();
+  expect(dialogs).toEqual(['prompt']);
 });
 
 for(const operation of ['initial-read','upload']){
