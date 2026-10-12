@@ -415,3 +415,94 @@ test('a token rotated during a pending refresh is retained and retries the origi
   },fakeSession());
   expect(result).toEqual({status:200,used:['Bearer synthetic-access','Bearer rotated-access'],retained:true,user:'synthetic-user'});
 });
+
+const dailyId=`合成'"<>&%/\\取引`;
+async function openDailyFixture(page,strict=false){
+  if(strict){
+    await page.addInitScript(()=>{
+      window.__dailyCspViolations=[];
+      document.addEventListener('securitypolicyviolation',e=>window.__dailyCspViolations.push(e.effectiveDirective));
+    });
+    await page.route('http://127.0.0.1:4173/',async route=>{
+      const response=await route.fetch();
+      await route.fulfill({response,body:(await response.text()).replace('<meta charset="utf-8" />',`<meta charset="utf-8" /><meta http-equiv="Content-Security-Policy" content="script-src 'self'; script-src-attr 'none'; object-src 'none'">`)});
+    });
+  }
+  await open(page,{
+    transactions:[
+      {id:dailyId,date:'2025-01-07',type:'variable',category:'外食',item:'<img src=x onerror="window.__dailyXss=true">',amount:120,amountExpression:'120',memo:'合成'},
+      {id:'daily-second',date:'2025-01-07',type:'variable',category:'外食',amount:80},
+      {id:'other-date',date:'2025-01-08',type:'variable',category:'外食',amount:900},
+      {id:'other-category',date:'2025-01-07',type:'variable',category:'その他',amount:700},
+      {id:'other-type',date:'2025-01-07',type:'income',category:'給与',amount:3000}
+    ],budgets:baseline.budgets,categories:{variable:['外食','その他'],income:['給与']}
+  });
+  await page.evaluate(()=>{
+    current=new Date(2025,0,1);mobileDailyDate=new Date(2025,0,7);
+    render();showPanel('expense');
+    openDailyHistoryFor('variable',encodeArg('外食'));
+  });
+}
+for(const strict of [false,true]){
+  test(`daily delegated edit/delete preserves unrelated data and totals (strict CSP: ${strict})`,async({page})=>{
+    await openDailyFixture(page,strict);
+    const before=await page.evaluate(()=>deepCopy(state));
+    await page.evaluate(()=>{
+      window.__dailyCalls={edit:0,delete:0};
+      const edit=window.editDailyHistoryEntry,remove=window.deleteDailyHistoryEntry;
+      window.editDailyHistoryEntry=id=>{window.__dailyCalls.edit++;return edit(id)};
+      window.deleteDailyHistoryEntry=id=>{window.__dailyCalls.delete++;return remove(id)};
+      for(let i=0;i<5;i++){bindDailyHistoryActions();renderDailyHistory()}
+    });
+    const edit=page.locator('#dailyHistoryList [data-daily-history-action="edit"]').first();
+    await expect(edit).not.toHaveAttribute('onclick',/.*/);
+    await expect(edit).toHaveAttribute('data-daily-history-id',encodeURIComponent(dailyId).replace(/'/g,'%27'));
+    await expect(page.locator('#dailyHistoryList img')).toHaveCount(0);
+    await edit.click();
+    await expect(page.locator('#dailyEntryDialog')).toBeVisible();
+    await expect(page.locator('#dailyHistoryDialog')).not.toBeVisible();
+    await expect(page.locator('#dailyEntryAmount')).toHaveValue('120');
+    await page.locator('#dailyEntryAmount').fill('200+50');
+    await page.locator('#dailyEntrySave').click();
+    await expect(page.locator('#dailyHistoryDialog')).toBeVisible();
+    const edited=await page.evaluate(()=>deepCopy(state));
+    expect(edited.transactions[0]).toEqual({...before.transactions[0],amount:250,amountExpression:'200+50'});
+    expect(edited.transactions.slice(1)).toEqual(before.transactions.slice(1));
+    expect(edited.budgets).toEqual(before.budgets);expect(edited.categories).toEqual(before.categories);
+    expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('kakeibo-v1')))).toEqual(edited);
+    expect(await page.evaluate(()=>expenseDayTotal.textContent)).toBe('¥1,030');
+    await page.evaluate(()=>{renderDailyHistory();bindDailyHistoryActions()});
+    let confirmations=0;
+    page.on('dialog',async d=>{expect(d.type()).toBe('confirm');confirmations++;await d.accept()});
+    await page.locator('#dailyHistoryList [data-daily-history-action="delete"]').first().click();
+    await expect(page.locator('#dailyHistoryList .daily-history-row')).toHaveCount(1);
+    const deleted=await page.evaluate(()=>deepCopy(state));
+    expect(deleted).toEqual({...edited,transactions:edited.transactions.slice(1)});
+    expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('kakeibo-v1')))).toEqual(deleted);
+    expect(await page.evaluate(()=>expenseDayTotal.textContent)).toBe('¥780');
+    expect(confirmations).toBe(1);
+    expect(await page.evaluate(()=>window.__dailyCalls)).toEqual({edit:1,delete:1});
+    expect(await page.evaluate(()=>window.__dailyXss||false)).toBe(false);
+    if(strict)expect(await page.evaluate(()=>window.__dailyCspViolations)).toEqual([]);
+  });
+}
+for(const action of ['edit','delete']){
+  test(`daily delegated ${action} storage failure rolls back memory and storage`,async({page})=>{
+    await openDailyFixture(page);
+    const before=await page.evaluate(()=>({state:deepCopy(state),stored:localStorage.getItem('kakeibo-v1')}));
+    await page.evaluate(()=>{
+      const original=Storage.prototype.setItem;
+      Storage.prototype.setItem=function(key,value){if(key==='kakeibo-v1')throw Error('synthetic quota');return original.call(this,key,value)};
+    });
+    const dialogs=[];
+    page.on('dialog',async d=>{dialogs.push(d.type());await d.accept()});
+    await page.locator(`#dailyHistoryList [data-daily-history-action="${action}"]`).first().click();
+    if(action==='edit'){
+      await page.locator('#dailyEntryAmount').fill('999');
+      await page.locator('#dailyEntrySave').click();
+      await expect(page.locator('#dailyEntryDialog')).toBeVisible();
+    }else await expect(page.locator('#dailyHistoryList .daily-history-row')).toHaveCount(2);
+    expect(await page.evaluate(()=>({state:deepCopy(state),stored:localStorage.getItem('kakeibo-v1')}))).toEqual(before);
+    expect(dialogs).toEqual(action==='edit'?['alert']:['confirm','alert']);
+  });
+}
