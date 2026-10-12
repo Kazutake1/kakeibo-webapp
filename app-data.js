@@ -12,7 +12,12 @@ const DEFAULT_CATS = {
   special:['特別支出'],
   variable:['セブンイレブン','ローソン','ファミリーマート','スギ薬局','ゲンキー','その他','外食','インターネット','ネット通販','その他2']
 };
-const DEFAULT_BUDGET = {income:{},tax:{},saving:{NISA:30000},self:{},fixed:{生命保険:25646,住宅ローン:60000,通信費:2181,Youtube:1280,'iCloud+':150,MoneyForward:550},special:{},variable:{セブンイレブン:20000,ローソン:0,ファミリーマート:0,スギ薬局:15000,ゲンキー:15000,その他:0,外食:0,インターネット:0,ネット通販:0,その他2:0}};
+// Compatibility baseline: also used by users whose budgets were never saved.
+// Do not change these amounts when introducing a future new-user template.
+const LEGACY_DEFAULT_BUDGET = Object.freeze(Object.fromEntries(Object.entries({income:{},tax:{},saving:{NISA:30000},self:{},fixed:{生命保険:25646,住宅ローン:60000,通信費:2181,Youtube:1280,'iCloud+':150,MoneyForward:550},special:{},variable:{セブンイレブン:20000,ローソン:0,ファミリーマート:0,スギ薬局:15000,ゲンキー:15000,その他:0,外食:0,インターネット:0,ネット通販:0,その他2:0}}).map(([type,values])=>[type,Object.freeze(values)])));
+function legacyBudgetValue(type,category){return finiteMoney(LEGACY_DEFAULT_BUDGET[type]?.[category]||0)}
+function initialBudgetSource(){return deepCopy(LEGACY_DEFAULT_BUDGET)}
+function isLegacyBudgetValue(type,category,value){return finiteMoney(value)===legacyBudgetValue(type,category)}
 let current = new Date(); current.setDate(1);
 let savedStateSnapshot;
 let state = loadState();
@@ -70,7 +75,7 @@ function normalizeBudgetForCategories(source,preserveArchived=false){
     out[t.key]=preserveArchived?{...source?.[t.key]}:{};
     for(const c of catsFor(t.key)){
       const hasValue=source?.[t.key]&&Object.prototype.hasOwnProperty.call(source[t.key],c);
-      out[t.key][c]=hasValue?finiteMoney(source[t.key][c]):finiteMoney(DEFAULT_BUDGET[t.key]?.[c]||0);
+      out[t.key][c]=hasValue?finiteMoney(source[t.key][c]):legacyBudgetValue(t.key,c);
     }
   }
   return out
@@ -79,7 +84,7 @@ function previousBudgetSource(monthKey){
   const keys=Object.keys(state.budgets||{})
     .filter(k=>/^\d{4}-\d{2}$/.test(k)&&k<monthKey)
     .sort();
-  return keys.length?state.budgets[keys[keys.length-1]]:DEFAULT_BUDGET;
+  return keys.length?state.budgets[keys[keys.length-1]]:initialBudgetSource();
 }
 function ensureBudgetMonth(monthKey){
   if(!state.budgets[monthKey]){

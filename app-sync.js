@@ -14,6 +14,8 @@ let syncBusy=false;
 let syncPending=false;
 let syncCloudVersion;
 let suppressCloudSync=false;
+function captureSyncIdentity(){return {generation:syncSessionGeneration,userId:syncUser?.id}}
+function isCurrentSyncIdentity(identity){return !!identity.userId&&identity.generation===syncSessionGeneration&&identity.userId===syncUser?.id}
 function syncHeaders(includeAuth=true){
   const h={'apikey':SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'};
   if(includeAuth&&syncSession?.access_token)h.Authorization='Bearer '+syncSession.access_token;
@@ -32,7 +34,7 @@ function updateSyncUI(){
   }
 }
 function normalizeSyncSession(session){
-  if(!session?.access_token||!session?.refresh_token)return null;
+  if(typeof session?.access_token!=='string'||!session.access_token||typeof session?.refresh_token!=='string'||!session.refresh_token)return null;
   const normalized={...session};
   if(!Number.isFinite(Number(normalized.expires_at))&&Number.isFinite(Number(normalized.expires_in)))normalized.expires_at=Math.floor(Date.now()/1000)+Number(normalized.expires_in);
   return normalized
@@ -67,7 +69,7 @@ function loadSyncSession(){
   scheduleSyncRefresh()
 }
 function invalidateSyncSession(){
-  syncSessionGeneration++;clearSyncRefreshTimer();syncSession=null;syncUser=null;persistSyncSession();updateSyncUI()
+  syncSessionGeneration++;clearSyncRefreshTimer();clearTimeout(syncSaveTimer);syncSaveTimer=null;syncPending=false;syncCloudVersion=undefined;finishSyncChoice(null);syncSession=null;syncUser=null;persistSyncSession();updateSyncUI()
 }
 async function performSyncSessionRefresh(){
   if(!syncSession?.refresh_token)return false;
@@ -116,8 +118,16 @@ async function refreshSyncSession(){
 }
 async function supabaseFetch(path,options={},retry=true){
   if(!syncSession?.access_token)throw new Error('not signed in');
+  const generation=syncSessionGeneration;
   const doFetch=()=>fetch(SUPABASE_URL+path,{...options,headers:{...syncHeaders(true),...(options.headers||{})}});
-  let r=await doFetch();if(r.status===401&&retry&&await refreshSyncSession())r=await doFetch();return r
+  let r=await doFetch();
+  if(generation!==syncSessionGeneration)throw new Error('session changed');
+  if(r.status===401&&retry&&await refreshSyncSession()){
+    if(generation!==syncSessionGeneration)throw new Error('session changed');
+    r=await doFetch()
+  }
+  if(generation!==syncSessionGeneration)throw new Error('session changed');
+  return r
 }
 async function fetchSyncUser(){
   if(!syncSession?.access_token)return null;
@@ -131,6 +141,7 @@ async function fetchSyncUser(){
     if(generation!==syncSessionGeneration||!syncSession)return null;
     syncUser=user;syncSession={...syncSession,user:syncUser};persistSyncSession();return syncUser
   }catch(e){
+    if(generation!==syncSessionGeneration)return null;
     console.error(e);
     if(syncSession){syncUser=cachedUser;setSyncStatus('err','接続待ち','ログイン状態を保持したまま再接続します')}
     else syncUser=null;
@@ -148,8 +159,8 @@ function hasMeaningfulLocalData(){
     if(!month||typeof month!=='object')continue;
     for(const type of TYPES){
       const values=month[type.key]||{};
-      for(const category of catsFor(type.key)){
-        if(finiteMoney(values[category])!==finiteMoney(DEFAULT_BUDGET[type.key]?.[category]))return true
+      for(const category of new Set([...catsFor(type.key),...Object.keys(values)])){
+        if(!isLegacyBudgetValue(type.key,category,values[category]))return true
       }
     }
   }
@@ -180,9 +191,11 @@ async function updateCloudState(snapshot,expectedVersion){
   const rows=await r.json();return rows[0]||null
 }
 async function resolveCloudConflict(latest){
+  const identity=captureSyncIdentity();
   const latestVersion=cloudVersion(latest);
   if(!latest||latestVersion===null)throw new Error('cloud conflict read failed');
   const choice=await chooseSyncSource('別の端末でクラウドデータが更新されています。残したいデータを選んでください。');
+  if(!isCurrentSyncIdentity(identity))return false;
   syncPending=false;
   if(choice==='cloud'){
     await applyCloudState(latest);setSyncStatus('ok','同期済み','別の端末の最新データを読み込みました');return true
@@ -190,6 +203,7 @@ async function resolveCloudConflict(latest){
   if(choice==='local'){
     if(!localSnapshotIsCurrent())return false;
     const saved=await updateCloudState(deepCopy(state),latestVersion);
+    if(!isCurrentSyncIdentity(identity))return false;
     if(!saved){syncCloudVersion=undefined;setSyncStatus('err','同期の確認が必要','同期中に別の端末で再更新されました。「今すぐ同期」を押してください');return false}
     rememberCloudRow(saved);setSyncStatus('ok','同期済み',`最終同期 ${new Date().toLocaleString('ja-JP')}`);return true
   }
@@ -199,23 +213,26 @@ async function uploadCloudState(){
   if(!syncUser)return false;
   if(!localSnapshotIsCurrent())return false;
   if(syncBusy){syncPending=true;return false}
+  const identity=captureSyncIdentity();
   syncBusy=true;setSyncStatus('busy','同期中','クラウドへ保存しています…');
   try{
     if(syncCloudVersion===undefined){
       const latest=await fetchCloudState();
-      if(!syncUser||!localSnapshotIsCurrent())return false;
+      if(!isCurrentSyncIdentity(identity)||!localSnapshotIsCurrent())return false;
       if(latest)return await resolveCloudConflict(latest);
       syncCloudVersion=0
     }
-    if(!syncUser||!localSnapshotIsCurrent())return false;
+    if(!isCurrentSyncIdentity(identity)||!localSnapshotIsCurrent())return false;
     const snapshot=deepCopy(state);
     const saved=syncCloudVersion===0?await insertCloudState(snapshot):await updateCloudState(snapshot,syncCloudVersion);
+    if(!isCurrentSyncIdentity(identity))return false;
     if(!saved){
       const latest=await fetchCloudState();
+      if(!isCurrentSyncIdentity(identity))return false;
       return await resolveCloudConflict(latest)
     }
     rememberCloudRow(saved);setSyncStatus('ok','同期済み',`最終同期 ${new Date().toLocaleString('ja-JP')}`);return true
-  }catch(e){console.error(e);setSyncStatus('err','同期エラー','通信状況を確認して「今すぐ同期」を押してください');return false}
+  }catch(e){if(!isCurrentSyncIdentity(identity))return false;console.error(e);setSyncStatus('err','同期エラー','通信状況を確認して「今すぐ同期」を押してください');return false}
   finally{
     syncBusy=false;
     if(syncPending){syncPending=false;scheduleCloudSync()}
@@ -251,12 +268,15 @@ function chooseSyncSource(message='この端末とクラウドの両方に家計
 }
 async function initialCloudSync(){
   if(!syncUser)return;setSyncStatus('busy','同期中','クラウドデータを確認しています…');
+  const identity=captureSyncIdentity();
   try{
     const cloud=await fetchCloudState();
+    if(!isCurrentSyncIdentity(identity))return;
     if(!cloud){syncCloudVersion=0;await uploadCloudState();return}
     if(cloudVersion(cloud)===null)throw new Error('cloud version missing');
     if(hasMeaningfulLocalData()){
       const choice=await chooseSyncSource('この端末とクラウドの両方に家計簿データがあります。残したいデータを選んでください。');
+      if(!isCurrentSyncIdentity(identity))return;
       if(choice==='cloud'){
         await applyCloudState(cloud);setSyncStatus('ok','同期済み','クラウドのデータを読み込みました')
       }else if(choice==='local'){
@@ -265,31 +285,35 @@ async function initialCloudSync(){
         syncCloudVersion=undefined;setSyncStatus('','同期を中止しました','データは変更されていません')
       }
     }else{await applyCloudState(cloud);setSyncStatus('ok','同期済み','クラウドのデータを読み込みました')}
-  }catch(e){console.error(e);setSyncStatus('err','同期エラー','クラウドデータを取得できませんでした')}
+  }catch(e){if(!isCurrentSyncIdentity(identity))return;console.error(e);setSyncStatus('err','同期エラー','クラウドデータを取得できませんでした')}
 }
 async function signInCloud(){
   const email=syncEmail.value.trim(),password=syncPassword.value;if(!email||!password){alert('メールアドレスとパスワードを入力してください');return}
   syncCloudVersion=undefined;syncPending=false;
+  const generation=++syncSessionGeneration;
   setSyncStatus('busy','ログイン中','認証しています…');
   try{
     const r=await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`,{method:'POST',headers:syncHeaders(false),body:JSON.stringify({email,password})});
     const data=await r.json();if(!r.ok)throw new Error(data?.msg||data?.error_description||'ログインできませんでした');
-    syncSessionGeneration++;syncSession=normalizeSyncSession(data);syncUser=data.user||null;
+    if(generation!==syncSessionGeneration)return;
+    syncSession=normalizeSyncSession(data);syncUser=data.user||null;
     if(!persistSyncSession()){syncSession=null;syncUser=null;throw new Error('ログイン情報をこの端末に保存できませんでした')}
-    scheduleSyncRefresh();syncUser=await fetchSyncUser();if(!syncUser)throw new Error('ユーザー情報を取得できませんでした');
+    scheduleSyncRefresh();const user=await fetchSyncUser();if(generation!==syncSessionGeneration)return;if(!user)throw new Error('ユーザー情報を取得できませんでした');
     updateSyncUI();await initialCloudSync()
-  }catch(e){setSyncStatus('err','ログイン失敗',e.message||'ログインできませんでした')}
+  }catch(e){if(generation===syncSessionGeneration)setSyncStatus('err','ログイン失敗',e.message||'ログインできませんでした')}
 }
 async function signUpCloud(){
   const email=syncEmail.value.trim(),password=syncPassword.value;if(!email||!password){alert('メールアドレスとパスワードを入力してください');return}
   if(password.length<8){alert('パスワードは8文字以上にしてください');return}
+  const generation=++syncSessionGeneration;
   setSyncStatus('busy','登録中','アカウントを作成しています…');
   try{
     const r=await fetch(`${SUPABASE_URL}/auth/v1/signup`,{method:'POST',headers:syncHeaders(false),body:JSON.stringify({email,password})});
     const data=await r.json();if(!r.ok)throw new Error(data?.msg||data?.error_description||'登録できませんでした');
-    if(data.access_token){syncSessionGeneration++;syncSession=normalizeSyncSession(data);syncUser=data.user||null;if(!persistSyncSession()){syncSession=null;syncUser=null;throw new Error('ログイン情報をこの端末に保存できませんでした')}scheduleSyncRefresh();syncUser=await fetchSyncUser();updateSyncUI();await initialCloudSync()}
+    if(generation!==syncSessionGeneration)return;
+    if(data.access_token){syncSession=normalizeSyncSession(data);syncUser=data.user||null;if(!persistSyncSession()){syncSession=null;syncUser=null;throw new Error('ログイン情報をこの端末に保存できませんでした')}scheduleSyncRefresh();await fetchSyncUser();if(generation!==syncSessionGeneration)return;updateSyncUI();await initialCloudSync()}
     else setSyncStatus('ok','確認メールを送信しました','メール内の確認リンクを開いたあと、この画面からログインしてください')
-  }catch(e){setSyncStatus('err','登録失敗',e.message||'登録できませんでした')}
+  }catch(e){if(generation===syncSessionGeneration)setSyncStatus('err','登録失敗',e.message||'登録できませんでした')}
 }
 async function signOutCloud(){
   const accessToken=syncSession?.access_token;
@@ -299,10 +323,12 @@ async function signOutCloud(){
 }
 async function manualCloudSync(){
   if(!syncUser){alert('先にログインしてください');return}
+  const identity=captureSyncIdentity();
   try{
-    const cloud=await fetchCloudState();if(!cloud){syncCloudVersion=0;await uploadCloudState();return}
+    const cloud=await fetchCloudState();if(!isCurrentSyncIdentity(identity))return;if(!cloud){syncCloudVersion=0;await uploadCloudState();return}
     if(cloudVersion(cloud)===null)throw new Error('cloud version missing');
     const choice=await chooseSyncSource('どちらのデータを最新データとして使用するか選んでください。');
+    if(!isCurrentSyncIdentity(identity))return;
     if(choice==='cloud'){
       await applyCloudState(cloud);setSyncStatus('ok','同期済み','クラウドのデータを読み込みました')
     }else if(choice==='local'){
@@ -310,7 +336,7 @@ async function manualCloudSync(){
     }else{
       setSyncStatus('','同期を中止しました','データは変更されていません')
     }
-  }catch(e){console.error(e);setSyncStatus('err','同期エラー','同期できませんでした')}
+  }catch(e){if(!isCurrentSyncIdentity(identity))return;console.error(e);setSyncStatus('err','同期エラー','同期できませんでした')}
 }
 async function initCloudSync(){
   // Bind every sync control before awaiting session restoration / initial sync.
@@ -324,17 +350,22 @@ async function initCloudSync(){
   if(localBtn)localBtn.onclick=()=>finishSyncChoice('local');
   if(dialog)dialog.addEventListener('cancel',e=>{e.preventDefault();finishSyncChoice(null)});
 
-  loadSyncSession();
-  if(syncSession){syncUser=await fetchSyncUser();updateSyncUI();if(syncUser)await initialCloudSync()}else updateSyncUI();
-
   window.addEventListener('online',()=>{if(syncSession&&sessionExpiresSoon())refreshSyncSession()});
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&syncSession&&sessionExpiresSoon())refreshSyncSession()});
   window.addEventListener('storage',event=>{
     if(event.key!==SYNC_SESSION_KEY)return;
     syncSessionGeneration++;
-    if(!event.newValue){clearSyncRefreshTimer();syncSession=null;syncUser=null;updateSyncUI();return}
+    if(!event.newValue){clearSyncRefreshTimer();clearTimeout(syncSaveTimer);syncSaveTimer=null;syncPending=false;syncCloudVersion=undefined;finishSyncChoice(null);syncSession=null;syncUser=null;updateSyncUI();return}
     const stored=readStoredSyncSession();
     if(!stored)return;
+    if(stored.user?.id!==syncUser?.id){clearTimeout(syncSaveTimer);syncSaveTimer=null;syncPending=false;syncCloudVersion=undefined;finishSyncChoice(null)}
     syncSession=stored;syncUser=stored.user||syncUser;scheduleSyncRefresh();updateSyncUI()
-  })
+  });
+  loadSyncSession();
+  if(syncSession){
+    const generation=syncSessionGeneration;
+    await fetchSyncUser();
+    if(generation!==syncSessionGeneration)return;
+    updateSyncUI();if(syncUser)await initialCloudSync()
+  }else updateSyncUI()
 }
