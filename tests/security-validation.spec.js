@@ -322,7 +322,105 @@ test('logout in a second tab clears the first tab session without changing house
   await second.close();
 });
 
-test('strict CSP rehearsal exposes blocked HTML handlers while external scripts and navigation work',async({page})=>{
+
+for(const width of [390,1194]){
+  test(`delegated budget actions preserve monthly budgets and fire once at width ${width}`,async({page})=>{
+    await page.setViewportSize({width,height:844});
+    const today=new Date();
+    const currentMonth=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
+    const nextDate=new Date(today.getFullYear(),today.getMonth()+1,1);
+    const nextMonth=`${nextDate.getFullYear()}-${String(nextDate.getMonth()+1).padStart(2,'0')}`;
+    const fixture={
+      transactions:baseline.transactions,
+      budgets:{
+        '2025-01':{fixed:{住宅ローン:63000}},
+        [currentMonth]:{fixed:{住宅ローン:60000},variable:{外食:0}},
+        [nextMonth]:{fixed:{住宅ローン:55000}}
+      },
+      categories:{}
+    };
+    await open(page,fixture);
+    const fold=await page.evaluate(()=>{
+      const original=window.toggleBudgetSection;
+      window.__budgetFoldCalls=0;
+      window.toggleBudgetSection=key=>{window.__budgetFoldCalls++;return original(key)};
+      for(let i=0;i<5;i++){bindBudgetOverviewActions();renderBudgetOverview()}
+      const header=document.querySelector('#budgetOverview [data-budget-toggle="fixed"]');
+      const section=header.closest('.budget-section');
+      const before=section.classList.contains('collapsed');
+      header.querySelector('span').click();
+      const after=section.classList.contains('collapsed');
+      header.click();
+      return {before,after,restored:section.classList.contains('collapsed'),calls:window.__budgetFoldCalls,inline:header.hasAttribute('onclick')};
+    });
+    expect(fold).toEqual({before:width===390,after:false,restored:width===390,calls:2,inline:false});
+    // On phones the desktop #tabs is hidden; use the shared panel switcher.
+    if(width===390)await page.evaluate(()=>showPanel('budget'));
+    else await page.locator('#tabs [data-tab="budget"]').click();
+    const priorStorage=await page.evaluate(()=>localStorage.getItem('kakeibo-v1'));
+    await page.evaluate(()=>{
+      window.__budgetOpenCalls=0;
+      const original=window.openBudget;
+      window.openBudget=(...args)=>{window.__budgetOpenCalls++;return original(...args)};
+      for(let i=0;i<5;i++){bindBudgetEditorActions();renderBudgetEditor()}
+    });
+    const button=page.locator('#budgetEditor [data-budget-action="edit"]');
+    await expect(button).not.toHaveAttribute('onclick',/.*/);
+    await button.click();
+    await expect(page.locator('#budgetDialog')).toBeVisible();
+    expect(await page.evaluate(()=>window.__budgetOpenCalls)).toBe(1);
+    expect(await page.evaluate(()=>localStorage.getItem('kakeibo-v1'))).toBe(priorStorage);
+    await page.locator('#budgetDialog [data-budget-type="fixed"][data-budget-cat="住宅ローン"]').fill('77000');
+    await page.locator('#budgetSave').click();
+    await expect(page.locator('#budgetDialog')).not.toBeVisible();
+    const after=await page.evaluate(({currentMonth,nextMonth})=>({
+      history:state.budgets['2025-01'].fixed.住宅ローン,
+      current:state.budgets[currentMonth].fixed.住宅ローン,
+      next:state.budgets[nextMonth].fixed.住宅ローン,
+      zero:state.budgets[currentMonth].variable.外食,
+      transactions:deepCopy(state.transactions),
+      stored:JSON.parse(localStorage.getItem('kakeibo-v1')),
+      editorCalls:window.__budgetOpenCalls
+    }),{currentMonth,nextMonth});
+    expect(after.history).toBe(63000);
+    expect(after.current).toBe(77000);
+    expect(after.next).toBe(77000);
+    expect(after.zero).toBe(0);
+    expect(after.transactions).toEqual(baseline.transactions);
+    expect(after.stored.budgets['2025-01'].fixed.住宅ローン).toBe(63000);
+    expect(after.stored.budgets[currentMonth].fixed.住宅ローン).toBe(77000);
+    expect(after.stored.transactions).toEqual(baseline.transactions);
+    expect(after.editorCalls).toBe(1);
+  });
+}
+
+test('delegated budget editor keeps data and dialog intact on storage failure',async({page})=>{
+  await open(page,baseline);
+  await page.locator('#tabs [data-tab="budget"]').click();
+  const before=await page.evaluate(()=>({
+    budgets:deepCopy(state.budgets),
+    transactions:deepCopy(state.transactions),
+    stored:localStorage.getItem('kakeibo-v1')
+  }));
+  await page.locator('#budgetEditor [data-budget-action="edit"]').click();
+  await expect(page.locator('#budgetDialog')).toBeVisible();
+  await page.locator('#budgetDialog [data-budget-type="fixed"][data-budget-cat="住宅ローン"]').fill('91919');
+  await page.evaluate(()=>{
+    const original=Storage.prototype.setItem;
+    Storage.prototype.setItem=function(key,value){if(key==='kakeibo-v1')throw Error('synthetic quota');return original.call(this,key,value)};
+  });
+  page.on('dialog',dialog=>dialog.accept());
+  await page.locator('#budgetSave').click();
+  await expect(page.locator('#budgetDialog')).toBeVisible();
+  const after=await page.evaluate(()=>({
+    budgets:deepCopy(state.budgets),
+    transactions:deepCopy(state.transactions),
+    stored:localStorage.getItem('kakeibo-v1')
+  }));
+  expect(after).toEqual(before);
+});
+
+test('strict CSP rehearsal permits delegated budget actions but blocks remaining inline handlers',async({page})=>{
   await page.addInitScript(()=>{
     window.__cspViolations=[];
     document.addEventListener('securitypolicyviolation',event=>window.__cspViolations.push(event.effectiveDirective));
@@ -335,9 +433,22 @@ test('strict CSP rehearsal exposes blocked HTML handlers while external scripts 
   await page.goto('/');
   await page.locator('#tabs [data-tab="budget"]').click();
   await expect(page.locator('section[data-panel="budget"]')).toHaveClass(/active/);
-  await page.locator('#budgetEditor button').click();
-  await expect(page.locator('#budgetDialog')).not.toBeVisible();
+  const foldCalls=await page.evaluate(()=>{
+    let calls=0;const original=window.toggleBudgetSection;
+    window.toggleBudgetSection=key=>{calls++;return original(key)};
+    document.querySelector('#budgetOverview [data-budget-toggle="variable"]').click();
+    return calls
+  });
+  expect(foldCalls).toBe(1);
+  await page.locator('#budgetEditor [data-budget-action="edit"]').click();
+  await expect(page.locator('#budgetDialog')).toBeVisible();
+  await page.locator('#budgetCancel').click();
+  await page.locator('#tabs [data-tab="expense"]').click();
+  const filterBefore=await page.evaluate(()=>expenseHistoryFilter);
+  await page.locator('#expenseHistoryFilters button').nth(1).click();
+  expect(await page.evaluate(()=>expenseHistoryFilter)).toBe(filterBefore);
   await expect.poll(()=>page.evaluate(()=>window.__cspViolations.includes('script-src-attr'))).toBe(true);
+  await page.locator('#tabs [data-tab="budget"]').click();
   const dialogs=[];
   page.on('dialog',async dialog=>{dialogs.push(dialog.type());await dialog.dismiss()});
   await page.locator('#itemList .edit-item').first().click();

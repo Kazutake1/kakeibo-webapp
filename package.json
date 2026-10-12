@@ -1,6 +1,6 @@
 {
   "name": "kakeibo-webapp",
-  "version": "2.6.77",
+  "version": "2.6.78",
   "private": true,
   "scripts": {
     "test": "playwright test",
