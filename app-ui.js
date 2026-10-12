@@ -111,8 +111,22 @@ function summaryCardIcon(key){
   };
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false">${icons[key]||''}</svg>`;
 }
+function bindBudgetOverviewActions(){
+  const root=document.getElementById('budgetOverview');
+  if(!root||root.dataset.budgetActionsBound==='1')return;
+  root.addEventListener('click',event=>{
+    if(!(event.target instanceof Element))return;
+    const header=event.target.closest('[data-budget-toggle]');
+    if(!header||!root.contains(header))return;
+    const key=header.dataset.budgetToggle;
+    if(!TYPES.some(t=>t.key===key))return;
+    window.toggleBudgetSection(key);
+  });
+  root.dataset.budgetActionsBound='1';
+}
 function renderBudgetOverview(){
   const root=document.querySelector('#budgetOverview');
+  bindBudgetOverviewActions();
   const b=getBudget();
   root.innerHTML=TYPES.map(t=>{
     const actual=typeSum(t.key);
@@ -149,7 +163,7 @@ function renderBudgetOverview(){
         ? `<span class="budget-pair"><span class="actual ${bud>0&&actual>bud?'neg':''}">${money(actual)}</span><span class="budget-ref">/ ${money(bud)}</span></span>`
         : `<span class="actual">${money(actual)}</span>`;
 
-    return `<div class="budget-section" data-budget-section="${t.key}"><h3 onclick="toggleBudgetSection('${t.key}')"><span>${t.label}${suffix}</span><span class="budget-toggle">表示 ▼</span></h3><div class="rows">${rows}<div class="row total"><b>合計</b><strong>${totalValue}</strong></div></div></div>`
+    return `<div class="budget-section" data-budget-section="${t.key}"><h3 data-budget-toggle="${t.key}"><span>${t.label}${suffix}</span><span class="budget-toggle">表示 ▼</span></h3><div class="rows">${rows}<div class="row total"><b>合計</b><strong>${totalValue}</strong></div></div></div>`
   }).join('');
   applyMobileBudgetCollapse()
 }
@@ -181,7 +195,17 @@ function refreshQuickEntry(){if(!document.getElementById('quickCategory'))return
 function saveQuickEntry(){const expr=quickAmount.value.trim();const calc=evaluateAmountExpression(expr);if(!expr||!calc.ok){alert('金額を正しく入力してください');quickAmount.focus();return}const amount=calc.value;const now=new Date();const date=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;const cat=quickCategory.value;state.transactions.push({id:newId(),date,type:'variable',category:cat,item:quickItem.value.trim(),amount,amountExpression:expr,memo:''});if(!saveState()){state.transactions.pop();return}current=new Date(now.getFullYear(),now.getMonth(),1);quickAmount.value='';quickAmountResult.textContent='保存しました';quickItem.value='';render();setTimeout(()=>{if(quickAmountResult.textContent==='保存しました')quickAmountResult.textContent=''},1200)}
 function openTx(id=null){txId.value=id||'';txDialogTitle.textContent=id?'収支を編集':'収支を追加'; if(id){let t=state.transactions.find(x=>x.id===id);txDate.value=t.date;txType.value=t.type;updateCats(t.category);txCategory.value=t.category;txItem.value=t.item;txAmount.value=t.amountExpression||t.amount;txMemo.value=t.memo||'';updateAmountPreview()}else{txDate.value=ym()+'-'+String(Math.min(new Date().getDate(),new Date(current.getFullYear(),current.getMonth()+1,0).getDate())).padStart(2,'0');txType.value='variable';updateCats();txItem.value='';txAmount.value='';txMemo.value='';updateAmountPreview()} txDialog.tabIndex=-1;txDate.disabled=true;try{txDialog.showModal()}finally{txDate.disabled=false}txDialog.focus()}
 txForm.onsubmit=e=>{e.preventDefault();const calc=evaluateAmountExpression(txAmount.value);if(!calc.ok){updateAmountPreview();txAmount.focus();return}let obj={id:txId.value||newId(),date:txDate.value,type:txType.value,category:txCategory.value,item:txItem.value.trim(),amount:calc.value,amountExpression:txAmount.value.trim(),memo:txMemo.value.trim()};let i=state.transactions.findIndex(x=>x.id===obj.id);const before=i>=0?state.transactions[i]:null;if(i>=0)state.transactions[i]=obj;else state.transactions.push(obj);if(!saveState()){if(i>=0)state.transactions[i]=before;else state.transactions.pop();return}txDialog.close();render()};
-function renderBudgetEditor(){const b=getBudget();const budgetTypes=TYPES.filter(t=>t.key!=='income'&&t.key!=='tax');budgetEditor.innerHTML=budgetTypes.map(t=>`<div class="budget-section" style="margin-bottom:10px"><h3>${t.label}</h3><div class="rows">${catsFor(t.key).map(c=>`<div class="row"><span>${escapeHtml(c)}</span><strong>${money(b[t.key]?.[c]||0)}</strong></div>`).join('')||'<div class="empty">項目がありません</div>'}</div></div>`).join('')+`<button class="primary" onclick="openBudget()">予算を編集</button>`}
+function bindBudgetEditorActions(){
+  const editor=document.getElementById('budgetEditor');
+  if(!editor||editor.dataset.budgetActionsBound==='1')return;
+  editor.addEventListener('click',event=>{
+    if(!(event.target instanceof Element))return;
+    const button=event.target.closest('button[data-budget-action="edit"]');
+    if(button&&editor.contains(button))window.openBudget();
+  });
+  editor.dataset.budgetActionsBound='1';
+}
+function renderBudgetEditor(){bindBudgetEditorActions();const b=getBudget();const budgetTypes=TYPES.filter(t=>t.key!=='income'&&t.key!=='tax');budgetEditor.innerHTML=budgetTypes.map(t=>`<div class="budget-section" style="margin-bottom:10px"><h3>${t.label}</h3><div class="rows">${catsFor(t.key).map(c=>`<div class="row"><span>${escapeHtml(c)}</span><strong>${money(b[t.key]?.[c]||0)}</strong></div>`).join('')||'<div class="empty">項目がありません</div>'}</div></div>`).join('')+`<button class="primary" data-budget-action="edit">予算を編集</button>`}
 window.openBudget=()=>{
   const b=getBudget();
   const monthText=`${current.getFullYear()}年${current.getMonth()+1}月`;
