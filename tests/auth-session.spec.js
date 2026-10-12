@@ -1,4 +1,7 @@
 const {test,expect}=require('@playwright/test');
+// Routing must own all synthetic Auth/Data API requests; a Service Worker
+// can otherwise forward GET requests outside Playwright's page routes.
+test.use({serviceWorkers:'block'});
 
 const SESSION_KEY='kakeibo-sync-session-v1';
 const SUPABASE_PATTERN='https://blyyxmhehubufqzyqapq.supabase.co/**';
@@ -80,6 +83,7 @@ test('logout during a pending refresh never restores the session',async({page})=
   await mockCloud(page,{refreshedSession:session('new-access','new-refresh',Math.floor(Date.now()/1000)+3600)});
   await page.goto('/');
   await expect.poll(()=>page.locator('#syncSignedIn').evaluate(el=>el.hidden)).toBe(false);
+  await expect(page.locator('#syncStatusTitle')).toHaveText('同期済み');
   const result=await page.evaluate(async()=>{
     const original=window.fetch;
     let release;
@@ -91,7 +95,7 @@ test('logout during a pending refresh never restores the session',async({page})=
       return original(url,options)
     };
     const refreshing=refreshSyncSession();
-    await ready;
+    await Promise.race([ready,new Promise((resolve,reject)=>setTimeout(()=>reject(new Error('controlled refresh did not start')),5000))]);
     await signOutCloud();
     release();await refreshing;
     window.fetch=original;
