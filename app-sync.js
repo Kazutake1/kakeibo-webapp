@@ -14,8 +14,20 @@ let syncBusy=false;
 let syncPending=false;
 let syncCloudVersion;
 let suppressCloudSync=false;
+// This generation tracks account boundaries, not ordinary token rotation.
 function captureSyncIdentity(){return {generation:syncSessionGeneration,userId:syncUser?.id}}
 function isCurrentSyncIdentity(identity){return !!identity.userId&&identity.generation===syncSessionGeneration&&identity.userId===syncUser?.id}
+function adoptStoredSyncSession(stored){
+  const previousUserId=syncUser?.id||syncSession?.user?.id;
+  const sameUser=!!previousUserId&&previousUserId===stored.user?.id;
+  if(!sameUser){
+    syncSessionGeneration++;
+    clearTimeout(syncSaveTimer);syncSaveTimer=null;syncPending=false;syncCloudVersion=undefined;
+    finishSyncChoice(null);
+    setSyncStatus('','同期の確認が必要','ユーザーが変更されました。「今すぐ同期」でデータを確認してください')
+  }
+  syncSession=stored;syncUser=stored.user||null;scheduleSyncRefresh();updateSyncUI()
+}
 function syncHeaders(includeAuth=true){
   const h={'apikey':SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'};
   if(includeAuth&&syncSession?.access_token)h.Authorization='Bearer '+syncSession.access_token;
@@ -106,7 +118,7 @@ async function refreshSyncSession(){
     const stored=readStoredSyncSession();
     if(!stored)return false;
     if(stored&&stored.refresh_token!==refreshToken){
-      syncSession=stored;if(stored.user)syncUser=stored.user;scheduleSyncRefresh();updateSyncUI();return true
+      adoptStoredSyncSession(stored);return true
     }
     return performSyncSessionRefresh()
   };
@@ -119,12 +131,14 @@ async function refreshSyncSession(){
 async function supabaseFetch(path,options={},retry=true){
   if(!syncSession?.access_token)throw new Error('not signed in');
   const generation=syncSessionGeneration;
+  const accessToken=syncSession.access_token;
   const doFetch=()=>fetch(SUPABASE_URL+path,{...options,headers:{...syncHeaders(true),...(options.headers||{})}});
   let r=await doFetch();
   if(generation!==syncSessionGeneration)throw new Error('session changed');
-  if(r.status===401&&retry&&await refreshSyncSession()){
+  if(r.status===401&&retry){
+    const canRetry=syncSession?.access_token!==accessToken||await refreshSyncSession();
     if(generation!==syncSessionGeneration)throw new Error('session changed');
-    r=await doFetch()
+    if(canRetry||syncSession?.access_token!==accessToken)r=await doFetch()
   }
   if(generation!==syncSessionGeneration)throw new Error('session changed');
   return r
@@ -354,12 +368,10 @@ async function initCloudSync(){
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&syncSession&&sessionExpiresSoon())refreshSyncSession()});
   window.addEventListener('storage',event=>{
     if(event.key!==SYNC_SESSION_KEY)return;
-    syncSessionGeneration++;
-    if(!event.newValue){clearSyncRefreshTimer();clearTimeout(syncSaveTimer);syncSaveTimer=null;syncPending=false;syncCloudVersion=undefined;finishSyncChoice(null);syncSession=null;syncUser=null;updateSyncUI();return}
+    if(!event.newValue){syncSessionGeneration++;clearSyncRefreshTimer();clearTimeout(syncSaveTimer);syncSaveTimer=null;syncPending=false;syncCloudVersion=undefined;finishSyncChoice(null);syncSession=null;syncUser=null;updateSyncUI();return}
     const stored=readStoredSyncSession();
     if(!stored)return;
-    if(stored.user?.id!==syncUser?.id){clearTimeout(syncSaveTimer);syncSaveTimer=null;syncPending=false;syncCloudVersion=undefined;finishSyncChoice(null)}
-    syncSession=stored;syncUser=stored.user||syncUser;scheduleSyncRefresh();updateSyncUI()
+    adoptStoredSyncSession(stored)
   });
   loadSyncSession();
   if(syncSession){

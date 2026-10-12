@@ -4,6 +4,9 @@ for(const browserName of ['chromium','webkit']){
   test.describe(browserName+' iPad navigation',()=>{
     for(const mode of ['iPad','desktop-site']){
       test(mode+' keeps all five tabs reachable after scrolling and rotation',async()=>{
+        // Three widths × five panels × five tab visibility/hit checks.
+        // Keep per-assertion timeouts unchanged; only this compound case is longer.
+        test.setTimeout(60000);
         const browser=await require('@playwright/test')[browserName].launch();
         const page=await browser.newPage({hasTouch:true,baseURL:'http://127.0.0.1:4173'});
         try{

@@ -1,4 +1,5 @@
 const {test,expect}=require('@playwright/test');
+test.use({serviceWorkers:'block'});
 const fs=require('node:fs/promises');
 const LEGACY={income:{},tax:{},saving:{NISA:30000},self:{},fixed:{生命保険:25646,住宅ローン:60000,通信費:2181,Youtube:1280,'iCloud+':150,MoneyForward:550},special:{},variable:{セブンイレブン:20000,ローソン:0,ファミリーマート:0,スギ薬局:15000,ゲンキー:15000,その他:0,外食:0,インターネット:0,ネット通販:0,その他2:0}};
 const baseline={transactions:[{id:'fixture-income',date:'2025-01-02',type:'income',category:'給与',item:'合成テスト',amount:250000,amountExpression:'250000',memo:'旧月'}],budgets:{'2025-01':{fixed:{住宅ローン:60000,過去項目:1000},variable:{外食:0}}},categories:{}};
@@ -268,4 +269,76 @@ test('strict CSP rehearsal exposes blocked HTML handlers while external scripts 
   await page.locator('#budgetEditor button').click();
   await expect(page.locator('#budgetDialog')).not.toBeVisible();
   await expect.poll(()=>page.evaluate(()=>window.__cspViolations.includes('script-src-attr'))).toBe(true);
+});
+
+for(const operation of ['initial-read','upload']){
+  test(`same-user token rotation in another tab preserves an in-flight ${operation}`,async({page})=>{
+    await open(page,baseline);
+    const result=await page.evaluate(async({session,operation})=>{
+      syncSession=session;syncUser=session.user;persistSyncSession();syncCloudVersion=undefined;
+      let release,writes=0;fetchCloudState=()=>new Promise(resolve=>release=resolve);
+      insertCloudState=async()=>{writes++;return {sync_version:1}};
+      chooseSyncSource=async()=> 'cloud';
+      const pending=operation==='upload'?uploadCloudState():initialCloudSync();
+      const rotated={...session,access_token:'rotated-access',refresh_token:'rotated-refresh'};
+      const serialized=JSON.stringify(rotated);localStorage.setItem(SYNC_SESSION_KEY,serialized);
+      window.dispatchEvent(new StorageEvent('storage',{key:SYNC_SESSION_KEY,newValue:serialized}));
+      const cloud=operation==='upload'?null:{state:{transactions:[{id:'rotated-cloud',date:'2025-01-02',type:'income',category:'給与',amount:333}],budgets:{},categories:{}},sync_version:3};
+      release(cloud);const ok=await pending;
+      return {ok:operation==='upload'?ok:true,writes,version:syncCloudVersion,status:syncStatusTitle.textContent,amount:state.transactions[0].amount,user:syncUser.id,rotated:readStoredSyncSession().access_token==='rotated-access'};
+    },{session:fakeSession(),operation});
+    expect(result).toEqual({ok:true,writes:operation==='upload'?1:0,version:operation==='upload'?1:3,status:'同期済み',amount:operation==='upload'?250000:333,user:'synthetic-user',rotated:true});
+  });
+}
+
+test('a pending upload is cancelled at an account boundary without replacing local history',async({page})=>{
+  await open(page,baseline);
+  const result=await page.evaluate(async session=>{
+    syncSession=session;syncUser=session.user;persistSyncSession();syncCloudVersion=undefined;
+    const before=JSON.stringify(state);let release,writes=0;fetchCloudState=()=>new Promise(r=>release=r);insertCloudState=async()=>{writes++;return {sync_version:1}};
+    const pending=uploadCloudState();const next={...session,user:{id:'synthetic-next',email:'next@example.test'}};
+    const serialized=JSON.stringify(next);localStorage.setItem(SYNC_SESSION_KEY,serialized);
+    window.dispatchEvent(new StorageEvent('storage',{key:SYNC_SESSION_KEY,newValue:serialized}));
+    release(null);const ok=await pending;
+    return {ok,writes,user:syncUser.id,unchanged:JSON.stringify(state)===before,status:syncStatusTitle.textContent};
+  },fakeSession());
+  expect(result).toEqual({ok:false,writes:0,user:'synthetic-next',unchanged:true,status:'同期の確認が必要'});
+});
+
+test('401 after same-user token rotation retries with the current token without refreshing it again',async({page})=>{
+  await open(page);
+  const result=await page.evaluate(async session=>{
+    syncSession=session;syncUser=session.user;persistSyncSession();const used=[];let refreshes=0;
+    window.fetch=async(url,options)=>{
+      if(String(url).includes('grant_type=refresh_token')){refreshes++;throw Error('unexpected refresh')}
+      used.push(options.headers.Authorization);
+      if(used.length===1){
+        const rotated={...session,access_token:'rotated-access',refresh_token:'rotated-refresh'};const serialized=JSON.stringify(rotated);localStorage.setItem(SYNC_SESSION_KEY,serialized);
+        window.dispatchEvent(new StorageEvent('storage',{key:SYNC_SESSION_KEY,newValue:serialized}));
+        return new Response('{}',{status:401});
+      }
+      return new Response('[]',{status:200});
+    };
+    const response=await supabaseFetch('/rest/v1/kakeibo_user_state',{method:'GET'});
+    return {status:response.status,used,refreshes};
+  },fakeSession());
+  expect(result).toEqual({status:200,used:['Bearer synthetic-access','Bearer rotated-access'],refreshes:0});
+});
+
+test('a token rotated during a pending refresh is retained and retries the original 401 request',async({page})=>{
+  await open(page);
+  const result=await page.evaluate(async session=>{
+    syncSession=session;syncUser=session.user;persistSyncSession();const used=[];
+    window.fetch=async(url,options)=>{
+      if(String(url).includes('grant_type=refresh_token')){
+        const rotated={...session,access_token:'rotated-access',refresh_token:'rotated-refresh'};const serialized=JSON.stringify(rotated);localStorage.setItem(SYNC_SESSION_KEY,serialized);
+        window.dispatchEvent(new StorageEvent('storage',{key:SYNC_SESSION_KEY,newValue:serialized}));
+        return new Response('{}',{status:401});
+      }
+      used.push(options.headers.Authorization);return new Response(used.length===1?'{}':'[]',{status:used.length===1?401:200});
+    };
+    const response=await supabaseFetch('/rest/v1/kakeibo_user_state',{method:'GET'});
+    return {status:response.status,used,retained:readStoredSyncSession()?.refresh_token==='rotated-refresh',user:syncUser?.id};
+  },fakeSession());
+  expect(result).toEqual({status:200,used:['Bearer synthetic-access','Bearer rotated-access'],retained:true,user:'synthetic-user'});
 });
