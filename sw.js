@@ -1,6 +1,6 @@
 const CACHE_PREFIX='kakeibo-';
-const CACHE_NAME='kakeibo-v2.6.77-stable';
-const APP_SHELL=['./','./index.html','./style-base.css?v=2.6.77','./style-components.css?v=2.6.77','./style-theme.css?v=2.6.77','./style-pages.css?v=2.6.77','./app-data.js?v=2.6.77','./app-sync.js?v=2.6.77','./app-charts.js?v=2.6.77','./app-items.js?v=2.6.77','./app-daily.js?v=2.6.77','./app-ui.js?v=2.6.77','./manifest.json','./icon-192.png','./icon-512.png'];
+const CACHE_NAME='kakeibo-v2.6.78-stable';
+const APP_SHELL=['./','./index.html','./style-base.css?v=2.6.78','./style-components.css?v=2.6.78','./style-theme.css?v=2.6.78','./style-pages.css?v=2.6.78','./app-data.js?v=2.6.78','./app-sync.js?v=2.6.78','./app-charts.js?v=2.6.78','./app-items.js?v=2.6.78','./app-daily.js?v=2.6.78','./app-ui.js?v=2.6.78','./manifest.json','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith(CACHE_PREFIX)&&k!==CACHE_NAME).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',event=>{
