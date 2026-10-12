@@ -46,6 +46,8 @@ jobs:
         run: |
           for file in app-*.js sw.js; do node --check "$file"; done
           npm run version:check
+      - name: Use the Ubuntu HTTPS mirror for browser dependencies
+        run: printf '%s\n' 'https://archive.ubuntu.com/ubuntu' | sudo tee /etc/apt/apt-mirrors.txt > /dev/null
       - name: Install browser OS dependencies
         timeout-minutes: 5
         run: npx playwright install-deps chromium webkit
